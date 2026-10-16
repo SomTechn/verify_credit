@@ -103,7 +103,10 @@ label.f{display:block;font-size:12px;color:var(--ink2);margin:10px 0 4px;font-we
 /* Modal / hoja */
 .sheet{position:fixed;inset:0;z-index:40;background:var(--bg);overflow-y:auto;-webkit-overflow-scrolling:touch}
 .sheet .bar{position:sticky;top:0;z-index:2;background:var(--card);border-bottom:1px solid var(--line);display:flex;align-items:center;gap:10px;padding:10px 12px}
-.sheet .bar h2{flex:1;font-size:16px;margin:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sheet .bar h2{flex:1;font-size:24px;line-height:1.2;margin:0;text-align:center;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.sheet .bar #sheetBack{flex:0 0 96px;text-align:left}
+.sheet .bar #sheetChip{flex:0 0 96px;text-align:right}
+@media (max-width:600px){.sheet .bar h2{font-size:19px}.sheet .bar #sheetBack,.sheet .bar #sheetChip{flex-basis:64px}}
 .sheet .body{padding:12px 16px 60px;max-width:760px;margin:0 auto}
 .back{background:none;border:0;font-size:22px;padding:2px 8px;color:var(--ink)}
 .dlg-wrap{position:fixed;inset:0;z-index:60;background:rgba(0,0,0,.45);display:flex;align-items:flex-end;justify-content:center}
@@ -290,6 +293,38 @@ table.ht td.nota{max-width:220px;overflow:hidden;text-overflow:ellipsis;color:va
 @media (max-width:760px){.grid-ch{grid-template-columns:1fr}}
 .chart{overflow-x:auto}
 .chart svg{min-width:100%}
+/* Contrato de línea de crédito: hojas carta */
+.dvbox{background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:6px 10px;margin:4px 0 10px}
+.dvbox .dv{display:flex;flex-wrap:wrap;gap:2px 10px;align-items:baseline;padding:5px 0;border-bottom:1px dashed var(--line);font-size:13px}
+.dvbox .dv:last-child{border-bottom:0}
+.dvbox .dv > span:first-child{min-width:100px}
+.sheet .card.plegable > h4.sec:first-child{cursor:pointer;user-select:none;display:flex;align-items:center;gap:6px}
+.sheet .card.plegable > h4.sec:first-child::after{content:'▾';margin-left:auto;font-size:14px;color:var(--muted);transition:transform .15s}
+.sheet .card.plegada > h4.sec:first-child{margin-bottom:0}
+.sheet .card.plegada > h4.sec:first-child::after{transform:rotate(-90deg)}
+.sheet .card.plegada > :not(:first-child){display:none!important}
+.ct-pages{display:flex;flex-direction:column;gap:18px;align-items:center}
+.ct-page{width:8.5in;height:11in;background:#fff;color:#000;box-shadow:0 4px 18px rgba(0,0,0,.18);position:relative;overflow:hidden;font-family:Arial,Helvetica,sans-serif;font-size:9.2pt;line-height:1.27}
+.ct-page .hd{position:absolute;top:.35in;left:.75in;right:.75in;display:flex;align-items:center;justify-content:space-between;border-bottom:1.2pt solid #1877F2;padding-bottom:6pt}
+.ct-page .hd img{height:.55in}
+.ct-page .hd .rt{font-size:8pt;color:#0A2A66;text-align:right;line-height:1.3}
+.ct-page .bd{position:absolute;top:1.15in;left:.75in;right:.75in;bottom:.62in}
+.ct-page .ft{position:absolute;bottom:.32in;left:.75in;right:.75in;font-size:8pt;color:#555;display:flex;justify-content:space-between;border-top:.6pt solid #ccc;padding-top:4pt}
+.ct-page h1{font-size:12pt;text-align:center;font-weight:700;margin:0 0 10pt;letter-spacing:.3pt}
+.ct-page p{margin:0 0 5.5pt;text-align:justify}
+.ct-page .f{font-weight:700;text-decoration:underline}
+.ct-page .firmas{display:grid;grid-template-columns:1fr 3.45in;gap:.3in;margin-top:54pt;align-items:start}
+.ct-page .fcol{display:flex;flex-direction:column;gap:22pt}
+.ct-page .fila{display:grid;grid-template-columns:1fr .95in;gap:.18in;align-items:end}
+.ct-page .firma{text-align:center}
+.ct-page .firma .ln{border-top:1pt solid #000;padding-top:4pt;font-weight:700}
+.ct-page .firma .sm{font-size:8.6pt;margin-top:2pt}
+.ct-page .huella{height:1.05in;border:1pt solid #000;border-radius:4pt;position:relative}
+.ct-page .huella span{position:absolute;bottom:-14pt;left:0;right:0;text-align:center;font-size:8pt}
+.ct-page .dni{height:2.18in;border:1.2pt dashed #000;border-radius:10pt;display:flex;align-items:center;justify-content:center;text-align:center;font-weight:700;font-size:11pt;color:#444}
+.ct-page .acre{margin-top:34pt}
+.ct-page .bl{display:inline-block;width:1.4in;border-bottom:.8pt solid #000;height:9pt;vertical-align:baseline}
+@media print{.ct-pages{gap:0}.ct-page{box-shadow:none;page-break-after:always}}
 /* Reconocimiento de deuda: hoja carta idéntica al formato */
 .rd-wrap{position:fixed;inset:0;z-index:55;background:#dfe4ea;overflow:auto;display:flex;flex-direction:column}
 @media (prefers-color-scheme: dark){.rd-wrap{background:#0b1426}}
@@ -373,6 +408,8 @@ table.ht td.nota{max-width:220px;overflow:hidden;text-overflow:ellipsis;color:va
 <script>
 // App disponible sin señal (sw.js debe estar junto a index.html). Va primero para registrarse aunque falle otra cosa.
 if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) navigator.serviceWorker.register('sw.js').catch(() => {});
+// Versión de esta copia de la app: cambia en cada entrega. La app la compara con la publicada y se actualiza sola.
+const APP_VER = '2026-10-16.1445';
 // ================== Configuración ==================
 const SB_URL = 'https://edmvfqelxsxevpmxgbav.supabase.co';
 const SB_KEY = 'sb_publishable_lgTmmLtUESDDyX2sff6ArQ_z65Ti9d6';
@@ -399,7 +436,7 @@ const ACC = { creada:'Creó la solicitud', enviada_analisis:'Envió a análisis'
   dictamen_aprobada:'Aprobó', dictamen_denegada:'Denegó', enviada_verificacion:'Envió a verificación',
   enviada_desembolso:'Envió a desembolso por transferencia', verificacion_ok:'Verificación exitosa',
   verificacion_rechazada:'Rechazó en verificación', desembolsada:'Marcó como desembolsada', desistida:'Cliente desistió',
-  regresada_revisadas:'Regresó a revisadas', reasignada:'Reasignó la solicitud', ajuste_monto:'Ajustó el monto aprobado', ajuste_tasa:'Ajustó la tasa', reconocimiento_deuda:'Generó el reconocimiento de deuda', edicion_admin:'Editó la solicitud', cambio_estado_admin:'Cambió el estado (administrador)', en_espera:'Puso en espera', reanudada:'Reanudó la solicitud', ubicacion_domicilio:'Guardó la ubicación del domicilio', ubicacion_trabajo:'Guardó la ubicación del trabajo', verificador_asignado:'Asignó verificador' };
+  regresada_revisadas:'Regresó a revisadas', reasignada:'Reasignó la solicitud', ajuste_monto:'Ajustó el monto aprobado', ajuste_tasa:'Ajustó la tasa', reconocimiento_deuda:'Generó el documento para firma (contrato / reconocimiento de deuda', edicion_admin:'Editó la solicitud', cambio_estado_admin:'Cambió el estado (administrador)', en_espera:'Puso en espera', reanudada:'Reanudó la solicitud', ubicacion_domicilio:'Guardó la ubicación del domicilio', ubicacion_trabajo:'Guardó la ubicación del trabajo', verificador_asignado:'Asignó verificador', contrato_firmado:'Subió la foto del contrato firmado', politica_b_aplicada:'Aplicó política tipo B', politica_b_quitada:'Quitó política tipo B' };
 const CERRADAS = ['desembolsada','denegada','rechazada_verificacion','desistida'];
 
 const S = { user:null, me:null, perfiles:{}, params:{}, sols:[], com:{}, tab:null, q:'', filtroTodas:'abiertas',
@@ -463,7 +500,7 @@ const COLA = new Set(['crear_solicitud','enviar_analisis','dictaminar','completa
 const OB_DESC = { crear_solicitud:'Crear solicitud', enviar_analisis:'Enviar a análisis', dictaminar:'Dictamen', completar_solicitud:'Completar con el cliente',
   guardar_item:'Verificación', finalizar_verificacion:'Cerrar verificación', marcar_desembolsada:'Marcar desembolsada', desistir:'Cerrar (desistió)',
   poner_en_espera:'Poner en espera', reanudar:'Reanudar', guardar_ubicacion:'Ubicación', asignar_verificador:'Asignar verificador',
-  actualizar_datos_refi:'Datos del préstamo', actualizar_datos_analisis:'Datos de análisis', registrar_reconocimiento:'Reconocimiento de deuda',
+  actualizar_datos_refi:'Datos del préstamo', actualizar_datos_analisis:'Datos de análisis', registrar_reconocimiento:'Contrato de línea de crédito',
   regresar_a_revisadas:'Regresar a revisadas', 'ins:ingresos':'Agregar ingreso', 'upd:ingresos':'Editar ingreso', 'del:ingresos':'Borrar ingreso', 'ins:comentarios':'Comentario' };
 const opSid = op => op.t === 'rpc' ? (op.args.p_id ?? op.tmpId) : (op.row?.solicitud_id ?? op.sid);
 function opDesc(op){ const sid = opSid(op), so = S.sols.find(x => x.id === sid);
@@ -532,7 +569,7 @@ function aplicarOp(op, nuevo){
       if (it) Object.assign(it, { completado:a.p_completado, nota:a.p_nota, lat:a.p_lat ?? it.lat, lng:a.p_lng ?? it.lng, actualizado_por:S.me.id, actualizado_en:op.ts, _pend:true }); return; }
     case 'finalizar_verificacion': {
       if (!s) return;
-      if (nuevo && a.p_resultado === 'ok'){ const f = det(s.id).items.filter(i => !i.completado).length; if (f) throw new Error(`Faltan ${f} ítem(s) por completar`); }
+      if (nuevo && a.p_resultado === 'ok'){ const f = det(s.id).items.filter(i => !i.completado && itemAplica(s, i.item)).length; if (f) throw new Error(`Faltan ${f} ítem(s) por completar`); }
       if (nuevo && a.p_resultado !== 'ok' && !a.p_nota) throw new Error('Indique el motivo del rechazo');
       const d = a.p_resultado === 'ok' ? (s.forma_desembolso === 'efectivo' ? 'desembolsada' : 'desembolso_pendiente') : 'rechazada_verificacion';
       evento(s.id, 'verificacion_' + a.p_resultado, s.estado, d, a.p_nota);
@@ -673,7 +710,9 @@ function calcular(ingresos, tipoPago, rubro){
   const techo = rubro ? P.techo_rubro_especial : P.techo_regular;
   let limite, motivo;
   if (promedio === 0){ limite = 0; motivo = 'Sin ingresos registrados.'; }
-  else if (promedio < P.ingreso_minimo){ limite = null; motivo = 'Ingresos insuficientes.'; }
+  else if (promedio < (P.tipob_ingreso_min ?? 10000)){ limite = null; motivo = 'Ingresos insuficientes.'; }
+  else if (promedio < P.ingreso_minimo){ limite = Math.min(P.tipob_limite ?? 5000, Math.floor(promedio * P.porcentaje_limite / 1000) * 1000);
+    motivo = `Cliente tipo B por ingreso: tasa ${+((P.tipob_tasa ?? 0.2) * 100).toFixed(2)}% nivelado, máximo ${L(P.tipob_limite ?? 5000)}, plazo ${P.tipob_plazo ?? 3} meses.`; }
   else {
     limite = Math.min(techo, Math.floor(promedio * P.porcentaje_limite / 1000) * 1000);  // ROUNDDOWN(-3)
     motivo = promedio * P.porcentaje_limite > techo
@@ -685,8 +724,9 @@ function calcular(ingresos, tipoPago, rubro){
     if (rubro) aumento = 'NO ELEGIBLE';
     else { const d = new Date(hoyHN()+'T12:00'); d.setMonth(d.getMonth()+3); aumento = fDate(d); }
   }
-  return { promedio, limite, motivo, tasaPref: promedio > P.umbral_tasa_preferencial, aumento,
-    insuficiente: promedio > 0 && promedio < P.ingreso_minimo, nSal: sal.length, nCom: com.length, promPago: avg(sal), factor };
+  const tipoB = promedio >= (P.tipob_ingreso_min ?? 10000) && promedio < P.ingreso_minimo;
+  return { promedio, limite, motivo, tasaPref: !tipoB && promedio > P.umbral_tasa_preferencial, aumento, tipoB,
+    insuficiente: promedio > 0 && promedio < (P.tipob_ingreso_min ?? 10000), nSal: sal.length, nCom: com.length, promPago: avg(sal), factor };
 }
 
 // ================== Sesión ==================
@@ -711,8 +751,65 @@ async function init(){
   await Promise.all([cargarPerfiles(), cargarParams()]);
   await cargarSolicitudes();
   S.tab = tabsRol()[0][0];
+  // Si la app se recargó por una actualización, vuelve a donde estaba el usuario
+  let vuelta = null; try { vuelta = JSON.parse(sessionStorage.getItem('vc_vuelta') || 'null'); sessionStorage.removeItem('vc_vuelta'); } catch(e){}
+  if (vuelta && tabsRol().some(t => t[0] === vuelta.tab)) S.tab = vuelta.tab;
   pintarTabs(); pintar(); suscribir(); indicadorRed();
+  if (vuelta){ window.scrollTo(0, vuelta.y || 0); if (vuelta.det != null && S.sols.some(x => x.id === vuelta.det)) abrirDetalle(vuelta.det); if (vuelta.ver) toast(`✨ App actualizada a la versión más reciente`); }
   if (outbox().length) programarEnvio(1500);
+  vigilarVersion();
+}
+// ================== Actualización automática ==================
+// Revisa si hay una versión nueva publicada (al abrir, al volver a la app y cada 2 minutos).
+// Si la hay, recarga sola en un momento seguro: sin diálogos abiertos, sin cambios sin guardar y sin estar escribiendo.
+// Los cambios pendientes de enviar están guardados en el teléfono, así que no se pierden al recargar.
+const UPD = { firma: null, nueva: null, revisando: false, timer: null };
+async function revisarVersion(){
+  if (UPD.revisando || !navigator.onLine || !/^https?:$/.test(location.protocol)) return;
+  UPD.revisando = true;
+  try {
+    const url = location.pathname.replace(/[^/]*$/, '') + 'index.html';
+    // 1) consulta liviana (solo encabezados); 2) si cambió, baja el archivo y lee su versión
+    let firma = null;
+    try { const h = await fetch(url, { method: 'HEAD', cache: 'no-store' }); if (h.ok) firma = h.headers.get('etag') || h.headers.get('last-modified') || h.headers.get('content-length'); } catch(e){}
+    if (firma && UPD.firma === firma && !UPD.nueva) return;
+    const r = await fetch(url + '?vc=' + Date.now(), { cache: 'no-store' }); if (!r.ok) return;
+    const m = (await r.text()).match(new RegExp('const APP' + "_VER = '([^']+)'"));
+    UPD.firma = firma;
+    if (m && m[1] !== APP_VER){ UPD.nueva = m[1]; navigator.serviceWorker?.getRegistration?.().then(g => g && g.update()).catch(() => {}); intentarActualizar(); }
+  } catch(e){} finally { UPD.revisando = false; }
+}
+function momentoSeguro(){
+  if ((S.dlgs || []).some(w => w.isConnected)) return false;
+  if (S.dirty) return false;
+  const a = document.activeElement; if (a && /^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName) && a.value) return false;
+  return true;
+}
+function intentarActualizar(forzar){
+  if (!UPD.nueva) return;
+  if (!forzar && !momentoSeguro()){
+    if (!$('#updBar')){
+      const b = document.createElement('div'); b.id = 'updBar';
+      b.style.cssText = 'position:fixed;left:50%;transform:translateX(-50%);bottom:calc(14px + env(safe-area-inset-bottom));z-index:9999;background:#0A2A66;color:#fff;border-radius:12px;padding:10px 12px;display:flex;gap:10px;align-items:center;box-shadow:0 6px 20px rgba(0,0,0,.25);font-size:13px;max-width:calc(100% - 24px)';
+      b.innerHTML = '<span>✨ Hay una versión nueva. Se aplicará al terminar lo que está haciendo.</span><button class="btn sm" style="background:#FFD400;color:#0A2A66;white-space:nowrap" id="updYa">Actualizar ahora</button>';
+      document.body.appendChild(b); $('#updYa').onclick = () => intentarActualizar(true);
+    }
+    clearTimeout(UPD.timer); UPD.timer = setTimeout(() => intentarActualizar(), 8000);
+    return;
+  }
+  // Evita un ciclo de recargas si el servidor todavía entrega la copia anterior
+  try { const prev = JSON.parse(localStorage.getItem('vc_upd_intento') || 'null'); if (prev && prev.ver === UPD.nueva && Date.now() - prev.t < 600000 && !forzar) return; localStorage.setItem('vc_upd_intento', JSON.stringify({ ver: UPD.nueva, t: Date.now() })); } catch(e){}
+  try { sessionStorage.setItem('vc_vuelta', JSON.stringify({ tab: S.tab, det: $('#sheet').classList.contains('hidden') ? null : S.det, y: window.scrollY, ver: UPD.nueva })); } catch(e){}
+  // Dirección con ?v= para saltarse cualquier copia guardada del navegador
+  location.replace(location.pathname + '?v=' + encodeURIComponent(UPD.nueva) + location.hash);
+}
+function vigilarVersion(){
+  if (UPD.iniciado) return; UPD.iniciado = true;
+  revisarVersion();
+  setInterval(revisarVersion, 120000);
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) revisarVersion(); else if (UPD.nueva && momentoSeguro()) intentarActualizar(); });
+  window.addEventListener('online', revisarVersion);
+  window.addEventListener('focus', revisarVersion);
 }
 async function mostrarLogin(){
   $('#vApp').classList.add('hidden'); $('#vLogin').classList.remove('hidden');
@@ -794,7 +891,7 @@ function tabsRol(){
     revisadas:['revisadas','Revisadas', s => mio(s) && !s.importado && (s.estado === 'aprobada' || (s.estado === 'denegada' && dias(s.dictamen_en, 15)))],
     proceso:['proceso','En proceso', s => mio(s) && (['por_verificar','desembolso_pendiente'].includes(s.estado) || (s.estado==='desembolsada' && dias(s.desembolsado_en, 7)))],
     analisis:['analisis','Análisis', s => s.estado === 'en_analisis'],
-    verificar:['verificar','Por verificar', s => s.estado === 'por_verificar' && (!s.verificador_id || s.verificador_id === S.me.id || rol()==='admin')],
+    verificar:['verificar','Por verificar', s => s.estado === 'por_verificar' && (!s.verificador_id || s.verificador_id === S.me.id || ['admin','asesor','analista'].includes(rol()))],
     verificadas:['verificadas','Mis verificaciones', s => s.verificado_en && s.verificador_id === S.me.id],
     desembolsos:['desembolsos','Desembolsos', s => s.estado === 'desembolso_pendiente' || (s.estado === 'desembolsada' && dias(s.desembolsado_en, 7))],
     todas:['todas','Todas', s => true],
@@ -803,7 +900,7 @@ function tabsRol(){
     refi:['refi','Refinanciar'],
     stats:['stats','Estadísticas'], usuarios:['usuarios','Usuarios'], params:['params','Parámetros']
   };
-  const m = { asesor:['tablero','solicitudes','revisadas','proceso','todas','refi','historial','stats'],
+  const m = { asesor:['tablero','solicitudes','revisadas','proceso','verificar','todas','refi','historial','stats'],
     analista:['tablero','analisis','desembolsos','todas','refi','historial','stats'],
     verificador:['verificar','tablero','verificadas','historial','stats'],
     admin:['tablero','solicitudes','revisadas','analisis','verificar','desembolsos','todas','refi','historial','stats','usuarios','params'] };
@@ -1236,7 +1333,7 @@ function pintar(){
   $('#main').querySelectorAll('.sol').forEach(c => c.onclick = () => abrirDetalle(+c.dataset.id));
 }
 function asignarHTML(s){
-  if (es('analista')){
+  if (es('analista','asesor')){
     const vs = Object.values(S.perfiles).filter(p => p.rol === 'verificador' && p.activo);
     return `<div class="asig" data-stop>Verificador: <select data-asig="${s.id}"><option value="">— Sin asignar —</option>${vs.map(p => `<option value="${p.id}" ${p.id === s.verificador_id ? 'selected' : ''}>${esc(p.nombre)}</option>`).join('')}</select></div>`;
   }
@@ -1472,6 +1569,8 @@ function renderDetalle(){
     ${ed != null && ed < S.params.edad_minima ? `<div class="alert err small">⚠ Cliente de ${ed} años (mínimo ${S.params.edad_minima}).</div>` : ''}
   </div>`;
 
+  const verArriba = rol() === 'verificador' && items.some(i => itemAplica(s, i.item));
+  if (verArriba) h += verificacionHTML(s, items);
   if (s._pend) h += `<div class="alert warn small">⟳ Esta solicitud tiene cambios hechos sin señal que todavía no llegan al servidor. Se enviarán solos al volver la conexión.</div>`;
   if (S.offline) h += `<div class="alert info small">📴 Sin señal: mostrando la última copia guardada en el teléfono${S.detCache[s.id] ? '' : ' (el detalle de esta solicitud no se alcanzó a guardar)'}.</div>`;
   // En espera
@@ -1498,7 +1597,7 @@ function renderDetalle(){
         ${s.saldo_capital != null ? `<dt>Saldo capital</dt><dd>${L(s.saldo_capital)}</dd>` : ''}
         ${s.saldo_intereses != null ? `<dt>Saldo intereses</dt><dd>${L(s.saldo_intereses)}</dd>` : ''}
         ${libre != null && s.tipo !== 'nuevo' ? `<dt>Monto libre</dt><dd>${L(libre)}</dd>` : ''}
-        ${s.tasa_preferencial ? `<dt>Tasa</dt><dd>Preferencial</dd>` : ''}
+        ${s.politica_b ? `<dt>Política</dt><dd><b>Tipo B</b> · ${+((S.params.tipob_tasa ?? 0.2) * 100).toFixed(2)}% nivelado · ${(S.params.tipob_plazo ?? 3)} meses</dd>` : s.tasa_preferencial ? `<dt>Tasa</dt><dd>Preferencial</dd>` : ''}
         ${s.dictamen_nota ? `<dt>Nota</dt><dd>${esc(s.dictamen_nota)}</dd>` : ''}
       </dl></div>`;
   }
@@ -1506,9 +1605,16 @@ function renderDetalle(){
   // Documentos: reconocimiento de deuda (habilitado desde que se aprueba)
   if (reconocimientoHabilitado(s)){
     const gen = [...evs].reverse().find(e => e.accion === 'reconocimiento_deuda');
-    h += `<div class="card row" style="gap:12px;flex-wrap:wrap"><div style="flex:1;min-width:180px"><b>📄 Reconocimiento de deuda</b>
-      <div class="small muted">${gen ? `Último: ${esc(nombre(gen.usuario_id))} · ${fDT(gen.creado_en)}` : 'Vista previa, imprimir o descargar en PDF.'}</div></div>
-      <button class="btn pri" id="rdAbrir">Ver documento</button></div>`;
+    h += `<div class="card row" style="gap:12px;flex-wrap:wrap"><div style="flex:1;min-width:180px"><b>📄 Contrato de apertura de línea de crédito</b>
+      <div class="small muted">${gen ? `Último: ${esc(nombre(gen.usuario_id))} · ${fDT(gen.creado_en)}` : 'Documento que firma el cliente: vista previa, imprimir o descargar en PDF.'}</div></div>
+      <button class="btn pri" id="rdAbrir">Ver contrato</button>
+      <div style="flex-basis:100%;border-top:1px solid var(--line);padding-top:10px;display:flex;gap:12px;align-items:center;flex-wrap:wrap">
+        ${s.contrato_firmado_path ? `<img id="cfThumb" data-cf="${esc(s.contrato_firmado_path)}" alt="Contrato firmado" style="width:72px;height:72px;object-fit:cover;border-radius:8px;border:1px solid var(--line);cursor:pointer;background:var(--gray-bg)">` : ''}
+        <div style="flex:1;min-width:180px"><b>📸 Contrato firmado</b>
+          <div class="small muted">${s.contrato_firmado_path ? `Subido por ${esc(nombre(s.contrato_firmado_por))} · ${fDT(s.contrato_firmado_en)}` : 'Tome o suba las fotos de las hojas firmadas: se unen en una sola imagen para descargar y subir al sistema oficial.'}</div></div>
+        ${s.contrato_firmado_path ? `<button class="btn ghost sm" id="cfDescargar">⬇ Descargar</button>` : ''}
+        <button class="btn ${s.contrato_firmado_path ? 'ghost sm' : 'ok'}" id="cfSubir">${s.contrato_firmado_path ? 'Reemplazar' : '📸 Subir fotos firmadas'}</button>
+      </div></div>`;
   }
   // Análisis de ingresos
   const mostrarIng = s.tipo === 'nuevo' || ing.length || editIng;
@@ -1537,14 +1643,15 @@ function renderDetalle(){
         ${s.dictamen_en && s.monto_aprobado ? `<div class="box"><div class="l">Límite aprobado</div><div class="v">${L(s.monto_aprobado)}</div>
           <div class="small" style="font-weight:600;color:var(--brand)">${autorizadoPor(s, 'ajuste_monto')}</div>${c.limite !== +s.monto_aprobado ? `<div class="small muted">Calculado: ${c.limite == null ? 'Insuficiente' : L(c.limite)}</div>` : ''}</div>`
         : `<div class="box" style="${c.insuficiente?'background:var(--red-bg)':''}"><div class="l">Límite aprobado</div><div class="v">${c.limite == null ? 'Insuficiente' : L(c.limite)}</div></div>`}
-        <div class="box"><div class="l">Tasa preferencial</div><div class="v">${(s.dictamen_en && s.tasa_preferencial != null ? s.tasa_preferencial : c.tasaPref) ? 'SÍ' : 'NO'}</div>
+        ${c.tipoB || s.politica_b ? `<div class="box" style="background:var(--r-verificacion-bg,#f3e8ff)"><div class="l">Tasa</div><div class="v">🅱️ Tipo B · ${+((S.params.tipob_tasa ?? 0.2) * 100).toFixed(2)}%</div><div class="small muted">nivelado · ${S.params.tipob_plazo ?? 3} meses</div></div>` : ''}
+        <div class="box" ${c.tipoB || s.politica_b ? 'style="display:none"' : ''}><div class="l">Tasa preferencial</div><div class="v">${(s.dictamen_en && s.tasa_preferencial != null ? s.tasa_preferencial : c.tasaPref) ? 'SÍ' : 'NO'}</div>
           ${s.dictamen_en && s.tasa_preferencial != null && !!s.tasa_preferencial !== c.tasaPref ? `<div class="small muted">Calculada: ${c.tasaPref ? 'SÍ' : 'NO'}</div>` : ''}</div>
         <div class="box"><div class="l">Próximo aumento</div><div class="v" style="font-size:15px">${c.aumento || 'N/A'}</div></div>
         <div class="box full"><div class="l">Techo aplicado</div><div style="font-weight:600">${c.motivo}</div>
           <div class="small muted">Promedio por pago ${L(c.promPago.toFixed(2))} × ${c.factor} ${c.nCom ? '+ promedio comisiones' : ''} → redondeado a ${S.params.redondeo}</div></div>
       </div>
       ${s.dictamen_en && s.monto_solicitado && +s.monto_solicitado !== +s.monto_aprobado ? `<div class="alert info small" style="margin-top:10px">El cliente toma <b>${L(s.monto_solicitado)}</b> de ${L(s.monto_aprobado)} aprobados.</div>` : ''}
-      ${cuotasPlazoHTML(s.dictamen_en && s.monto_aprobado ? +(s.monto_solicitado || s.monto_aprobado) : (c.limite || 0), s.dictamen_en && s.tasa_preferencial != null ? !!s.tasa_preferencial : c.tasaPref, s.tipo_pago, c.promedio)}
+      ${cuotasPlazoHTML(s.dictamen_en && s.monto_aprobado ? +(s.monto_solicitado || s.monto_aprobado) : (c.limite || 0), s.dictamen_en && s.tasa_preferencial != null ? !!s.tasa_preferencial : c.tasaPref, s.tipo_pago, c.promedio, null, c.tipoB || s.politica_b ? { tasa: S.params.tipob_tasa ?? 0.2, plazo: S.params.tipob_plazo ?? 3 } : null)}
       </div>`}`;
   }
   // Análisis de refinanciamiento / reingreso (antigüedad, comportamiento de pago, cuotas)
@@ -1560,7 +1667,7 @@ function renderDetalle(){
   h += accionesHTML(s, c);
 
   // Verificación
-  if (items.length) h += verificacionHTML(s, items);
+  if (items.length && !verArriba) h += verificacionHTML(s, items);
 
   // Comentarios
   h += `<div class="card"><h4 class="sec" style="margin-top:0">Comentarios</h4><div id="cmList"><div class="muted small">Cargando…</div></div>
@@ -1571,7 +1678,20 @@ function renderDetalle(){
 
   $('#sheetTitle').textContent = s.nombre_cliente; $('#sheetChip').innerHTML = chip(s.estado);
   $('#sheetBody').innerHTML = h;
+  plegarSecciones();
   enlazarDetalle(s, c);
+}
+// Cada sección del detalle se puede contraer. Asesor/analista/admin: todo abierto; verificador: solo Verificación abierta
+function plegarSecciones(){
+  S.pleg = S.pleg || {};
+  $('#sheetBody').querySelectorAll(':scope > .card').forEach(card => {
+    const h = card.firstElementChild; if (!h || !h.matches('h4.sec')) return;
+    const key = h.textContent.replace(/\(.*?\)|·.*$/g, '').trim();
+    card.classList.add('plegable');
+    const def = rol() === 'verificador' ? !/^Verificación/.test(key) : false;
+    card.classList.toggle('plegada', S.pleg[key] ?? def);
+    h.onclick = () => { const v = !card.classList.contains('plegada'); card.classList.toggle('plegada', v); S.pleg[key] = v; };
+  });
 }
 // ================== Ubicación de verificación ==================
 const CIUDADES = ['San Pedro Sula','Choloma','Villanueva','La Lima','El Progreso','Puerto Cortés','Otra'];
@@ -1615,7 +1735,7 @@ function locHTML(s, extra){
 function ubicacionHTML(s){
   const abierta = !CERRADAS.includes(s.estado);
   const edit = abierta || rol() === 'admin';
-  const tieneTrab = s.trab_lat != null || s.trab_sector || s.actualizar_trabajo || s.tipo === 'nuevo';
+  const tieneTrab = s.trab_lat != null || s.trab_sector || s.actualizar_trabajo || (s.tipo === 'nuevo' && s.estado === 'aprobada');
   const bloque = (lugar, ico, tit) => {
     const k = lugar === 'domicilio' ? 'dom' : 'trab';
     const lat = s[k + '_lat'], lng = s[k + '_lng'], sec = s[k + '_sector'], ciu = s[k + '_ciudad'], ref = s[k + '_ref'];
@@ -1734,7 +1854,8 @@ function accionesHTML(s, c){
   if (s.estado === 'en_analisis' && es('analista')){
     const refi = s.tipo !== 'nuevo';
     h += `<div class="card"><h4 class="sec" style="margin-top:0">Dictamen</h4>
-      ${c.insuficiente ? `<div class="alert err small">Ingresos por debajo del mínimo (${L(S.params.ingreso_minimo)}).</div>` : ''}
+      ${c.insuficiente ? `<div class="alert err small">Ingresos por debajo del mínimo (${L(S.params.tipob_ingreso_min ?? 10000)}).</div>` : ''}
+      ${s.tipo === 'nuevo' && c.tipoB ? `<div class="alert small" style="background:var(--r-verificacion-bg,#f3e8ff)">🅱️ Cliente tipo B por ingreso: máximo ${L(S.params.tipob_limite ?? 5000)}, tasa ${+((S.params.tipob_tasa ?? 0.2) * 100).toFixed(2)}% nivelado, plazo ${S.params.tipob_plazo ?? 3} meses.</div>` : ''}
       ${refi ? `<div id="dSug">${dictamenRefiHTML(calcRefi(s, c))}</div>` : ''}
       <label class="f">Monto aprobado</label><input id="dMonto" inputmode="decimal" value="${s.tipo==='nuevo' ? (c.limite || '') : (calcRefi(s, c).limAprob || '')}" placeholder="L">
       ${refi ? `<div class="alert info small" id="dLibre">Monto libre: —</div>` : ''}
@@ -1769,7 +1890,7 @@ function completarHTML(s){
   const nuevo = s.tipo === 'nuevo';
   const verifs = Object.values(S.perfiles).filter(p => p.rol === 'verificador' && p.activo);
   return `<div class="card" id="cForm"><h4 class="sec" style="margin-top:0">Completar con el cliente</h4>
-    <div class="alert ok small">Aprobada por ${L(s.monto_aprobado)}${s.tipo !== 'nuevo' && montoLibre(s) != null ? ` · Monto libre ${L(montoLibre(s))}` : ''}</div>
+    <div class="alert ok small">Aprobada por ${L(s.monto_aprobado)}${s.tipo !== 'nuevo' && montoLibre(s) != null ? ` · Monto libre ${L(montoLibre(s))}` : ''}${s.politica_b ? `<br><b>🅱️ Política tipo B:</b> tasa ${+((S.params.tipob_tasa ?? 0.2) * 100).toFixed(2)}% mensual nivelado · plazo ${(S.params.tipob_plazo ?? 3)} meses` : ''}</div>
     <h4 class="sec">Verificación en campo</h4>
     ${nuevo ? `
       <div class="seg" id="cVerTipo"><button type="button" data-v="1" class="${s.actualizar_trabajo === false && s.forma_desembolso ? '' : 'on'}">🏠 Domicilio y 🏢 trabajo</button><button type="button" data-v="0" class="${s.actualizar_trabajo === false && s.forma_desembolso ? 'on' : ''}">🏠 Solo domicilio</button></div>
@@ -1793,17 +1914,34 @@ function completarHTML(s){
   </div>`;
 }
 
+// Qué puntos aplican: si el desembolso es por transferencia no hay entrega de efectivo; trabajo solo si se marcó
+const itemAplica = (s, it) => it === 'domicilio' ? (s.tipo === 'nuevo' || !!s.actualizar_domicilio) : it === 'trabajo' ? !!s.actualizar_trabajo : it === 'entrega_efectivo' ? s.forma_desembolso === 'efectivo' : true;
+function datosVisitaHTML(s){
+  const lug = (k, ico, t) => { const lat = s[k + '_lat'], sec = s[k + '_sector'], ciu = s[k + '_ciudad'], ref = s[k + '_ref'];
+    return `<div class="dv"><span>${ico} <b>${t}</b></span><span>${esc([sec, ciu].filter(Boolean).join(' · ') || 'Sin sector registrado')}${ref ? ' · ' + esc(ref) : ''}</span>
+      ${lat != null ? `<a href="${linkRuta(lat, s[k + '_lng'])}" target="_blank" rel="noopener">🧭 Cómo llegar</a>` : '<span class="muted small">sin coordenadas</span>'}</div>`; };
+  const libre = montoLibre(s);
+  return `<div class="dvbox">
+    ${s.telefono ? `<div class="dv"><span>📞 <b>Teléfono</b></span><span><a href="tel:${esc(s.telefono)}">${esc(s.telefono)}</a> · <a href="https://wa.me/504${esc(s.telefono.replace(/\D/g,'').slice(-8))}" target="_blank">WhatsApp</a></span></div>` : ''}
+    ${s.dni ? `<div class="dv"><span>🪪 <b>Identidad</b></span><span>${esc(s.dni)}</span></div>` : ''}
+    ${itemAplica(s, 'domicilio') ? lug('dom', '🏠', 'Domicilio') : ''}
+    ${itemAplica(s, 'trabajo') ? lug('trab', '🏢', 'Trabajo') : ''}
+    <div class="dv"><span>${s.forma_desembolso === 'efectivo' ? '💵' : '🏦'} <b>Desembolso</b></span><span>${s.forma_desembolso === 'efectivo' ? `Efectivo · <b>entregar ${L(libre)}</b>` : `Transferencia${s.cuenta_banco ? ' · ' + esc(s.cuenta_banco) : ''} · no entrega efectivo`}</span></div>
+  </div>`;
+}
 function verificacionHTML(s, items){
+  items = items.filter(i => itemAplica(s, i.item));
   const edit = (s.estado === 'por_verificar' && es('verificador')) || rol() === 'admin';
   const fin = s.estado === 'por_verificar' && es('verificador');
   const hechos = items.filter(i => i.completado).length;
-  return `<div class="card"><h4 class="sec" style="margin-top:0">Verificación (${hechos}/${items.length})</h4>
+  return `<div class="card" id="verifCard"><h4 class="sec" style="margin-top:0">Verificación (${hechos}/${items.length})</h4>
+    ${datosVisitaHTML(s)}
     ${items.map(i => `<div class="item ${i.completado?'done':''}" data-item="${i.item}">
       <div class="hd"><input type="checkbox" ${i.completado?'checked':''} ${edit?'':'disabled'} data-ck>${ITEM[i.item]}<span class="spacer"></span>
         ${i.lat ? `<a class="small" target="_blank" href="https://maps.google.com/?q=${i.lat},${i.lng}">📍 Mapa</a>` : ''}</div>
       ${edit ? `<input data-nota placeholder="Nota" value="${esc(i.nota||'')}" style="margin-top:8px">
         <div class="row" style="margin-top:8px">
-          <button class="btn sm ghost" data-gps>📍 Capturar GPS</button>
+          <button class="btn sm ghost" data-gps>📍 ${i.lat ? 'Actualizar GPS' : 'Capturar GPS'}</button>
           <span class="small muted" data-st>${i.actualizado_por ? 'Guardado ' + hace(i.actualizado_en) : ''}</span></div>`
       : (i.nota ? `<div class="small" style="margin-top:6px">${esc(i.nota)}</div>` : '')}
       ${i.foto_path ? `<div class="thumbs"><img data-path="${esc(i.foto_path)}" alt="foto"></div>` : ''}
@@ -1862,7 +2000,18 @@ function enlazarDetalle(s, c){
     try { await navigator.clipboard.writeText(txt); toast('Resumen copiado. Péguelo en el grupo.'); }
     catch(e){ const w = dialogo(`<h3>Resumen</h3><textarea rows="10" readonly>${esc(txt)}</textarea><div class="btns"><button class="btn pri" data-close>Cerrar</button></div>`); w.querySelector('textarea').select(); }
   };
-  if ($('#rdAbrir')) $('#rdAbrir').onclick = () => abrirReconocimiento(S.detData.s);
+  if ($('#rdAbrir')) $('#rdAbrir').onclick = () => abrirContrato(S.detData.s);
+  if ($('#cfSubir')) $('#cfSubir').onclick = () => abrirContratoFirmado(S.detData.s);
+  if ($('#cfThumb') || $('#cfDescargar')) (async () => {
+    const cs = S.detData.s, path = cs.contrato_firmado_path; let url = null;
+    try { const { data } = await sb.storage.from('evidencias').createSignedUrl(path, 3600); url = data?.signedUrl; } catch(e){}
+    const th = $('#cfThumb'); if (th && url){ th.src = url; th.onclick = () => window.open(url, '_blank'); }
+    const dl = $('#cfDescargar');
+    if (dl) dl.onclick = () => run(dl, async () => {
+      if (!url) throw new Error('Se necesita conexión para descargar la foto guardada');
+      const b = await (await fetch(url)).blob(); descargarBlob(b, nombreContratoFirmado(cs));
+    });
+  })();
   if ($('#dAsesor')) $('#dAsesor').onchange = e => run(e.target, async () => { await rpc('reasignar_asesor', { p_id: s.id, p_asesor: e.target.value }); toast('Asesor reasignado'); await refrescar(); });
   // Asesor: enviar
   if ($('#aEnviar')) $('#aEnviar').onclick = e => {
@@ -1882,6 +2031,9 @@ function enlazarDetalle(s, c){
       if (tipo === 'aprobada' && c.limite && s.tipo === 'nuevo' && num($('#dMonto').value) > c.limite && !confirm(`El monto supera el límite calculado (${L(c.limite)}). ¿Aprobar de todos modos?`)) return;
       const cs = S.detData.s, rf = cs.tipo !== 'nuevo' ? calcRefi(cs, calcular(S.detData.ing, cs.tipo_pago, cs.rubro_especial)) : null;
       if (tipo === 'aprobada' && s.tipo === 'nuevo' && c.insuficiente && !confirm('Los ingresos están por debajo del mínimo. ¿Aprobar de todos modos?')) return;
+      if (tipo === 'aprobada' && rf && rf.politicaB && num($('#dMonto').value) > rf.B.limite) throw new Error(`Política tipo B: el monto máximo es ${L(rf.B.limite)}`);
+      if (tipo === 'aprobada' && !rf && c.tipoB && num($('#dMonto').value) > (S.params.tipob_limite ?? 5000)) throw new Error(`Cliente tipo B: el monto máximo es ${L(S.params.tipob_limite ?? 5000)}`);
+      if (tipo === 'aprobada' && !cs.politica_b && ((rf && rf.ingresoB) || (!rf && c.tipoB))) await rpc('actualizar_datos_refi', { p_id: s.id, p_datos: { politica_b: true, plazo_meses: S.params.tipob_plazo ?? 3 } });
       if (tipo === 'aprobada' && rf && rf.dictamen === 'RECHAZADO' && !confirm(`El análisis sugiere RECHAZADO (${rf.motivos.join('; ')}). ¿Aprobar de todos modos?`)) return;
       if (tipo === 'aprobada' && rf && rf.limAprob && num($('#dMonto').value) > rf.limAprob && !confirm(`El monto supera el límite aprobado calculado (${L(rf.limAprob)}). ¿Aprobar de todos modos?`)) return;
       const snap = rf ? { tipo:'refinanciamiento', ...rf, cuotas: rf.cuotas, promedio: rf.prom } : { tipo:'nuevo', ...c };
@@ -1925,7 +2077,15 @@ function enlazarDetalle(s, c){
       el.classList.toggle('done', el.querySelector('[data-ck]').checked);
       if (extra.foto || extra.lat) { const y = $('#sheet').scrollTop; await abrirDetalle(s.id, true); $('#sheet').scrollTop = y; }
     });
-    const ck = el.querySelector('[data-ck]'); if (ck && !ck.disabled) ck.onchange = () => guardar();
+    // Al marcar un punto como realizado se registra la visita con hora y GPS del teléfono
+    const ck = el.querySelector('[data-ck]'); if (ck && !ck.disabled) ck.onchange = () => {
+      if (!ck.checked || !navigator.geolocation) return guardar();
+      ck.disabled = true; if (st) st.textContent = '📍 Tomando ubicación…';
+      navigator.geolocation.getCurrentPosition(
+        p => { ck.disabled = false; guardar({ lat: p.coords.latitude, lng: p.coords.longitude }); },
+        () => { ck.disabled = false; toast('Visita guardada sin GPS (no se pudo obtener la ubicación). Puede usar "Capturar GPS".', true); guardar(); },
+        { enableHighAccuracy:true, timeout:10000, maximumAge:60000 });
+    };
     const nt = el.querySelector('[data-nota]'); if (nt) nt.onchange = () => guardar();
     const gps = el.querySelector('[data-gps]');
     if (gps) gps.onclick = () => {
@@ -2207,12 +2367,25 @@ function calcRefi(s, c){
   const total = pagos.filter(p => p.valor != null && !isNaN(p.valor)).length;
   const manual = s.pct_manual != null && s.pct_manual !== '';
   // Penalización por pagos tardíos (>3 días):
-  //  0–1 → sin efecto · 2 → se mantiene el límite actual aunque aplique para más · 3+ → −10% por cada tardío sobre el límite actual
+  //  0–1 → sin efecto · 2 → se mantiene el límite actual aunque aplique para más
+  //  3+ → −10% del límite ACTUAL por cada tardío desde el tercero (3 = −10%, 4 = −20%, 5 = −30%…)
+  //  Bloqueo: algún pago con 45+ días de atraso, o el límite reducido queda por debajo de L 5,000
   const baseMantiene = limAct > 0 ? Math.min(sugerido, limAct) : sugerido;
-  const pctAprob = manual ? +s.pct_manual : (tard3 > 5 ? 0 : tard3 >= 3 ? Math.max(0, 1 - tard3 * 0.1) : 1);
+  const pctAprob = manual ? +s.pct_manual : (tard3 >= 3 ? Math.max(0, 1 - (tard3 - 2) * 0.1) : 1);
   const basePen = manual ? sugerido : tard3 >= 2 ? baseMantiene : sugerido;
-  const limCalc = mround(basePen * pctAprob, 1000);
-  const penTxt = manual ? 'manual' : tard3 > 5 ? 'más de 5 tardíos: bloqueado' : tard3 >= 3 ? `−${tard3 * 10}% sobre límite actual ${L(baseMantiene)}` : tard3 === 2 ? `2 tardíos: mantiene límite actual ${L(baseMantiene)}` : tard3 === 1 ? '1 tardío: sin efecto' : 'sin pagos tardíos';
+  const maxDif = pagos.reduce((m, p) => Math.max(m, p.dif || 0), 0);
+  const bloqDias = P.bloqueo_dias_atraso ?? 45, limMin = P.limite_minimo_bloqueo ?? 5000;
+  const limPen = mround(basePen * pctAprob, 1000);
+  const bloq45 = maxDif >= bloqDias, bloqMin = !manual && tard3 >= 3 && limPen < limMin, bloqueado = bloq45 || bloqMin;
+  // Política tipo B: 20% nivelado, máx. L 5,000, plazo 3 meses. Entra automático si el ingreso está entre L 10,000 y el mínimo normal (13,000);
+  // por pagos tardíos sin mucha mora lo decide el analista
+  const B = { tasa: P.tipob_tasa ?? 0.20, limite: P.tipob_limite ?? 5000, minT: P.tipob_min_tardios ?? 3, maxD: P.tipob_max_dias ?? 15, plazo: P.tipob_plazo ?? 3, ingMin: P.tipob_ingreso_min ?? 10000 };
+  const ingresoB = prom >= B.ingMin && prom < (P.ingreso_minimo ?? 13000), ingresoBajo = prom > 0 && prom < B.ingMin;
+  const politicaB = !!s.politica_b || ingresoB;
+  const sugB = s.tipo !== 'nuevo' && tard3 >= B.minT && maxDif <= B.maxD && !bloq45;
+  const limB = Math.min(B.limite, mround(sugerido, 1000) || B.limite);
+  const limCalc = politicaB ? limB : bloqueado ? 0 : limPen;
+  const penTxt = politicaB ? `política tipo B: máximo ${L(B.limite)}` : manual ? 'manual' : bloq45 ? `bloqueado: pago con ${maxDif} días de atraso (desde ${bloqDias})` : bloqMin ? `bloqueado: −${(tard3 - 2) * 10}% deja ${L(limPen)}, menor a ${L(limMin)}` : tard3 >= 3 ? `−${(tard3 - 2) * 10}% sobre límite actual ${L(baseMantiene)}` : tard3 === 2 ? `2 tardíos: mantiene límite actual ${L(baseMantiene)}` : tard3 === 1 ? '1 tardío: se deja pasar, sin efecto' : 'sin pagos tardíos';
   // Después del dictamen manda el monto autorizado (puede haberse ajustado manualmente)
   const autorizado = !!(s.dictamen_en && s.monto_aprobado);
   const limAprob = autorizado ? +s.monto_aprobado : limCalc;
@@ -2226,33 +2399,37 @@ function calcRefi(s, c){
   const prefCalc = yaPref ? tard3 <= 2 : prefNueva;
   const prefMotivo = yaPref ? (tard3 <= 2 ? 'Mantiene la preferencial que ya tenía' : `Pierde la preferencial: ${tard3} pagos tardíos (máx. 2)`) : '';
   // Después del dictamen manda lo que quedó autorizado (puede haberse ajustado manualmente)
-  const pref = s.dictamen_en && s.tasa_preferencial != null ? !!s.tasa_preferencial : prefCalc;
-  const tasaNiv = pref ? 0.105 : 0.14, tasaSI = pref ? 0.16 : 0.20;
-  const tasaNueva = s.plan_pago === 'solo_interes' ? tasaSI : tasaNiv;
-  const cuotas = [3, 6, 8, 10, 12].map(n => { const q = limAprob / n + limAprob * tasaNiv; return { plazo: `${n} meses`, cuota: q, pct: prom ? q / prom : null }; });
-  const qsi = limAprob * tasaSI; cuotas.push({ plazo: 'Solo interés', cuota: qsi, pct: prom ? qsi / prom : null });
+  const pref = politicaB ? false : s.dictamen_en && s.tasa_preferencial != null ? !!s.tasa_preferencial : prefCalc;
+  const tasaNiv = politicaB ? B.tasa : pref ? 0.105 : 0.14, tasaSI = pref ? 0.16 : 0.20;
+  const tasaNueva = politicaB ? B.tasa : s.plan_pago === 'solo_interes' ? tasaSI : tasaNiv;
+  const plazos = politicaB ? [B.plazo] : [3, 6, 8, 10, 12];
+  const cuotas = plazos.map(n => { const q = limAprob / n + limAprob * tasaNiv; return { plazo: `${n} meses`, cuota: q, pct: prom ? q / prom : null }; });
+  const qsi = limAprob * tasaSI; if (!politicaB) cuotas.push({ plazo: 'Solo interés', cuota: qsi, pct: prom ? qsi / prom : null });
   const motivos = [];
-  if (tard3 > 5) motivos.push('más de 5 pagos tardíos');
-  // Se rechaza solo si NINGÚN plazo nivelado (3 a 12 meses) queda dentro del 25% del ingreso
-  const viables = cuotas.slice(0, 5).filter(q => q.pct != null && q.pct <= 0.25);
+  if (ingresoBajo) motivos.push(`ingreso menor a ${L(B.ingMin)}`);
+  if (bloq45) motivos.push(`pago con ${maxDif} días de atraso (bloqueo desde ${bloqDias})`);
+  else if (bloqMin && !politicaB) motivos.push(`límite reducido a ${L(limPen)}, menor a ${L(limMin)}`);
+  if (politicaB && autorizado && +s.monto_aprobado > B.limite) motivos.push(`monto mayor al máximo tipo B (${L(B.limite)})`);
+  // Se rechaza solo si NINGÚN plazo nivelado (3 a 12 meses; en tipo B 3 o 4) queda dentro del 25% del ingreso
+  const viables = cuotas.slice(0, plazos.length).filter(q => q.pct != null && q.pct <= 0.25);
   const plazoMin = prom ? (viables[0]?.plazo || null) : null;
   if (prom && !viables.length) motivos.push('ningún plazo deja la cuota dentro del 25% del ingreso');
-  if (disponible < (P.disponible_minimo ?? 2000)) motivos.push(`disponible menor a ${L(P.disponible_minimo ?? 2000)}`);
+  if (!(bloqueado && !politicaB) && disponible < (P.disponible_minimo ?? 2000)) motivos.push(`disponible menor a ${L(P.disponible_minimo ?? 2000)}`);
   let dictamen;
   if (motivos.length) dictamen = 'RECHAZADO';
-  else if (tard3 > 0 || prom < P.ingreso_minimo){ dictamen = 'REQUIERE APROBACIÓN ESPECIAL';
-    if (tard3 > 0) motivos.push(`${tard3} pago(s) tardío(s)`); if (prom < P.ingreso_minimo) motivos.push('ingreso bajo el mínimo'); }
+  else if (politicaB) dictamen = 'APROBADO · POLÍTICA TIPO B';
+  else if (tard3 >= 2){ dictamen = 'REQUIERE APROBACIÓN ESPECIAL'; motivos.push(`${tard3} pagos tardíos`); }
   else dictamen = 'APROBADO AUTOMÁTICO';
   const en3 = () => { const d = new Date(hoy + 'T12:00'); d.setMonth(d.getMonth() + 3); return fDate(d); };
-  const proxAum = tard3 > 5 ? 'Bloqueado por mora' : (pctAprob < 1 || tard3 >= 2) ? en3() : (prom && limAct / prom >= 0.68 ? 'Máximo alcanzado' : en3());
+  const proxAum = politicaB ? 'Según comportamiento en tipo B' : bloqueado ? 'Bloqueado por mora' : (pctAprob < 1 || tard3 >= 2) ? en3() : (prom && limAct / prom >= 0.68 ? 'Máximo alcanzado' : en3());
   const r2 = prom ? limAprob / prom : 0;
-  const proxLim = tard3 > 5 ? null : Math.min(P.techo_refi || 30000, mround(prom * (r2 < 0.4 ? 0.5 : r2 < 0.7 ? 0.8 : 1), 1000));
+  const proxLim = bloqueado && !politicaB ? null : Math.min(P.techo_refi || 30000, mround(prom * (r2 < 0.4 ? 0.5 : r2 < 0.7 ? 0.8 : 1), 1000));
   const peldano = (antig == null || antig < 90) ? '50% (menos de 90 días)' : diasAum < 90 ? 'Se mantiene (último aumento hace menos de 90 días)' : `${Math.round(factor * 100)}%`;
   return { elegido, limCalc, autorizado, prefCalc, yaPref, prefMotivo, prom, antig, diasAum: diasAum === 99999 ? null : diasAum, limAct, factor, peldano, sugerido, pagos, tard3, tard7, total, manual, pctAprob, penTxt, basePen,
-    limAprob, disponible, pref, tasaNueva, cuotas, plazoMin, dictamen, motivos, proxAum, proxLim, techo, sinFecha: !s.fecha_ingreso };
+    limAprob, disponible, pref, tasaNueva, cuotas, plazoMin, dictamen, politicaB, ingresoB, sugB, maxDif, B, limB, motivos, proxAum, proxLim, techo, sinFecha: !s.fecha_ingreso };
 }
 function dictamenRefiHTML(r){
-  const col = r.dictamen === 'RECHAZADO' ? 'cerrada' : r.dictamen === 'APROBADO AUTOMÁTICO' ? 'finalizada' : 'desembolso';
+  const col = r.dictamen === 'RECHAZADO' ? 'cerrada' : r.dictamen.startsWith('APROBADO') ? 'finalizada' : 'desembolso';
   return `<div class="dict" style="background:var(--r-${col}-bg);color:var(--r-${col})">${r.dictamen}${r.motivos.length ? `<div class="small" style="font-family:Inter,sans-serif;font-weight:600">${esc(r.motivos.join(' · '))}</div>` : ''}${r.plazoMin ? `<div class="small" style="font-family:Inter,sans-serif;font-weight:600">Plazo mínimo viable: ${r.plazoMin}</div>` : ''}</div>`;
 }
 // Quién autorizó el monto / la tasa (último ajuste o el analista del dictamen)
@@ -2269,7 +2446,7 @@ function resumenWhatsApp(s, r){
     `Antigüedad: ${r.antig == null ? '—' : r.antig + ' días'}`, `Límite sugerido: ${L(r.sugerido)}`,
     `*Límite aprobado: ${L(r.limAprob)}*${r.autorizado && r.limCalc !== r.limAprob ? ` (calculado ${L(r.limCalc)})` : ''}`,
     `Disponible: ${L(r.disponible)}`, `Pagos tardíos >3/≥7: ${r.tard3}/${r.tard7} de ${r.total}`,
-    `Tasa: ${pct(r.tasaNueva)} ${r.pref ? 'preferencial' : 'normal'}`, `Dictamen: ${s.dictamen_en ? (s.estado === 'denegada' ? 'DENEGADA' : 'APROBADA') + ' por ' + nombre(s.analista_id) : r.dictamen}`].join('\n');
+    `Tasa: ${pct(r.tasaNueva)} ${r.politicaB ? 'política tipo B (nivelado, ' + r.B.plazo + ' meses)' : r.pref ? 'preferencial' : 'normal'}`, `Dictamen: ${s.dictamen_en ? (s.estado === 'denegada' ? 'DENEGADA' : 'APROBADA') + ' por ' + nombre(s.analista_id) : r.dictamen}`].join('\n');
 }
 const FREC = { Semanal: 4.33, Quincenal: 2, Mensual: 1 };
 function ingresosResumenHTML(ing){
@@ -2281,13 +2458,13 @@ function ingresosResumenHTML(ing){
     </tbody></table></div>`;
 }
 // Cuota nivelada (flat mensual) = monto/plazo + monto × tasa; por pago según la frecuencia del cliente
-function cuotasPlazoHTML(monto, pref, tipoPago, prom, plan){
+function cuotasPlazoHTML(monto, pref, tipoPago, prom, plan, B){
   if (!(monto > 0)) return '';
-  const tN = pref ? 0.105 : 0.14, tSI = pref ? 0.16 : 0.20, f = FREC[tipoPago] || 1;
-  const filas = [3,6,8,10,12].map(n => ({ plazo:`${n} meses`, mes: monto / n + monto * tN, pagos: Math.round(n * f) }));
-  filas.push({ plazo:'Solo interés', mes: monto * tSI, pagos: null });
+  const tN = B ? B.tasa : pref ? 0.105 : 0.14, tSI = pref ? 0.16 : 0.20, f = FREC[tipoPago] || 1;
+  const filas = (B ? [B.plazo] : [3,6,8,10,12]).map(n => ({ plazo:`${n} meses`, mes: monto / n + monto * tN, pagos: Math.round(n * f) }));
+  if (!B) filas.push({ plazo:'Solo interés', mes: monto * tSI, pagos: null });
   const lblF = { Semanal:'semanal', Quincenal:'quincenal', Mensual:'mensual' }[tipoPago] || 'mensual';
-  return `<label class="f" style="margin-top:14px">Cuotas para ${L(monto)} · tasa ${pref ? 'preferencial' : 'normal'} (${+(tN*100).toFixed(2)}% nivelado / ${+(tSI*100).toFixed(2)}% solo interés)${plan ? ' · plan ' + (plan === 'solo_interes' ? 'solo interés' : 'nivelado') : ''}</label>
+  return `<label class="f" style="margin-top:14px">Cuotas para ${L(monto)} · ${B ? `política tipo B (${+(tN*100).toFixed(2)}% mensual, solo nivelado)` : `tasa ${pref ? 'preferencial' : 'normal'} (${+(tN*100).toFixed(2)}% nivelado / ${+(tSI*100).toFixed(2)}% solo interés)`}${B ? '' : plan ? ' · plan ' + (plan === 'solo_interes' ? 'solo interés' : 'nivelado') : ''}</label>
     <div style="overflow-x:auto"><table class="t"><thead><tr><th>Plazo</th><th class="num">Cuota mensual</th>${tipoPago !== 'Mensual' ? `<th class="num">Cuota ${lblF}</th><th class="num"># pagos</th>` : `<th class="num"># pagos</th>`}<th class="num">% ingreso</th><th>Viabilidad</th></tr></thead><tbody>
     ${filas.map(q => { const pct = prom ? q.mes / prom : null; return `<tr><td>${q.plazo}</td><td class="num">${L(q.mes.toFixed(2))}</td>${tipoPago !== 'Mensual' ? `<td class="num"><b>${L((q.mes / f).toFixed(2))}</b></td>` : ''}<td class="num">${q.pagos ?? '—'}</td>
       <td class="num">${pct == null ? '—' : (pct * 100).toFixed(1) + '%'}</td><td>${pct == null ? '—' : pct <= 0.25 ? '<span class="dif-ok">Viable</span>' : '<span class="dif-b">Alto</span>'}</td></tr>`; }).join('')}
@@ -2317,19 +2494,32 @@ function refiResHTML(s, r){
       <div class="box"><div class="l">Antigüedad</div><div class="v" style="font-size:16px">${antTxt}</div></div>
       <div class="box"><div class="l">Peldaño aplicado</div><div class="v" style="font-size:15px">${r.peldano}</div></div>
       <div class="box"><div class="l">Límite sugerido</div><div class="v">${L(r.sugerido)}</div></div>
-      <div class="box"><div class="l">% aprobado ${r.basePen !== r.sugerido ? 'del límite actual' : 'del sugerido'}</div><div class="v">${Math.round(r.pctAprob * 100)}%</div><div class="small muted">${esc(r.penTxt)}</div></div>
+      <div class="box"><div class="l">% aprobado ${r.politicaB ? '· política tipo B' : r.basePen !== r.sugerido ? 'del límite actual' : 'del sugerido'}</div><div class="v">${r.politicaB ? 'Tipo B' : Math.round(r.pctAprob * 100) + '%'}</div><div class="small muted">${esc(r.penTxt)}</div></div>
       <div class="box"><div class="l">Límite aprobado</div><div class="v">${L(r.limAprob)}</div>
         ${r.autorizado ? `<div class="small" style="font-weight:600;color:var(--brand)">${autorizadoPor(s, 'ajuste_monto')}</div>${r.limCalc !== r.limAprob ? `<div class="small muted">Calculado: ${L(r.limCalc)}</div>` : ''}` : ''}</div>
       <div class="box" style="${r.disponible < (S.params.disponible_minimo ?? 2000) ? 'background:var(--red-bg)' : ''}"><div class="l">Disponible (monto libre)</div><div class="v">${L(r.disponible)}</div>${r.elegido != null && r.elegido !== r.limAprob ? `<div class="small" style="font-weight:600;color:var(--brand)">Cliente toma ${L(r.elegido)}</div>` : ''}</div>
       <div class="box"><div class="l">Pagos tardíos &gt;3 / ≥7 días</div><div class="v">${r.tard3} / ${r.tard7}</div><div class="small muted">de ${r.total} pagos</div></div>
-      <div class="box"><div class="l">Tasa ${r.pref ? 'preferencial' : 'nueva'}</div><div class="v">${(r.tasaNueva * 100).toFixed(1).replace('.0','')}%</div><div class="small muted">${s.tasa_actual != null ? 'actual ' + (+s.tasa_actual * 100).toFixed(1).replace('.0','') + '%' + (r.yaPref ? ' (preferencial)' : '') : ''}${r.pref ? ' · preferencial' : ' · normal'}</div>
+      <div class="box"><div class="l">Tasa ${r.politicaB ? 'política tipo B' : r.pref ? 'preferencial' : 'nueva'}</div><div class="v">${(r.tasaNueva * 100).toFixed(1).replace('.0','')}%</div><div class="small muted">${s.tasa_actual != null ? 'actual ' + (+s.tasa_actual * 100).toFixed(1).replace('.0','') + '%' + (r.yaPref ? ' (preferencial)' : '') : ''}${r.politicaB ? ' · tipo B' : r.pref ? ' · preferencial' : ' · normal'}</div>
         ${r.prefMotivo ? `<div class="small" style="font-weight:600;color:${r.prefCalc ? 'var(--green)' : 'var(--red)'}">${r.prefMotivo}</div>` : ''}
         ${s.dictamen_en ? `<div class="small" style="font-weight:600;color:var(--brand)">${autorizadoPor(s, 'ajuste_tasa')}</div>${r.prefCalc !== r.pref ? `<div class="small muted">Calculada: ${r.prefCalc ? 'preferencial' : 'normal'}</div>` : ''}` : ''}</div>
       <div class="box"><div class="l">Próximo aumento</div><div class="v" style="font-size:15px">${r.proxAum}</div></div>
       <div class="box"><div class="l">Próximo límite</div><div class="v">${r.proxLim == null ? 'BLOQUEADO' : L(r.proxLim)}</div></div>
     </div>
+    ${politicaBHTML(s, r)}
     ${dictamenRefiHTML(r)}
-    ${cuotasPlazoHTML(r.elegido ?? r.limAprob, r.pref, s.tipo_pago, r.prom, s.plan_pago)}`;
+    ${cuotasPlazoHTML(r.elegido ?? r.limAprob, r.pref, s.tipo_pago, r.prom, s.plan_pago, r.politicaB ? { tasa: r.B.tasa, plazo: r.B.plazo } : null)}`;
+}
+function politicaBHTML(s, r){
+  const puede = es('analista') && ['borrador','en_analisis'].includes(s.estado) && !s.dictamen_en;
+  const cond = `${+(r.B.tasa * 100).toFixed(2)}% mensual solo nivelado · límite máximo ${L(r.B.limite)} · plazo ${r.B.plazo} meses`;
+  if (r.politicaB) return `<div class="alert small" style="background:var(--r-verificacion-bg,#f3e8ff);border:1.5px solid var(--r-verificacion,#7c3aed);margin-top:10px">
+      <b>🅱️ ${r.ingresoB ? `Cliente tipo B por ingreso (${L(r.B.ingMin)} a ${L((S.params.ingreso_minimo ?? 13000) - 0.01)})` : 'Política tipo B aplicada'}</b> · ${cond}<br>Límite tipo B: <b>${L(r.limB)}</b>
+      ${puede && !r.ingresoB ? `<div class="row" style="margin-top:8px;gap:6px;flex-wrap:wrap"><button class="btn sm ghost" id="bQuitar">Quitar política tipo B</button></div>` : ''}</div>`;
+  if (!r.sugB) return puede && s.tipo !== 'nuevo' ? `<div class="alert small" style="margin-top:10px;background:var(--gray-bg);border:1px dashed var(--line)"><b>🅱️ Política tipo B</b> (decisión del analista) — ${cond}. Quedaría en <b>${L(r.limB)}</b>${r.limCalc ? ` en lugar de ${L(r.limCalc)}` : ' en lugar de bloqueado'}.${r.maxDif >= (S.params.bloqueo_dias_atraso ?? 45) ? `<br><span style="color:var(--red)">Tiene un pago con ${r.maxDif} días de atraso: sigue bloqueado aunque se aplique.</span>` : ''}
+      <div class="btns" style="margin-top:8px"><button class="btn sm ghost" id="bAplicar">Aplicar política tipo B</button></div></div>` : '';
+  return `<div class="alert info small" style="margin-top:10px"><b>💡 Sugerencia: cliente tipo B</b> — ${r.tard3} pagos tardíos y ningún atraso mayor a ${r.B.maxD} días (máximo ${r.maxDif} días).<br>
+      Con la política tipo B: ${cond}. Quedaría en <b>${L(r.limB)}</b> en lugar de ${r.limCalc ? L(r.limCalc) : 'bloqueado'}.
+      ${puede ? `<div class="btns" style="margin-top:8px"><button class="btn sm pri" id="bAplicar">Aplicar política tipo B</button></div>` : '<div class="muted">El analista decide si la aplica.</div>'}</div>`;
 }
 function refiHTML(s, c, edit){
   const r = calcRefi(s, c);
@@ -2345,7 +2535,7 @@ function refiHTML(s, c, edit){
       ${inp('saldo_capital', 'Capital actual', 'text', false, 'L')}
       ${inp('saldo_intereses', 'Intereses al día', 'text', false, 'L')}
       ${inp('tasa_actual', 'Tasa actual %', 'text', true, 'Ej. 12')}
-      <div><label class="f">Plan</label><select data-rf="plan_pago" ${dis}><option value="nivelado">Nivelado</option><option value="solo_interes" ${s.plan_pago === 'solo_interes' ? 'selected' : ''}>Solo interés</option></select></div>
+      <div><label class="f">Plan</label><select data-rf="plan_pago" ${dis} ${s.politica_b ? 'disabled title="Política tipo B: solo nivelado"' : ''}><option value="nivelado">Nivelado</option><option value="solo_interes" ${s.plan_pago === 'solo_interes' ? 'selected' : ''}>Solo interés</option></select></div>
     </div>
     <label class="f" style="margin-top:14px">Comportamiento de pago (${r.pagos.length} pagos)</label>
     ${r.pagos.length ? `<div style="overflow-x:auto;max-height:320px"><table class="t"><thead><tr><th>Documento</th><th>Fecha pago</th><th class="num">Valor</th><th>Fecha cuota</th><th class="num">Días dif.</th>${edit ? '<th></th>' : ''}</tr></thead><tbody>
@@ -2363,7 +2553,7 @@ function enlazarRefi(s){
   const cur = () => S.detData.s;
   const recalcular = () => {
     const cs = cur(), c = calcular(S.detData.ing, cs.tipo_pago, cs.rubro_especial), r = calcRefi(cs, c);
-    $('#rfRes').innerHTML = refiResHTML(cs, r);
+    $('#rfRes').innerHTML = refiResHTML(cs, r); S.enlazarB && S.enlazarB();
     if ($('#dSug')) $('#dSug').innerHTML = dictamenRefiHTML(r);
     if ($('#dMonto') && !S.montoTocado) $('#dMonto').value = r.limAprob || '';
     S.actLibre && S.actLibre();
@@ -2381,6 +2571,12 @@ function enlazarRefi(s){
     if (el.type === 'date' && val && val > hoyHN()) return toast('La fecha no puede ser futura', true);
     guardar({ [el.dataset.rf]: val === '' ? null : val });
   });
+  const enlazarB = () => {
+    const ap = $('#bAplicar'); if (ap) ap.onclick = () => { if (!confirm('¿Aplicar la política tipo B? Tasa 20% nivelado, límite máximo L 5,000 y plazo 3 meses.')) return; S.montoTocado = false; guardar({ politica_b: true, plazo_meses: 3 }).then(() => toast('Política tipo B aplicada')); };
+    const q = $('#bQuitar'); if (q) q.onclick = () => { S.montoTocado = false; guardar({ politica_b: false }).then(() => toast('Política tipo B quitada')); };
+    const sel = card.querySelector('[data-rf="plan_pago"]'); if (sel){ if (sel.dataset.orig == null) sel.dataset.orig = (sel.disabled && !cur().politica_b) ? '1' : ''; sel.disabled = !!cur().politica_b || sel.dataset.orig === '1'; if (cur().politica_b) sel.value = 'nivelado'; }
+  };
+  S.enlazarB = enlazarB; enlazarB();
   const proc = $('#rfProc');
   if (proc) proc.onclick = () => {
     const nuevos = parsePagos($('#rfPegar').value);
@@ -2425,6 +2621,374 @@ const RD = (() => {
 })();
 const cargarScript = src => new Promise((ok, fail) => { if (document.querySelector(`script[src="${src}"]`)) return ok();
   const sc = document.createElement('script'); sc.src = src; sc.onload = ok; sc.onerror = () => fail(new Error('No se pudo cargar ' + src.split('/').pop() + '. Revise su conexión.')); document.head.appendChild(sc); });
+// ================== Contrato de apertura de línea de crédito (documento que firma el cliente) ==================
+const LOGO_MP = 'data:image/png;base64,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';
+const CT = (() => {
+  const RTN = '05019025194918';
+  const lps = v => `${RD.letras(v)} Lempiras (L. ${(+v).toLocaleString('en-US', { minimumFractionDigits:2, maximumFractionDigits:2 })})`;
+  const MESES = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+  const fill = (v, w) => v ? `<span class="f">${esc(v)}</span>` : '_'.repeat(w || 20);
+  function bloques(d){
+    const f = (d.fecha || hoyHN()).split('-').map(Number);
+    const dia = f[2] === 1 ? 'un (1) día' : `${RD.letras(f[2]).toLowerCase()} (${f[2]}) días`;
+    return [
+      `<h1>CONTRATO DE APERTURA DE LÍNEA DE CRÉDITO</h1>`,
+      `<p>Entre <b>MAS PISTO S DE RL</b>, RTN No. ${RTN}, del domicilio de San Pedro Sula, en adelante <b>El Acreedor</b> y, ${fill(d.nombre, 30)}, mayor de edad, con documento nacional de identificación No. ${fill(d.id, 25)}, en adelante <b>El Deudor</b>, hemos convenido de común acuerdo en celebrar un CONTRATO DE APERTURA DE LÍNEA DE CRÉDITO y su(s) Anexo(s), en adelante todos estos documentos denominados, individual o colectivamente, como El Contrato de conformidad a lo establecido en la Ley de Préstamos de Crédito, en adelante La Ley, las Normas para el Fortalecimiento de la Transparencia, la Cultura Financiera y Atención al Usuario Financiero en las Instituciones Supervisadas y sus Normas Complementarias, en adelante Las Normas de Transparencia y Normas Complementarias de Transparencia respectivamente; a efecto de establecer las condiciones bajo las cuales el Deudor podrá disponer de su línea de crédito en cuenta corriente, conforme las cláusulas y condiciones siguientes:</p>`,
+      `<p><b>I. APERTURA DE CRÉDITO:</b> Para los propósitos antes enunciados, El Acreedor otorga al Deudor en este acto, una línea de crédito en cuenta corriente por la suma de ${fill(d.minimo ? lps(d.minimo) : '', 12)} hasta la suma de ${fill(d.limite ? lps(d.limite) : '', 17)}; que se utilizará específicamente, para cancelar las obligaciones que se generen a cargo del Deudor en virtud de este contrato. El Deudor queda obligado a pagar al El Acreedor las cantidades de dinero que correspondan, según las disposiciones que haga del crédito otorgado por medio de su Préstamo, más los intereses, comisiones y demás cargos especificados en el presente contrato y que han sido aceptados por el Deudor. Queda entendido y aceptado que dicho límite de crédito en cuenta corriente podrá incrementarse previa autorización del Deudor hasta un máximo de ${fill(d.maximo ? lps(d.maximo) : '', 22)} denominado límite máximo, cuyo aumento, en todo caso, deberá estar respaldado en el análisis que realice el acreedor sobre la capacidad de pago. Este aumento será notificado por escrito al deudor.</p>`,
+      `<p><b>II. PAGOS:</b> El Deudor se obliga a pagar al acreedor: a) El monto total adeudado como consecuencia del uso que haga de la línea de crédito concedida por medio de su Préstamo b) Los demás cargos y comisiones establecidos en este contrato y su Anexo; c) Cualquier otro cargo por servicio conforme lo establecido y que haya sido aceptado expresamente por el Deudor; d) El interés corriente establecido por el Acreedor; e) Un recargo mensual sobre el saldo en mora; f) El deudor queda obligado a pagar un recargo por mora en caso de incumplimiento en el plan de pagos establecidos g) En caso de incumplimiento de pago el deudor pone en garantía el menaje que se encuentre en el lugar establecido como residencia; y; h) En caso de cancelación de lo adeudado antes de cumplir un mes de otorgado el crédito, el deudor cancelara el valor total generado de los intereses de un mes aun cuando este no se ha cumplido.</p>`,
+      `<p><b>III. FECHA, LUGAR Y FORMA DE PAGO:</b> El Deudor deberá efectuar, en la fecha máxima establecida por el Acreedor, el pago del saldo adeudado de los intereses generados durante el mes u otras obligaciones pendientes de pago a dicha fecha. El Acreedor detallará dichos cargos en el Estado de cuenta, El pago se deberá efectuar mediante transferencia de cuenta las cuales serán establecidas por parte del acreedor o por cualquier otro medio que el Acreedor designe, debiendo cancelar por lo menos el pago de los intereses generados a efecto de no incurrir en mora.</p>`,
+      `<p><b>IV. DE LA SUSPENSIÓN DEL CRÉDITO:</b> Cuando el Deudor no pague en la fecha estipulada las obligaciones contraídas bajo este contrato, el Acreedor está facultado a suspender el uso de la línea de crédito. Este será trasladado al área legal correspondiente para la recuperación del crédito y los saldos adeudados, asumiendo el deudor todos los gastos que genere dicha gestión.</p>`,
+      `<p><b>V. VIGENCIA Y PLAZO.</b> Este contrato es válido por tiempo indefinido a partir de su firma, salvo que una de las partes dé aviso por escrito a la otra parte su intención de no renovar el contrato. En los casos que el Deudor de por terminado este contrato de manera inmediata y en forma anticipada, el deudor cancelará todos los intereses acumulados y el saldo a capital vigente a la fecha de terminación, el Acreedor podrá dar por terminado este contrato de manera inmediata y en forma anticipada, en caso de incumplimiento del Deudor o bajo las demás circunstancias establecidas en la cláusula siguiente.</p>`,
+      `<p><b>VI. TERMINACIÓN DEL CONTRATO Y VENCIMIENTO ANTICIPADO:</b> El plazo señalado para el pago de los montos generados como consecuencia de las disposiciones que el Deudor haga de su línea de crédito, podrá darse por vencido de manera anticipada y el Acreedor podrá suspender el uso de la línea de crédito; en los siguientes casos: a) Por falta del pago de uno o más de los cargos establecidos mensualmente en este contrato; b) En caso de descubrir que la información suministrada por el Deudor sea falsa o inexacta o no haya efectuado las notificaciones a que se obliga en virtud de este contrato. c) Cuando el Deudor incumpla cualquiera de las obligaciones que asume por este contrato de apertura de crédito. d) En caso de no notificar al El Acreedor el cambio de domicilio.</p>`,
+      `<p><b>VII. VENTA O CESIÓN DEL CRÉDITO:</b> El Acreedor podrá vender o ceder los derechos y/o responsabilidades derivadas de este contrato total o parcialmente, en cualquier tiempo, debiendo notificar al deudor. La venta o cesión no implicará en ningún caso la reducción de sus obligaciones.</p>`,
+      `<p><b>VIII. CONSENTIMIENTO Y AUTORIZACIÓN:</b> El Deudor declara que la información que ha suministrado es exacta y ajustada a la realidad y reconoce que el Acreedor ha realizado su análisis crediticio con base en la misma, por lo que acepta que la veracidad de dicha información ha sido de la esencia en la determinación del riesgo crediticio. Adicionalmente, declara que da su consentimiento expreso e irrevocable al Acreedor, o a quien sea en el futuro el acreedor del crédito solicitado, para que consulte, informe, reporte o divulgue toda la información relevante a la central de información crediticia administrada por la Comisión Nacional de Bancos y Seguros, así como, a los Burós de crédito privados que operan legalmente en Honduras, a efecto de conocer su desempeño como deudor, su capacidad de pago, o para valorar el riesgo futuro de concederle un crédito.</p>`,
+      `<p><b>IX. LEYES APLICABLES:</b> El presente contrato se regirá por las disposiciones establecidas en la Ley que le fuere aplicable, por la Ley del Sistema Financiero, Código de Comercio, Ley de Protección al Consumidor, Ley del Banco Central de Honduras, Ley de la Comisión Nacional de Bancos y Seguros, demás leyes aplicables y el código civil.</p>`,
+      `<p><b>X. RECONOCIMIENTO:</b> El deudor reconoce y acepta que cualquier obligación derivada de la presente relación contractual, será pagadera íntegramente, esto sujeto a las leyes, reglamentos, resoluciones o sentencias de cualquier autoridad y bajo la jurisdicción exclusiva de los juzgados competentes en la República de Honduras.</p>`,
+      `<p><b>XI. RENUNCIA AL FUERO:</b> El Deudor manifiesta su voluntad de renunciar al fuero de su domicilio y este se somete al fuero o domicilio del acreedor y me someto a la competencia del Juzgado de Letras de lo Civil de la sección Judicial de San Pedro Sula, Cortes.</p>`,
+      `<p><b>XII. ACEPTACIÓN DE CLÁUSULAS Y ANEXO DEL CONTRATO:</b> El Deudor reconoce haber leído el contenido total de este contrato y su(s) anexo(s) y, por consiguiente, acepta, de manera total las cláusulas contenidas en el mismo y los cargos que se generen.</p>`,
+      `<div data-keep><p>Para lo cual se firma el presente contrato en la ciudad de San Pedro Sula, Departamento de Cortés a los ${fill(dia)} del mes de ${fill(MESES[f[1]-1])} del año ${fill(RD.letras(f[0]).replace('Dos Mil', 'dos mil').toLowerCase() + ` (${f[0]})`)}.</p>
+       <div class="firmas">
+         <div class="fcol">
+           <div class="fila"><div class="firma"><div class="ln">Deudor</div><div class="sm">${esc(d.nombre || '')}</div><div class="sm">DNI. ${d.id ? esc(d.id) : '______________________'}</div></div><div class="huella"><span>Huella</span></div></div>
+           <div class="fila"><div class="firma"><div class="ln">Aval</div><div class="sm" style="margin-top:5pt">Nombre: <span class="bl"></span></div><div class="sm" style="margin-top:5pt">DNI: <span class="bl"></span></div></div><div class="huella"><span>Huella</span></div></div>
+         </div>
+         <div><div class="dni">Coloque su DNI aquí</div>
+           <div class="firma acre"><div class="ln">Acreedor</div><div class="sm">MAS PISTO S DE RL</div><div class="sm">RTN. ${RTN}</div></div></div>
+       </div></div>`
+    ];
+  }
+  const pagina = (n, tot, cod) => `<div class="ct-page"><div class="hd"><img src="${LOGO_MP}" alt="Más Pisto"><div class="rt">MAS PISTO S DE RL<br>RTN ${RTN}<br>San Pedro Sula, Cortés</div></div>
+    <div class="bd"></div><div class="ft"><span></span><span>Página ${n} de ${tot}</span></div></div>`;
+  // Reparte los bloques en hojas carta midiendo lo que cabe en cada una
+  function paginar(cont, d){
+    const bs = bloques(d); cont.innerHTML = '';
+    let pages = [], cur = null;
+    const nueva = () => { const w = document.createElement('div'); w.innerHTML = pagina(0, 0, d.codigo); cur = w.firstChild; cont.appendChild(cur); pages.push(cur); return cur.querySelector('.bd'); };
+    let bd = nueva();
+    bs.forEach(html => {
+      const t = document.createElement('div'); t.innerHTML = html; const el = t.firstChild; bd.appendChild(el);
+      if (bd.scrollHeight > bd.clientHeight + 1 && bd.children.length > 1){ bd.removeChild(el); bd = nueva(); bd.appendChild(el); }
+    });
+    pages.forEach((pg, i) => { pg.querySelector('.ft span:last-child').textContent = `Página ${i + 1} de ${pages.length}`; });
+    return pages;
+  }
+  return { paginar };
+})();
+function abrirContrato(s){
+  const d0 = s.datos_cliente || {};
+  const st = { nombre: s.nombre_cliente, id: RD.fmtId(s.dni || d0.dni || ''), codigo: s.codigo,
+    minimo: +(S.params.linea_minimo || 3000), limite: +(s.monto_aprobado || s.monto_solicitado || 0), maximo: +(S.params.techo_refi || 30000), fecha: hoyHN() };
+  const w = document.createElement('div'); w.className = 'rd-wrap';
+  w.innerHTML = `<div class="rd-bar">
+      <div class="t"><button class="back" data-x>←</button><span>Contrato de línea de crédito · ${esc(s.codigo)}</span></div>
+      <div class="fld" style="flex:2"><label>Nombre completo</label><input data-f="nombre" value="${esc(st.nombre)}"></div>
+      <div class="fld"><label>Identidad</label><input data-f="id" inputmode="numeric" maxlength="15" value="${esc(st.id)}" placeholder="0501-1990-12345"></div>
+      <div class="fld"><label>Límite aprobado (L)</label><input data-f="limite" inputmode="decimal" value="${st.limite || ''}"></div>
+      <div class="fld"><label>Fecha</label><input data-f="fecha" type="date" value="${st.fecha}"></div>
+      <div class="acc"><button class="btn pri" data-a="print">🖨 Imprimir</button><button class="btn" data-a="pdf">⬇ Descargar PDF</button></div>
+      <div class="small muted" style="flex:1 1 100%">Línea desde ${L(st.minimo)} (mínimo) hasta el límite aprobado; puede aumentar hasta ${L(st.maximo)} (máximo).</div>
+      <div class="small" data-msg style="flex:1 1 100%;color:var(--red)"></div>
+    </div>
+    <div class="rd-stage"><div class="rd-scaler"><div class="ct-pages"></div></div></div>`;
+  document.body.appendChild(w); history.pushState({ rd:1 }, ''); S.dlgs = (S.dlgs || []).concat(w);
+  const cont = w.querySelector('.ct-pages'), scaler = w.querySelector('.rd-scaler'), stage = w.querySelector('.rd-stage'), msg = w.querySelector('[data-msg]');
+  let pages = [];
+  const ajustar = () => { scaler.style.transform = ''; scaler.style.width = ''; scaler.style.height = '';
+    const sc = Math.min(1, (stage.clientWidth - 32) / cont.offsetWidth); if (sc < 1){ scaler.style.transform = `scale(${sc})`; scaler.style.transformOrigin = 'top left'; scaler.style.width = cont.offsetWidth * sc + 'px'; scaler.style.height = cont.offsetHeight * sc + 'px'; } };
+  const render = () => { scaler.style.transform = ''; pages = CT.paginar(cont, st); ajustar(); };
+  w.querySelectorAll('[data-f]').forEach(i => i.oninput = () => {
+    if (i.dataset.f === 'id'){ i.value = RD.fmtId(i.value); st.id = i.value; }
+    else if (i.dataset.f === 'limite') st.limite = num(i.value) || 0;
+    else st[i.dataset.f] = i.value.trim();
+    msg.textContent = ''; render(); });
+  const listo = () => {
+    const f = []; if (!st.nombre) f.push('nombre'); if (st.id.replace(/\D/g,'').length !== 13) f.push('identidad (13 dígitos)'); if (!(st.limite > 0)) f.push('límite aprobado');
+    if (st.limite && st.limite < st.minimo) f.push(`el límite no puede ser menor a ${L(st.minimo)}`); if (st.limite > st.maximo) f.push(`el límite no puede pasar de ${L(st.maximo)}`);
+    if (f.length){ msg.textContent = 'Revise: ' + f.join(', ') + '.'; return false; } return true; };
+  const archivo = () => 'Contrato_Linea_Credito_' + st.nombre.normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^\w]+/g,'_').replace(/^_|_$/g,'');
+  const registrar = accion => rpc('registrar_reconocimiento', { p_id: s.id, p_dni: st.id, p_monto: st.limite, p_accion: accion }).then(() => { if (!s.dni && st.id) s.dni = st.id; }).catch(e => console.warn(e));
+  w.querySelector('[data-x]').onclick = () => cerrarDialogo(w);
+  w.querySelector('[data-a="print"]').onclick = () => {
+    if (!listo()) return;
+    const css = [...document.styleSheets].map(ss => { try { return [...ss.cssRules].map(r => r.cssText).filter(t => t.includes('.ct-page')).join('\n'); } catch(e){ return ''; } }).join('\n');
+    const fr = document.createElement('iframe'); fr.style.cssText = 'position:fixed;right:0;bottom:0;width:0;height:0;border:0';
+    document.body.appendChild(fr);
+    const dd = fr.contentDocument;
+    dd.open(); dd.write(`<!doctype html><html><head><meta charset="utf-8"><title>${esc(archivo())}</title><style>${css}
+      @page{size:letter;margin:0} html,body{margin:0;background:#fff} .ct-pages{gap:0} .ct-page{box-shadow:none;page-break-after:always;height:10.98in}</style></head>
+      <body><div class="ct-pages">${cont.innerHTML}</div></body></html>`); dd.close();
+    setTimeout(() => { fr.contentWindow.focus(); fr.contentWindow.print(); setTimeout(() => fr.remove(), 2000); }, 400);
+    registrar('impreso');
+  };
+  w.querySelector('[data-a="pdf"]').onclick = e => {
+    if (!listo()) return;
+    run(e.target, async () => {
+      e.target.textContent = 'Generando…';
+      try {
+        await cargarScript('https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js');
+        await cargarScript('https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js');
+        if (document.fonts && document.fonts.ready) await document.fonts.ready;
+        const pdf = new jspdf.jsPDF({ unit: 'pt', format: 'letter', orientation: 'portrait' });
+        const holder = document.createElement('div'); holder.style.cssText = 'position:fixed;left:-10000px;top:0'; document.body.appendChild(holder);
+        try {
+          for (let i = 0; i < pages.length; i++){
+            const clone = pages[i].cloneNode(true); clone.style.boxShadow = 'none'; holder.innerHTML = ''; holder.appendChild(clone);
+            // html2canvas dibuja mal el subrayado: se usa borde inferior
+            // (un subrayado que se parte en dos líneas se dibuja como una sola caja: se subraya palabra por palabra)
+            clone.querySelectorAll('.f').forEach(el => { el.style.textDecoration = 'none';
+              const tw = document.createTreeWalker(el, NodeFilter.SHOW_TEXT), nodes = []; while (tw.nextNode()) nodes.push(tw.currentNode);
+              nodes.forEach(n => { const parts = n.nodeValue.match(/[^ ]+ *| +/g); if (!parts) return; const fr = document.createDocumentFragment();
+                parts.forEach(t => { const sp = document.createElement('span'); sp.textContent = t; sp.style.borderBottom = '0.8pt solid #000'; fr.appendChild(sp); });
+                n.parentNode.replaceChild(fr, n); }); });
+            const canvas = await html2canvas(clone, { scale: 2.5, backgroundColor: '#ffffff', useCORS: true });
+            if (i) pdf.addPage();
+            pdf.addImage(canvas.toDataURL('image/jpeg', 0.92), 'JPEG', 0, 0, 612, 792);
+          }
+          pdf.save(archivo() + '.pdf');
+        } finally { holder.remove(); }
+        registrar('pdf');
+      } finally { e.target.textContent = '⬇ Descargar PDF'; }
+    });
+  };
+  window.addEventListener('resize', ajustar);
+  render(); setTimeout(render, 120);
+}
+// ================== Contrato firmado: unir fotos en una sola imagen ==================
+// ---------- Escáner de documentos (tipo Lens): bordes, enderezado y limpieza ----------
+const SCAN = (() => {
+  const lado = im => [im.naturalWidth || im.width, im.naturalHeight || im.height];
+  function aCanvas(im, max){
+    const [w, h] = lado(im), k = Math.min(1, max / Math.max(w, h));
+    const cv = document.createElement('canvas'); cv.width = Math.round(w * k); cv.height = Math.round(h * k);
+    cv.getContext('2d').drawImage(im, 0, 0, cv.width, cv.height); return cv;
+  }
+  // Detecta la hoja: zona clara más grande (Otsu + componente conexo) y sus 4 esquinas. Devuelve puntos en fracción (0–1).
+  function detectar(im){
+    const cv = aCanvas(im, 360), W = cv.width, H = cv.height, d = cv.getContext('2d').getImageData(0, 0, W, H).data, n = W * H;
+    const g = new Uint8Array(n), hist = new Array(256).fill(0);
+    for (let i = 0; i < n; i++){ const v = (d[i*4] * 0.3 + d[i*4+1] * 0.59 + d[i*4+2] * 0.11) | 0; g[i] = v; hist[v]++; }
+    let sum = 0; for (let i = 0; i < 256; i++) sum += i * hist[i];
+    let sB = 0, wB = 0, best = 0, t = 128;
+    for (let i = 0; i < 256; i++){ wB += hist[i]; if (!wB) continue; const wF = n - wB; if (!wF) break; sB += i * hist[i];
+      const mB = sB / wB, mF = (sum - sB) / wF, v = wB * wF * (mB - mF) ** 2; if (v > best){ best = v; t = i; } }
+    const lab = new Int32Array(n).fill(-1); let mejor = null;
+    const pila = new Int32Array(n);
+    for (let i = 0; i < n; i++){
+      if (g[i] <= t || lab[i] !== -1) continue;
+      let top = 0, area = 0; pila[top++] = i; lab[i] = i;
+      let a = [Infinity, 0], b = [-Infinity, 0], c = [-Infinity, 0], e = [Infinity, 0]; // min(x+y), max(x-y), max(x+y), min(x-y)
+      while (top){ const p = pila[--top], x = p % W, y = (p / W) | 0; area++;
+        if (x + y < a[0]) a = [x + y, p]; if (x - y > b[0]) b = [x - y, p]; if (x + y > c[0]) c = [x + y, p]; if (x - y < e[0]) e = [x - y, p];
+        const vec = [x > 0 ? p - 1 : -1, x < W - 1 ? p + 1 : -1, y > 0 ? p - W : -1, y < H - 1 ? p + W : -1];
+        for (const q of vec) if (q >= 0 && lab[q] === -1 && g[q] > t){ lab[q] = i; pila[top++] = q; } }
+      if (!mejor || area > mejor.area) mejor = { area, pts: [a[1], b[1], c[1], e[1]] };
+    }
+    if (!mejor || mejor.area < n * 0.12 || mejor.area > n * 0.985) return [[0.04, 0.04], [0.96, 0.04], [0.96, 0.96], [0.04, 0.96]];
+    const q = mejor.pts.map(p => [(p % W) / W, ((p / W) | 0) / H]), cx = q.reduce((a2, p) => a2 + p[0], 0) / 4, cy = q.reduce((a2, p) => a2 + p[1], 0) / 4;
+    return q.map(([x, y]) => [x + (cx - x) * 0.012, y + (cy - y) * 0.012]); // un poco hacia adentro para no dejar borde de la mesa
+  }
+  // Homografía que lleva (u,v) del rectángulo destino a (x,y) en la foto
+  function homografia(dst, src){
+    const A = [], B = [];
+    for (let i = 0; i < 4; i++){ const [u, v] = dst[i], [x, y] = src[i];
+      A.push([u, v, 1, 0, 0, 0, -u * x, -v * x]); B.push(x); A.push([0, 0, 0, u, v, 1, -u * y, -v * y]); B.push(y); }
+    for (let c = 0; c < 8; c++){ let m = c; for (let r = c + 1; r < 8; r++) if (Math.abs(A[r][c]) > Math.abs(A[m][c])) m = r;
+      [A[c], A[m]] = [A[m], A[c]]; [B[c], B[m]] = [B[m], B[c]];
+      for (let r = 0; r < 8; r++){ if (r === c) continue; const f = A[r][c] / A[c][c]; for (let k = c; k < 8; k++) A[r][k] -= f * A[c][k]; B[r] -= f * B[c]; } }
+    return B.map((b, i) => b / A[i][i]).concat(1);
+  }
+  const dist = (p, q) => Math.hypot(p[0] - q[0], p[1] - q[1]);
+  // Endereza la hoja y aplica el filtro: 'doc' (color mejorado), 'bn' (blanco y negro), 'orig' (solo recorte)
+  function procesar(im, ptsF, filtro = 'doc', maxSal = 2000){
+    const src = aCanvas(im, 2600), SW = src.width, SH = src.height, sd = src.getContext('2d').getImageData(0, 0, SW, SH).data;
+    const P = ptsF.map(([x, y]) => [x * SW, y * SH]);
+    let ow = Math.max(dist(P[0], P[1]), dist(P[3], P[2])), oh = Math.max(dist(P[0], P[3]), dist(P[1], P[2]));
+    const k = Math.min(1, maxSal / Math.max(ow, oh)); ow = Math.max(50, Math.round(ow * k)); oh = Math.max(50, Math.round(oh * k));
+    const h = homografia([[0, 0], [ow - 1, 0], [ow - 1, oh - 1], [0, oh - 1]], P);
+    const out = document.createElement('canvas'); out.width = ow; out.height = oh;
+    const ctx = out.getContext('2d'), od = ctx.createImageData(ow, oh), o = od.data;
+    for (let v = 0; v < oh; v++) for (let u = 0; u < ow; u++){
+      const z = h[6] * u + h[7] * v + 1, x = (h[0] * u + h[1] * v + h[2]) / z, y = (h[3] * u + h[4] * v + h[5]) / z;
+      const x0 = Math.max(0, Math.min(SW - 2, x | 0)), y0 = Math.max(0, Math.min(SH - 2, y | 0)), fx = Math.min(1, Math.max(0, x - x0)), fy = Math.min(1, Math.max(0, y - y0));
+      const i00 = (y0 * SW + x0) * 4, i10 = i00 + 4, i01 = i00 + SW * 4, i11 = i01 + 4, j = (v * ow + u) * 4;
+      for (let c = 0; c < 3; c++) o[j + c] = (sd[i00 + c] * (1 - fx) + sd[i10 + c] * fx) * (1 - fy) + (sd[i01 + c] * (1 - fx) + sd[i11 + c] * fx) * fy;
+      o[j + 3] = 255;
+    }
+    if (filtro !== 'orig') limpiar(o, ow, oh, filtro === 'bn');
+    ctx.putImageData(od, 0, 0); return out;
+  }
+  // Quita sombras y deja el papel blanco: estima el fondo por bloques (máximo) y divide; luego sube el contraste
+  function limpiar(o, W, H, bn){
+    const bs = Math.max(12, Math.round(Math.max(W, H) / 36)), gw = Math.ceil(W / bs), gh = Math.ceil(H / bs);
+    let bg = new Float32Array(gw * gh);
+    for (let by = 0; by < gh; by++) for (let bx = 0; bx < gw; bx++){
+      const hist = new Uint16Array(256); let cnt = 0;
+      for (let y = by * bs; y < Math.min(H, (by + 1) * bs); y += 2) for (let x = bx * bs; x < Math.min(W, (bx + 1) * bs); x += 2){ const i = (y * W + x) * 4; hist[(o[i] * 0.3 + o[i+1] * 0.59 + o[i+2] * 0.11) | 0]++; cnt++; }
+      let acc = 0, v = 255; const meta = cnt * 0.1; for (v = 255; v > 0; v--){ acc += hist[v]; if (acc >= meta) break; } // percentil 90
+      bg[by * gw + bx] = Math.max(v, 40);
+    }
+    for (let pase = 0; pase < 2; pase++){ const nb = new Float32Array(gw * gh);
+      for (let y = 0; y < gh; y++) for (let x = 0; x < gw; x++){ let s2 = 0, c = 0; for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++){ const yy = y + dy, xx = x + dx; if (yy >= 0 && yy < gh && xx >= 0 && xx < gw){ s2 += bg[yy * gw + xx]; c++; } } nb[y * gw + x] = s2 / c; }
+      bg = nb; }
+    const lo = bn ? 70 : 40, hi = 225, esc3 = 255 / (hi - lo);
+    for (let y = 0; y < H; y++){
+      const gy = Math.min(gh - 1.001, Math.max(0, y / bs - 0.5)), y0 = gy | 0, fy = gy - y0;
+      for (let x = 0; x < W; x++){
+        const gx = Math.min(gw - 1.001, Math.max(0, x / bs - 0.5)), x0 = gx | 0, fx = gx - x0, y1 = Math.min(gh - 1, y0 + 1), x1 = Math.min(gw - 1, x0 + 1);
+        const b = (bg[y0 * gw + x0] * (1 - fx) + bg[y0 * gw + x1] * fx) * (1 - fy) + (bg[y1 * gw + x0] * (1 - fx) + bg[y1 * gw + x1] * fx) * fy;
+        const i = (y * W + x) * 4, f = 255 / b;
+        if (bn){ const l = (o[i] * 0.3 + o[i+1] * 0.59 + o[i+2] * 0.11) * f, v = Math.max(0, Math.min(255, (l - lo) * esc3)); o[i] = o[i+1] = o[i+2] = v; }
+        else for (let c = 0; c < 3; c++){ const v = o[i + c] * f; o[i + c] = Math.max(0, Math.min(255, (v - lo) * esc3)); }
+      }
+    }
+  }
+  return { detectar, procesar, aCanvas };
+})();
+// Editor: arrastrar las 4 esquinas y elegir filtro. Devuelve {pts, filtro} o null si cancela.
+function editorEscaneo(f){
+  return new Promise(resolve => {
+    let pts = f.pts.map(p => [...p]), filtro = f.filtro || 'doc', fin = false;
+    const w = dialogo(`<h3>✂ Ajustar hoja</h3><div class="small muted">Arrastre los 4 puntos azules a las esquinas de la hoja.</div>
+      <div style="position:relative;margin-top:8px;text-align:center"><canvas id="seCv" style="touch-action:none;max-width:100%;border-radius:8px;background:#222"></canvas></div>
+      <label class="f">Acabado</label>
+      <div class="seg" id="seFil"><button type="button" data-f="doc">📄 Documento</button><button type="button" data-f="bn">⚫ Blanco y negro</button><button type="button" data-f="orig">🖼 Original</button></div>
+      <div class="btns" style="margin-top:12px"><button class="btn ghost" id="seAuto">↺ Detectar de nuevo</button><button class="btn ghost" id="seTodo">⛶ Toda la foto</button><button class="btn ok" id="seOk">✓ Listo</button></div>`);
+    const cv = w.querySelector('#seCv'), base = SCAN.aCanvas(f.orig, 900);
+    const maxW = Math.min(480, window.innerWidth - 48), maxH = window.innerHeight * 0.5, k = Math.min(maxW / base.width, maxH / base.height);
+    cv.width = Math.round(base.width * k); cv.height = Math.round(base.height * k);
+    const g = cv.getContext('2d');
+    const dibujar = () => {
+      g.drawImage(base, 0, 0, cv.width, cv.height);
+      const P = pts.map(([x, y]) => [x * cv.width, y * cv.height]);
+      g.fillStyle = 'rgba(0,0,0,.45)'; g.beginPath(); g.rect(0, 0, cv.width, cv.height); g.moveTo(...P[0]); P.slice(1).reverse().forEach(p => g.lineTo(...p)); g.closePath(); g.fill('evenodd');
+      g.strokeStyle = '#1877F2'; g.lineWidth = 3; g.beginPath(); g.moveTo(...P[0]); P.slice(1).forEach(p => g.lineTo(...p)); g.closePath(); g.stroke();
+      P.forEach(p => { g.beginPath(); g.arc(p[0], p[1], 11, 0, 7); g.fillStyle = 'rgba(24,119,242,.85)'; g.fill(); g.lineWidth = 3; g.strokeStyle = '#fff'; g.stroke(); });
+    };
+    const marcar = () => w.querySelectorAll('#seFil [data-f]').forEach(b => b.classList.toggle('on', b.dataset.f === filtro));
+    let act = -1;
+    const pos = e => { const r = cv.getBoundingClientRect(); return [(e.clientX - r.left) / r.width, (e.clientY - r.top) / r.height]; };
+    cv.onpointerdown = e => { const [x, y] = pos(e); let m = -1, md = 0.09; pts.forEach((p, i) => { const d2 = Math.hypot(p[0] - x, (p[1] - y) * cv.height / cv.width); if (d2 < md){ md = d2; m = i; } }); act = m; if (m >= 0) cv.setPointerCapture(e.pointerId); };
+    cv.onpointermove = e => { if (act < 0) return; const [x, y] = pos(e); pts[act] = [Math.min(1, Math.max(0, x)), Math.min(1, Math.max(0, y))]; dibujar(); };
+    cv.onpointerup = cv.onpointercancel = () => { act = -1; };
+    w.querySelectorAll('#seFil [data-f]').forEach(b => b.onclick = () => { filtro = b.dataset.f; marcar(); });
+    w.querySelector('#seAuto').onclick = () => { pts = SCAN.detectar(f.orig); dibujar(); };
+    w.querySelector('#seTodo').onclick = () => { pts = [[0, 0], [1, 0], [1, 1], [0, 1]]; dibujar(); };
+    w.querySelector('#seOk').onclick = () => { fin = true; cerrarDialogo(w); resolve({ pts, filtro }); };
+    const obs = new MutationObserver(() => { if (!document.body.contains(w)){ obs.disconnect(); if (!fin) resolve(null); } });
+    obs.observe(document.body, { childList: true });
+    marcar(); dibujar();
+  });
+}
+const nombreContratoFirmado = s => `Contrato_firmado_${String(s.nombre_cliente || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^A-Za-z0-9]+/g, '_').replace(/^_|_$/g, '')}_${s.codigo}.jpg`;
+function descargarBlob(blob, nombreArch){
+  const u = URL.createObjectURL(blob), a = document.createElement('a'); a.href = u; a.download = nombreArch; document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(u), 4000);
+}
+const cargarImg = file => new Promise((ok, fail) => { const u = URL.createObjectURL(file), im = new Image(); im.onload = () => ok(im); im.onerror = () => fail(new Error('No se pudo leer la foto')); im.src = u; });
+// Une las fotos (en orden) lado a lado o una debajo de otra, con fondo blanco. Cada foto se gira según st.rot (grados).
+function unirFotos(fotos, modo, maxLado = 1800){
+  const piezas = fotos.map(f => { const r = ((f.rot || 0) % 360 + 360) % 360, t = r === 90 || r === 270, iw = f.im.naturalWidth || f.im.width, ih = f.im.naturalHeight || f.im.height; return { im: f.im, r, w: t ? ih : iw, h: t ? iw : ih }; });
+  const gap = 24, pad = 24;
+  // misma altura (lado a lado) o mismo ancho (abajo), limitado a maxLado por foto
+  const ref = modo === 'lado' ? Math.min(maxLado, Math.max(...piezas.map(p => p.h))) : Math.min(maxLado, Math.max(...piezas.map(p => p.w)));
+  piezas.forEach(p => { const k = modo === 'lado' ? ref / p.h : ref / p.w; p.dw = Math.round(p.w * k); p.dh = Math.round(p.h * k); });
+  const W = modo === 'lado' ? piezas.reduce((a, p) => a + p.dw, 0) + gap * (piezas.length - 1) + pad * 2 : ref + pad * 2;
+  const H = modo === 'lado' ? ref + pad * 2 : piezas.reduce((a, p) => a + p.dh, 0) + gap * (piezas.length - 1) + pad * 2;
+  // límite de tamaño del lienzo (celulares): escala todo si hace falta
+  const lim = 8000, esc2 = Math.min(1, lim / Math.max(W, H));
+  const cv = document.createElement('canvas'); cv.width = Math.round(W * esc2); cv.height = Math.round(H * esc2);
+  const g = cv.getContext('2d'); g.scale(esc2, esc2); g.fillStyle = '#fff'; g.fillRect(0, 0, W, H);
+  let x = pad, y = pad;
+  piezas.forEach(p => {
+    g.save(); g.translate(x + p.dw / 2, y + p.dh / 2); g.rotate(p.r * Math.PI / 180);
+    const t = p.r === 90 || p.r === 270; const ow = t ? p.dh : p.dw, oh = t ? p.dw : p.dh;
+    g.drawImage(p.im, -ow / 2, -oh / 2, ow, oh); g.restore();
+    if (modo === 'lado') x += p.dw + gap; else y += p.dh + gap;
+  });
+  return cv;
+}
+const canvasBlob = (cv, q = 0.85) => new Promise((ok, fail) => cv.toBlob(b => b ? ok(b) : fail(new Error('No se pudo crear la imagen')), 'image/jpeg', q));
+function abrirContratoFirmado(s){
+  const st = { fotos: [], modo: 'lado', blob: null };
+  const w = dialogo(`<h3>📸 Contrato firmado · ${esc(s.nombre_cliente)}</h3>
+    <div class="small muted">Tome una foto de cada hoja firmada (o elíjalas de la galería), en orden: hoja 1, hoja 2… Cada hoja se escanea (recorte, enderezado y fondo blanco) y se unen en una sola imagen.</div>
+    <div class="btns" style="margin-top:10px">
+      <label class="btn pri" style="cursor:pointer">📷 Tomar foto<input type="file" accept="image/*" capture="environment" id="cfCam" hidden></label>
+      <label class="btn ghost" style="cursor:pointer">🖼 Elegir de galería<input type="file" accept="image/*" multiple id="cfGal" hidden></label>
+    </div>
+    <div id="cfLista" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px"></div>
+    <div id="cfOpc" class="hidden">
+      <label class="f">Acomodo</label>
+      <div class="seg" id="cfModo"><button type="button" data-m="lado" class="on">↔ Una a la par de la otra</button><button type="button" data-m="abajo">↕ Una debajo de la otra</button></div>
+      <div id="cfPrev" style="margin-top:10px;background:var(--gray-bg);border-radius:10px;padding:8px;text-align:center;max-height:52vh;overflow:auto"></div>
+      <div class="small muted" id="cfInfo" style="margin-top:4px"></div>
+    </div>
+    <div class="btns" style="margin-top:12px">
+      <button class="btn ghost" data-close>Cerrar</button>
+      <button class="btn ghost" id="cfDesc" disabled>⬇ Descargar imagen</button>
+      ${navigator.canShare ? '<button class="btn ghost" id="cfComp" disabled>📤 Compartir</button>' : ''}
+      <button class="btn ok" id="cfGuardar" disabled>💾 Guardar en la solicitud</button>
+    </div>`);
+  const pintarLista = () => {
+    w.querySelector('#cfLista').innerHTML = st.fotos.map((f, i) => `<div style="position:relative;width:118px">
+      <img src="${f.thumb}" style="width:118px;height:118px;object-fit:contain;background:#eee;border-radius:8px;border:1px solid var(--line);transform:rotate(${f.rot}deg)">
+      <div class="small" style="text-align:center;font-weight:700">Hoja ${i + 1}</div>
+      <div style="display:flex;justify-content:center;gap:2px;flex-wrap:wrap">
+        <button class="btn sm ghost" data-izq="${i}" title="Mover antes" ${i ? '' : 'disabled'} style="padding:2px 6px">◀</button>
+        <button class="btn sm ghost" data-aj="${i}" title="Ajustar recorte y acabado" style="padding:2px 6px">✂</button>
+        <button class="btn sm ghost" data-rot="${i}" title="Girar" style="padding:2px 6px">⟳</button>
+        <button class="btn sm ghost" data-del="${i}" title="Quitar" style="padding:2px 6px;color:var(--red)">✕</button></div></div>`).join('');
+    w.querySelectorAll('[data-izq]').forEach(b => b.onclick = () => { const i = +b.dataset.izq; [st.fotos[i - 1], st.fotos[i]] = [st.fotos[i], st.fotos[i - 1]]; actualizar(); });
+    w.querySelectorAll('[data-rot]').forEach(b => b.onclick = () => { st.fotos[+b.dataset.rot].rot = (st.fotos[+b.dataset.rot].rot + 90) % 360; actualizar(); });
+    w.querySelectorAll('[data-del]').forEach(b => b.onclick = () => { st.fotos.splice(+b.dataset.del, 1); actualizar(); });
+    w.querySelectorAll('[data-aj]').forEach(b => b.onclick = async () => { const f = st.fotos[+b.dataset.aj]; const r = await editorEscaneo(f); if (r){ Object.assign(f, r); await escanear(f); actualizar(); } });
+  };
+  const actualizar = async () => {
+    pintarLista();
+    const hay = st.fotos.length > 0;
+    w.querySelector('#cfOpc').classList.toggle('hidden', !hay);
+    ['#cfDesc', '#cfComp', '#cfGuardar'].forEach(q => { const b = w.querySelector(q); if (b) b.disabled = !hay; });
+    st.blob = null; if (!hay) return;
+    const cv = unirFotos(st.fotos, st.modo);
+    st.blob = await canvasBlob(cv);
+    const prev = w.querySelector('#cfPrev'); prev.innerHTML = '';
+    const im = new Image(); im.src = URL.createObjectURL(st.blob); im.style.cssText = 'max-width:100%;max-height:50vh;box-shadow:0 1px 4px rgba(0,0,0,.2)'; prev.appendChild(im);
+    w.querySelector('#cfInfo').textContent = `${st.fotos.length} hoja(s) · ${cv.width} × ${cv.height} px · ${(st.blob.size / 1024 / 1024).toFixed(1)} MB`;
+  };
+  const escanear = async f => {
+    await new Promise(r => setTimeout(r, 30));
+    f.im = SCAN.procesar(f.orig, f.pts, f.filtro);
+    const t = SCAN.aCanvas(f.im, 200); f.thumb = t.toDataURL('image/jpeg', 0.7);
+  };
+  // revisar = true (cámara): abre el editor de esquinas para confirmar, como en Lens
+  const agregar = async (files, revisar) => {
+    const info = w.querySelector('#cfInfo');
+    for (const file of files){
+      try {
+        const orig = await cargarImg(file), f = { orig, rot: 0, filtro: 'doc', pts: SCAN.detectar(orig) };
+        if (revisar){ const r = await editorEscaneo(f); if (!r) continue; Object.assign(f, r); }
+        toast('Escaneando hoja…'); await escanear(f); st.fotos.push(f);
+      } catch(e){ toast(e.message, true); }
+    }
+    await actualizar();
+  };
+  w.querySelector('#cfCam').onchange = e => { agregar([...e.target.files], true); e.target.value = ''; };
+  w.querySelector('#cfGal').onchange = e => { agregar([...e.target.files]); e.target.value = ''; };
+  w.querySelectorAll('#cfModo [data-m]').forEach(b => b.onclick = () => { st.modo = b.dataset.m; w.querySelectorAll('#cfModo [data-m]').forEach(x => x.classList.toggle('on', x === b)); actualizar(); });
+  w.querySelector('#cfDesc').onclick = () => { if (st.blob) descargarBlob(st.blob, nombreContratoFirmado(s)); };
+  const comp = w.querySelector('#cfComp');
+  if (comp) comp.onclick = async () => { if (!st.blob) return; const f = new File([st.blob], nombreContratoFirmado(s), { type: 'image/jpeg' });
+    if (navigator.canShare({ files: [f] })) { try { await navigator.share({ files: [f], title: nombreContratoFirmado(s) }); } catch(e){} } else toast('Este dispositivo no permite compartir imágenes; use Descargar', true); };
+  w.querySelector('#cfGuardar').onclick = e => run(e.target, async () => {
+    if (!st.blob) return;
+    if (!navigator.onLine) throw new Error('Sin señal: descargue la imagen ahora y guárdela en la solicitud cuando tenga conexión');
+    const path = `${s.id}/contrato-firmado-${Date.now()}.jpg`;
+    const { error } = await sb.storage.from('evidencias').upload(path, st.blob, { contentType: 'image/jpeg' });
+    if (error) throw error;
+    await rpc('guardar_contrato_firmado', { p_id: s.id, p_path: path });
+    toast('Contrato firmado guardado'); cerrarDialogo(w); await cargarSolicitudes(); if (S.detData && S.detData.s.id === s.id) await abrirDetalle(s.id, true); pintarTabs();
+  });
+}
 function reconocimientoHabilitado(s){ return !!s.dictamen_en && !['denegada','borrador','en_analisis'].includes(s.estado); }
 function abrirReconocimiento(s){
   const d = s.datos_cliente || {};
@@ -2891,7 +3455,8 @@ async function pintarStats(){
   <h4 class="sec">Visitas de verificación y desembolso</h4>
   <div class="card" style="overflow-x:auto">${(r.visitas || []).length ? `<table class="t"><thead><tr><th>Verificador</th><th class="num">🏠 Domicilio</th><th class="num">🏢 Trabajo</th><th class="num">💵 Desembolso</th><th class="num">Total</th><th class="num">Rechaz.</th></tr></thead><tbody>
     ${r.visitas.map(v => `<tr><td>${esc(v.nombre)}</td><td class="num">${v.domicilio}</td><td class="num">${v.trabajo}</td><td class="num">${v.desembolso}</td><td class="num"><b>${v.total}</b></td><td class="num">${v.rechazadas}</td></tr>`).join('')}</tbody></table>
-    <div class="small muted" style="margin-top:6px">Se cuentan cuando el verificador cierra la verificación: una visita por lugar visitado (domicilio, trabajo) y una por entrega de efectivo.</div>` : '<div class="muted small">Sin visitas en el período</div>'}</div>
+    <div class="small muted" style="margin-top:6px">Cada punto que el verificador marca como realizado queda registrado como una visita (cliente, hora y GPS): domicilio, trabajo o entrega de efectivo.</div>` : '<div class="muted small">Sin visitas en el período</div>'}</div>
+  ${es('analista') ? `<h4 class="sec">Mapa de verificaciones</h4><div class="card"><div id="vMapStats" style="height:420px;border-radius:10px;overflow:hidden;background:var(--bg2,#eef)"></div><div class="small muted" id="vMapInfo" style="margin-top:6px">Cargando visitas…</div></div>` : ''}
   <h4 class="sec">Cartera en proceso ahora</h4>
   <div class="pipe">${['borrador','en_analisis','aprobada','por_verificar','desembolso_pendiente'].map(k => `<div class="st"><b>${pe[k]||0}</b><span class="small">${EST[k].t}</span></div>`).join('')}</div>
   <h4 class="sec">Tiempo promedio por paso (hábil)</h4>
@@ -2911,6 +3476,34 @@ async function pintarStats(){
   graficoBarras($('#chMes'), r.meses.map(m => ({ l: `${MESES_C[+m.mes.slice(5) - 1]}–${MESES_C[(+m.mes.slice(5)) % 12]}`, v: +m.capital, t: L(Math.round(m.capital)), tip: `Mes contable 9 ${MESES_C[+m.mes.slice(5) - 1]} – 8 ${MESES_C[(+m.mes.slice(5)) % 12]}<br>${L(m.capital)} · ${m.n} desembolso(s)` })));
   graficoLinea($('#chCap'), activos.map(x => ({ l: fd(x), v: +x.capital, t: L(Math.round(x.capital)), tip: `${fDate(x.dia + 'T12:00')}<br>${L(x.capital)} · ${x.desembolsadas} exitosa(s)` })));
   graficoBarras($('#chExi'), activos.map(x => ({ l: fd(x), v: x.desembolsadas, t: String(x.desembolsadas), tip: `${fDate(x.dia + 'T12:00')}<br>${x.desembolsadas} exitosa(s) · ${L(x.capital)}` })));
+  if (es('analista')) mapaVisitas(d0, d1);
+}
+async function mapaVisitas(d0, d1){
+  const box = $('#vMapStats'), info = $('#vMapInfo'); if (!box) return;
+  let vs;
+  try { const { data, error } = await sb.rpc('visitas_mapa', { p_desde: d0, p_hasta: d1 }); if (error) throw error; vs = data || []; }
+  catch(e){ box.style.display = 'none'; info.textContent = navigator.onLine ? 'No se pudo cargar el mapa de visitas: ' + (e.message || e) : 'El mapa de visitas necesita conexión a internet.'; return; }
+  const con = vs.filter(v => v.lat != null && v.lng != null), sin = vs.length - con.length;
+  if (!con.length){ box.style.display = 'none'; info.textContent = vs.length ? `${vs.length} visita(s) en el período, ninguna con GPS registrado.` : 'Sin visitas registradas en el período.'; return; }
+  try {
+    if (!window.L || !window.L.map){
+      if (!document.querySelector('link[data-leaflet]')){ const l = document.createElement('link'); l.rel = 'stylesheet'; l.dataset.leaflet = 1; l.href = 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css'; document.head.appendChild(l); }
+      await cargarScript('https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js');
+    }
+  } catch(e){ box.style.display = 'none'; info.textContent = 'No se pudo cargar el mapa (sin conexión).'; return; }
+  if (!document.body.contains(box)) return;
+  const LF = window.L, TIPO = { domicilio: '🏠 Domicilio', trabajo: '🏢 Trabajo', desembolso: '💵 Desembolso' };
+  const m = LF.map(box); LF.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '© OpenStreetMap' }).addTo(m);
+  const pts = [], porV = {};
+  con.forEach(v => {
+    const col = avColor(v.verificador_id || v.verificador || ''); porV[v.verificador || '—'] = porV[v.verificador || '—'] || { c: col, n: 0 }; porV[v.verificador || '—'].n++;
+    const mk = LF.circleMarker([+v.lat, +v.lng], { radius: 8, color: '#fff', weight: 2, fillColor: col, fillOpacity: .9 }).addTo(m);
+    mk.bindPopup(`<b>${esc(v.cliente || 'Cliente')}</b><br>${esc(v.codigo || '')} · ${TIPO[v.tipo] || esc(v.tipo || '')}<br>Verificador: ${esc(v.verificador || '—')}<br>${fDT(v.creado_en)}${v.solicitud_id ? `<br><a href="#" data-abrir="${v.solicitud_id}">Abrir solicitud</a>` : ''}`);
+    pts.push([+v.lat, +v.lng]);
+  });
+  m.on('popupopen', e => { const a = e.popup.getElement()?.querySelector('[data-abrir]'); if (a) a.onclick = ev => { ev.preventDefault(); abrirDetalle(a.dataset.abrir); }; });
+  if (pts.length === 1) m.setView(pts[0], 15); else m.fitBounds(pts, { padding: [24, 24] });
+  info.innerHTML = Object.entries(porV).map(([n, o]) => `<span style="display:inline-flex;align-items:center;gap:4px;margin-right:10px"><i style="width:10px;height:10px;border-radius:50%;background:${o.c};display:inline-block"></i>${esc(n)} · ${o.n}</span>`).join('') + `<br>${con.length} visita(s) con GPS${sin ? ` · ${sin} sin GPS (no aparecen en el mapa)` : ''}.`;
 }
 // ================== Meta de colocación ==================
 function metaDia(iso){
@@ -2935,6 +3528,14 @@ function metaHTML(r, d0, d1, dFin){
   const mHoy = metaDia(hoy), cHoy = cap[hoy] || 0, enRango = hoy >= d0 && hoy <= dFin;
   const fRango = `${fDate(d0 + 'T12:00')} – ${fDate(dFin + 'T12:00')}`;
   const filas = hasta.filter(x => metaDia(x) > 0 || cap[x]).reverse();
+  // Proyección al cierre: al ritmo actual (ponderado por la meta de cada día; hoy cuenta la parte del horario ya transcurrida)
+  const fracHoy = (() => { const t = new Date(new Date().toLocaleString('en-US', { timeZone:TZ })), m = t.getHours() * 60 + t.getMinutes(), sab = t.getDay() === 6;
+    const ini = 8 * 60 + 30, fin = sab ? 12 * 60 : 16 * 60 + 30; return Math.max(0, Math.min(1, (m - ini) / (fin - ini))); })();
+  const metaTrans = hoy > dFin ? metaTotal : todos.filter(x => x < hoy).reduce((a, x) => a + metaDia(x), 0) + (enRango ? metaDia(hoy) * fracHoy : 0);
+  const proy = hoy > dFin ? colocado : metaTrans > 0 ? colocado / metaTrans * metaTotal : null;
+  const pctProy = proy != null && metaTotal ? proy / metaTotal * 100 : null;
+  const pctReal = metaTotal ? colocado / metaTotal * 100 : 0;
+  const colPct = v => v >= 100 ? 'var(--green)' : v >= 85 ? 'var(--amber)' : 'var(--red)';
   return `<div class="card" style="border-top:3px solid var(--accent)">
     <h4 class="sec" style="margin-top:0">Meta de colocación · ${fRango}</h4>
     <div class="kpis" style="margin-bottom:10px">
@@ -2943,7 +3544,11 @@ function metaHTML(r, d0, d1, dFin){
       <div class="kpi" style="border-top:3px solid ${falta ? 'var(--red)' : 'var(--green)'}"><div class="l">${falta ? 'Falta para la meta' : 'Meta cumplida'}</div><div class="v" style="font-size:20px;color:${falta ? 'var(--red)' : 'var(--green)'}">${L(falta || colocado - metaTotal)}</div><div class="s">${falta ? (ritmo != null ? `${L(Math.ceil(ritmo))} por día en ${restantes.length} día(s) restantes` : 'período cerrado') : 'superada'}</div></div>
       <div class="kpi"><div class="l">${dif >= 0 ? 'Adelante de la meta a la fecha' : 'Atraso contra la meta a la fecha'}</div><div class="v" style="font-size:20px;color:${dif >= 0 ? 'var(--green)' : 'var(--amber)'}">${L(Math.abs(dif))}</div><div class="s">Meta a la fecha ${L(metaFecha)}</div></div>
     </div>
-    <div style="background:var(--gray-bg);border-radius:8px;height:14px;overflow:hidden"><div style="height:100%;width:${pct}%;background:${pct >= 100 ? 'var(--green)' : 'var(--brand)'}"></div></div>
+    <div class="kpis" style="grid-template-columns:repeat(2,1fr);margin-bottom:10px">
+      <div class="kpi" style="border-top:3px solid var(--brand)"><div class="l">% de colocación (sobre la meta del período)</div><div class="v" style="font-size:28px;color:var(--brand-dk)">${pctReal.toFixed(1)}%</div><div class="s">${L(colocado)} de ${L(metaTotal)} · a la fecha va ${metaFecha ? (colocado / metaFecha * 100).toFixed(1) + '%' : '—'} de lo esperado</div></div>
+      <div class="kpi" style="border-top:3px solid ${pctProy == null ? 'var(--line)' : colPct(pctProy)}"><div class="l">${hoy > dFin ? 'Resultado del período' : 'Proyección al cierre (ritmo actual)'}</div><div class="v" style="font-size:28px;color:${pctProy == null ? 'inherit' : colPct(pctProy)}">${pctProy == null ? '—' : pctProy.toFixed(1) + '%'}</div><div class="s">${proy == null ? 'aún no hay días transcurridos' : `${L(Math.round(proy))} estimado al ${fDate(dFin + 'T12:00')}${proy < metaTotal ? ` · faltarían ${L(Math.round(metaTotal - proy))}` : ' · alcanzaría la meta'}`}</div></div>
+    </div>
+    <div style="background:var(--gray-bg);border-radius:8px;height:14px;overflow:hidden;position:relative"><div style="height:100%;width:${pct}%;background:${pct >= 100 ? 'var(--green)' : 'var(--brand)'}"></div>${pctProy != null && pctProy < 100 && hoy <= dFin ? `<div title="Proyección" style="position:absolute;top:0;bottom:0;left:${Math.min(100, pctProy)}%;border-left:2px dashed var(--amber)"></div>` : ''}</div>
     ${enRango && mHoy ? `<div class="alert ${cHoy >= mHoy ? 'ok' : 'info'} small" style="margin-top:10px"><b>Hoy:</b> ${L(cHoy)} de ${L(mHoy)} · ${cHoy >= mHoy ? '✓ meta del día cumplida' : 'faltan ' + L(mHoy - cHoy)}</div>` : ''}
     <label class="f" style="margin-top:12px">Resumen diario</label>
     <div style="overflow-x:auto;max-height:360px"><table class="t"><thead><tr><th>Día</th><th class="num">Meta</th><th class="num">Colocado</th><th class="num">Diferencia</th><th class="num">%</th></tr></thead><tbody>

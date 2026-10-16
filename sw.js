@@ -1,6 +1,6 @@
 // VerifiCrédito · service worker: permite abrir la app sin señal.
 // Los datos (Supabase) NO pasan por aquí: la app los guarda en el teléfono y envía los cambios al volver la conexión.
-const V = 'verificredito-v1';
+const V = 'verificredito-v2';
 const CDN = /^(cdn\.jsdelivr\.net|cdnjs\.cloudflare\.com|fonts\.googleapis\.com|fonts\.gstatic\.com|unpkg\.com)$/;
 
 self.addEventListener('install', e => {
@@ -17,9 +17,12 @@ self.addEventListener('fetch', e => {
   if (r.method !== 'GET') return;
   const u = new URL(r.url);
   if (u.hostname.endsWith('supabase.co') || u.hostname.endsWith('supabase.in')) return;   // datos en vivo
+  if (u.searchParams.has('vc')) return;   // revisión de versión nueva: siempre directo a la red
   // La app (index.html y archivos propios): red primero, con límite de 5 s; si falla, la copia guardada
   if (r.mode === 'navigate' || u.origin === location.origin){
-    e.respondWith(conLimite(fetch(r), 5000).then(res => {
+    // la app siempre se revalida con el servidor (no usa la copia vieja del navegador)
+    const req = r.mode === 'navigate' ? new Request(r.url, { cache: 'no-cache', credentials: 'same-origin' }) : r;
+    e.respondWith(conLimite(fetch(req), 5000).then(res => {
       if (res.ok) { const cp = res.clone(); caches.open(V).then(c => c.put(r.mode === 'navigate' ? './index.html' : r, cp)); }
       return res;
     }).catch(() => caches.match(r.mode === 'navigate' ? './index.html' : r).then(x => x || caches.match('./index.html'))));
