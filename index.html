@@ -409,7 +409,7 @@ table.ht td.nota{max-width:220px;overflow:hidden;text-overflow:ellipsis;color:va
 // App disponible sin señal (sw.js debe estar junto a index.html). Va primero para registrarse aunque falle otra cosa.
 if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) navigator.serviceWorker.register('sw.js').catch(() => {});
 // Versión de esta copia de la app: cambia en cada entrega. La app la compara con la publicada y se actualiza sola.
-const APP_VER = '2026-10-16.1445';
+const APP_VER = '2026-10-16.1452';
 // ================== Configuración ==================
 const SB_URL = 'https://edmvfqelxsxevpmxgbav.supabase.co';
 const SB_KEY = 'sb_publishable_lgTmmLtUESDDyX2sff6ArQ_z65Ti9d6';
@@ -1056,7 +1056,7 @@ function rfPintar(){
   rfPintarLista(rows);
 }
 function rfFiltrar(rows){
-  const q = rfKey(RF.q).replace(/-/g, ' ');
+  const q = RF.q.trim() ? rfKey(RF.q).replace(/-/g, ' ') : '';
   const out = rows.filter(r => {
     if (RF.estado === 'disp' && !r.elegible) return false;
     if (RF.estado === 'aldia' && r.atraso) return false;
