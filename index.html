@@ -418,7 +418,7 @@ table.ht td.nota{max-width:220px;overflow:hidden;text-overflow:ellipsis;color:va
 // App disponible sin señal (sw.js debe estar junto a index.html). Va primero para registrarse aunque falle otra cosa.
 if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) navigator.serviceWorker.register('sw.js').catch(() => {});
 // Versión de esta copia de la app: cambia en cada entrega. La app la compara con la publicada y se actualiza sola.
-const APP_VER = '2026-10-17.1552';
+const APP_VER = '2026-10-17.1629';
 // ================== Configuración ==================
 const SB_URL = 'https://edmvfqelxsxevpmxgbav.supabase.co';
 const SB_KEY = 'sb_publishable_lgTmmLtUESDDyX2sff6ArQ_z65Ti9d6';
@@ -445,7 +445,7 @@ const ACC = { creada:'Creó la solicitud', enviada_analisis:'Envió a análisis'
   dictamen_aprobada:'Aprobó', dictamen_denegada:'Denegó', enviada_verificacion:'Envió a verificación',
   enviada_desembolso:'Envió a desembolso por transferencia', verificacion_ok:'Verificación exitosa',
   verificacion_rechazada:'Rechazó en verificación', desembolsada:'Marcó como desembolsada', desistida:'Cliente desistió',
-  regresada_revisadas:'Regresó a revisadas', reasignada:'Reasignó la solicitud', ajuste_monto:'Ajustó el monto aprobado', ajuste_tasa:'Ajustó la tasa', reconocimiento_deuda:'Generó el documento para firma (contrato / reconocimiento de deuda', edicion_admin:'Editó la solicitud', cambio_estado_admin:'Cambió el estado (administrador)', en_espera:'Puso en espera', reanudada:'Reanudó la solicitud', ubicacion_domicilio:'Guardó la ubicación del domicilio', ubicacion_trabajo:'Guardó la ubicación del trabajo', verificador_asignado:'Asignó verificador', duplicada:'Creó una solicitud nueva a partir de esta', contrato_firmado:'Subió la foto del contrato firmado', politica_b_aplicada:'Aplicó política tipo B', politica_b_quitada:'Quitó política tipo B' };
+  regresada_revisadas:'Regresó a revisadas', reasignada:'Reasignó la solicitud', ajuste_monto:'Ajustó el monto aprobado', ajuste_tasa:'Ajustó la tasa', reconocimiento_deuda:'Generó el documento para firma (contrato / reconocimiento de deuda', edicion_admin:'Editó la solicitud', cambio_estado_admin:'Cambió el estado (administrador)', en_espera:'Puso en espera', reanudada:'Reanudó la solicitud', ubicacion_domicilio:'Guardó la ubicación del domicilio', ubicacion_trabajo:'Guardó la ubicación del trabajo', verificador_asignado:'Asignó verificador', visita_corregida:'Corrigió una visita (pago a verificadores)', duplicada:'Creó una solicitud nueva a partir de esta', contrato_firmado:'Subió la foto del contrato firmado', politica_b_aplicada:'Aplicó política tipo B', politica_b_quitada:'Quitó política tipo B' };
 const CERRADAS = ['desembolsada','denegada','rechazada_verificacion','desistida'];
 
 const S = { user:null, me:null, perfiles:{}, params:{}, sols:[], com:{}, tab:null, q:'', filtroTodas:'abiertas',
@@ -3761,16 +3761,18 @@ function pintarUsuarios(){
 // ================== Pago a verificadores externos (solo admin) ==================
 // Por cliente y verificador: un lugar (domicilio o trabajo) = pago_visita_1; los dos = pago_visita_2.
 // Si el domicilio lo visitó uno y el trabajo otro, a cada uno se le paga un lugar. Se paga cada sábado lo visitado hasta el viernes.
-function viernesAnterior(){ const d = new Date(hoyHN() + 'T12:00'); const back = (d.getDay() + 2) % 7 || 7; d.setDate(d.getDate() - back); return d.toLocaleDateString('en-CA'); }
+function lunesDe(iso){ const d = new Date(iso + 'T12:00'); d.setDate(d.getDate() - ((d.getDay() + 6) % 7)); return d.toLocaleDateString('en-CA'); }
+function sumarDias(iso, n){ const d = new Date(iso + 'T12:00'); d.setDate(d.getDate() + n); return d.toLocaleDateString('en-CA'); }
 async function pintarPagos(){
   if (rol() !== 'admin'){ $('#main').innerHTML = '<div class="empty">Solo el administrador.</div>'; return; }
-  S.pg = S.pg || { hasta: viernesAnterior(), abierto: {} };
-  const P = S.params, hasta = S.pg.hasta, sab = new Date(hasta + 'T12:00'); sab.setDate(sab.getDate() + 1);
+  S.pg = S.pg || { hasta: hoyHN(), desde: lunesDe(hoyHN()) };
+  const P = S.params, hasta = S.pg.hasta, desde = S.pg.desde;
   $('#main').innerHTML = '<div class="empty">Calculando pagos…</div>';
   let filas = [], hist = [];
   try {
-    const [a, b] = await Promise.all([sb.rpc('pagos_verificacion_calculo', { p_hasta: hasta }), sb.from('pagos_verificacion').select('*').order('pagado_en', { ascending: false }).limit(40)]);
-    if (a.error) throw a.error; if (b.error) throw b.error; filas = a.data || []; hist = b.data || [];
+    const [a, b, c] = await Promise.all([sb.rpc('pagos_verificacion_calculo', { p_hasta: hasta }), sb.from('pagos_verificacion').select('*').order('pagado_en', { ascending: false }).limit(40),
+      sb.rpc('visitas_mapa', { p_desde: desde, p_hasta: hasta })]);
+    if (a.error) throw a.error; if (b.error) throw b.error; if (c.error) throw c.error; filas = a.data || []; hist = b.data || []; S.pg.vis = c.data || [];
   } catch(e){ $('#main').innerHTML = `<div class="alert err">${navigator.onLine ? 'No se pudo calcular: ' + esc(e.message || e) : 'Esta sección necesita conexión a internet.'}</div>`; return; }
   const verifs = Object.values(S.perfiles).filter(p => p.rol === 'verificador' && p.activo);
   const externos = verifs.filter(p => p.pago_por_visita);
@@ -3780,11 +3782,11 @@ async function pintarPagos(){
   const lug = a => (a || []).map(x => x === 'domicilio' ? '🏠 Domicilio' : x === 'trabajo' ? '🏢 Trabajo' : '💵 ' + x).join(' + ');
   $('#main').innerHTML = `
     <div class="card"><h4 class="sec" style="margin-top:0">💰 Pago a verificadores externos</h4>
-      <div class="small muted">Por cliente: <b>${L(P.pago_visita_1 ?? 200)}</b> si visitó un solo lugar (domicilio o trabajo) y <b>${L(P.pago_visita_2 ?? 300)}</b> si visitó los dos.
-        Si el domicilio lo hizo un verificador y el trabajo otro, a cada uno se le paga un lugar. ${(P.pago_cuenta_entrega ?? 1) == 1 ? `Si solo entregó el efectivo, cuenta como un lugar.` : ''} Se paga cada sábado lo visitado hasta el viernes; lo que no se pague se acumula.</div>
+      <div class="small muted">Se suma automáticamente por semana (lunes a domingo); se paga el sábado lo acumulado hasta ese día. Por cliente: <b>${L(P.pago_visita_1 ?? 200)}</b> si visitó un solo lugar (domicilio o trabajo) y <b>${L(P.pago_visita_2 ?? 300)}</b> si visitó los dos.
+        Si el domicilio lo hizo un verificador y el trabajo otro, a cada uno se le paga un lugar. ${(P.pago_cuenta_entrega ?? 1) == 1 ? `Si solo entregó el efectivo, cuenta como un lugar.` : ''} Lo que no se pague se acumula.</div>
       <div class="row" style="gap:10px;flex-wrap:wrap;margin-top:10px;align-items:end">
-        <div><label class="f">Visitas hasta (viernes)</label><input type="date" id="pgHasta" value="${hasta}"></div>
-        <div class="small muted" style="padding-bottom:10px">Pago del sábado ${fDate(sab)}</div>
+        <div><label class="f">Pagar visitas hasta</label><input type="date" id="pgHasta" value="${hasta}"></div>
+        <div class="seg"><button type="button" data-sem="0" class="${desde === lunesDe(hoyHN()) ? 'on' : ''}">Esta semana</button><button type="button" data-sem="-7" class="${desde === sumarDias(lunesDe(hoyHN()), -7) ? 'on' : ''}">Semana pasada</button></div>
       </div></div>
     ${externos.length ? '' : '<div class="alert warn">No hay verificadores marcados como externos (con pago por visita). Márquelos abajo.</div>'}
     ${grupos.map(({ v, rows }) => {
@@ -3797,11 +3799,15 @@ async function pintarPagos(){
           ${tot ? `<button class="btn ok" data-pagar="${v.id}" data-monto="${tot}">✅ Registrar pago</button><button class="btn ghost sm" data-wa="${v.id}">📋 Copiar detalle</button>` : ''}
         </div>
         ${pend.length ? `<div style="overflow-x:auto;margin-top:10px"><table class="t"><thead><tr><th>Fecha</th><th>Código</th><th>Cliente</th><th>Visitó</th><th class="num">Corresponde</th><th class="num">Ya pagado</th><th class="num">A pagar</th></tr></thead><tbody>
-          ${pend.map(r => { const o = (otros[r.solicitud_id] || []).filter(x => x.verificador_id !== v.id);
-            return `<tr data-id="${r.solicitud_id}" style="cursor:pointer"><td>${fDate(r.primera + 'T12:00')}${r.ultima !== r.primera ? ' – ' + fDate(r.ultima + 'T12:00') : ''}</td><td>${esc(r.codigo)}</td><td>${esc(r.cliente)}${o.length ? `<div class="small" style="color:var(--amber)">↔ ${o.map(x => esc(x.verificador) + ': ' + lug(x.lugares)).join(', ')}</div>` : ''}</td>
+          ${pend.map((r, i) => { const o = (otros[r.solicitud_id] || []).filter(x => x.verificador_id !== v.id);
+            const sem = lunesDe(r.primera), nueva = i === 0 || lunesDe(pend[i - 1].primera) !== sem;
+            const sub = pend.filter(x => lunesDe(x.primera) === sem).reduce((a, x) => a + +x.pendiente, 0);
+            const cab = nueva ? `<tr style="background:var(--gray-bg)"><td colspan="6"><b>Semana del ${fDate(sem + 'T12:00')} al ${fDate(sumarDias(sem, 6) + 'T12:00')}</b></td><td class="num"><b>${L(sub)}</b></td></tr>` : '';
+            return cab + `<tr data-id="${r.solicitud_id}" style="cursor:pointer"><td>${fDate(r.primera + 'T12:00')}${r.ultima !== r.primera ? ' – ' + fDate(r.ultima + 'T12:00') : ''}</td><td>${esc(r.codigo)}</td><td>${esc(r.cliente)}${o.length ? `<div class="small" style="color:var(--amber)">↔ ${o.map(x => esc(x.verificador) + ': ' + lug(x.lugares)).join(', ')}</div>` : ''}</td>
             <td>${lug(r.lugares)}</td><td class="num">${L(r.corresponde)}</td><td class="num">${+r.pagado ? L(r.pagado) : '—'}</td><td class="num"><b>${L(r.pendiente)}</b></td></tr>`; }).join('')}
           </tbody><tfoot><tr><td colspan="6">Total</td><td class="num"><b>${L(tot)}</b></td></tr></tfoot></table></div>` : '<div class="small muted" style="margin-top:6px">Nada pendiente hasta esta fecha.</div>'}
       </div>`; }).join('')}
+    ${correccionVisitasHTML(desde, hasta)}
     <h4 class="sec">Pagos registrados</h4>
     <div class="card" style="overflow-x:auto">${hist.length ? `<table class="t"><thead><tr><th>Fecha de pago</th><th>Verificador</th><th>Visitas hasta</th><th class="num">Clientes</th><th class="num">Monto</th><th>Referencia</th><th></th></tr></thead><tbody>
       ${hist.map(h => `<tr style="${h.anulado ? 'text-decoration:line-through;color:var(--muted)' : ''}"><td>${fDT(h.pagado_en)}</td><td>${esc(nombre(h.verificador_id))}</td><td>${fDate(h.hasta + 'T12:00')}</td><td class="num">${h.clientes}</td><td class="num"><b>${L(h.monto)}</b></td><td>${esc(h.referencia || '')}${h.anulado ? ' (anulado)' : ''}</td>
@@ -3810,7 +3816,9 @@ async function pintarPagos(){
     <div class="card">${verifs.map(p => `<label class="chk"><input type="checkbox" data-ext="${p.id}" ${p.pago_por_visita ? 'checked' : ''}> ${esc(p.nombre)} <span class="small muted">${p.pago_por_visita ? '· externo, se le paga por visita' : '· de planilla'}</span></label>`).join('') || '<div class="small muted">No hay verificadores activos.</div>'}
       <div class="small muted" style="margin-top:6px">Montos y fecha de inicio: en Parámetros (pago_visita_1, pago_visita_2, pago_cuenta_entrega, pago_visitas_desde).</div></div>`;
   const M = $('#main');
-  $('#pgHasta').onchange = e => { S.pg.hasta = e.target.value || viernesAnterior(); pintarPagos(); };
+  $('#pgHasta').onchange = e => { S.pg.hasta = e.target.value || hoyHN(); S.pg.desde = lunesDe(S.pg.hasta); pintarPagos(); };
+  M.querySelectorAll('[data-sem]').forEach(b => b.onclick = () => { const l = sumarDias(lunesDe(hoyHN()), +b.dataset.sem); S.pg.desde = l; S.pg.hasta = +b.dataset.sem ? sumarDias(l, 6) : hoyHN(); pintarPagos(); });
+  enlazarCorreccionVisitas(M);
   M.querySelectorAll('tbody tr[data-id]').forEach(tr => tr.onclick = () => abrirDetalle(+tr.dataset.id));
   M.querySelectorAll('[data-pagar]').forEach(b => b.onclick = async () => {
     const v = S.perfiles[b.dataset.pagar], ref = await pedirTexto(`Pagar ${L(b.dataset.monto)} a ${v.nombre}`, 'Referencia: transferencia, efectivo, recibo…', 'Registrar pago', 'ok');
@@ -3826,6 +3834,38 @@ async function pintarPagos(){
   });
   M.querySelectorAll('[data-anular]').forEach(b => b.onclick = () => { if (!confirm('¿Anular este pago? Lo pagado vuelve a quedar pendiente.')) return; run(b, async () => { await rpc('anular_pago_verificacion', { p_id: +b.dataset.anular }); toast('Pago anulado'); pintarPagos(); }); });
   M.querySelectorAll('[data-ext]').forEach(c => c.onchange = () => run(null, async () => { await rpc('marcar_pago_por_visita', { p_id: c.dataset.ext, p_valor: c.checked }); S.perfiles[c.dataset.ext].pago_por_visita = c.checked; pintarPagos(); }));
+}
+// Corrección de visitas: quién visitó cada lugar (para los casos compartidos que quedaron a nombre de otro)
+function correccionVisitasHTML(desde, hasta){
+  const vis = S.pg.vis || [], verifs = Object.values(S.perfiles).filter(p => ['verificador','admin'].includes(p.rol) && p.activo);
+  const porSol = {}; vis.filter(v => ['domicilio','trabajo','desembolso'].includes(v.tipo)).forEach(v => (porSol[v.solicitud_id] = porSol[v.solicitud_id] || { codigo: v.codigo, cliente: v.cliente, vs: [] }).vs.push(v));
+  const lista = Object.entries(porSol).sort((a, b) => (a[1].vs[0].creado_en < b[1].vs[0].creado_en ? 1 : -1));
+  const TIPO_V = { domicilio: '🏠 Domicilio', trabajo: '🏢 Trabajo', desembolso: '💵 Entrega' };
+  return `<details class="card" id="pgCorr" ${S.pg.corrAbierto ? 'open' : ''}><summary style="cursor:pointer;font-weight:700">✏️ Corregir quién visitó (${lista.length} cliente(s) del ${fDate(desde + 'T12:00')} al ${fDate(hasta + 'T12:00')})</summary>
+    <div class="small muted" style="margin:6px 0">Si un verificador marcó un lugar que en realidad visitó otro, cámbielo aquí y el pago se recalcula solo. Si falta una visita, agréguela con ＋.</div>
+    ${lista.length ? `<div style="overflow-x:auto"><table class="t"><thead><tr><th>Cliente</th><th>Visita</th><th>Fecha</th><th>Verificador</th></tr></thead><tbody>
+      ${lista.map(([sid, g]) => { const mix = new Set(g.vs.map(v => v.verificador_id)).size > 1;
+        return g.vs.map((v, i) => `<tr ${mix ? 'style="background:#fff8e6"' : ''}>${i === 0 ? `<td rowspan="${g.vs.length}"><b>${esc(g.cliente || '')}</b><div class="small muted">${esc(g.codigo || '')}${mix ? ' · <span style="color:var(--amber)">compartida</span>' : ''}</div><button class="btn sm ghost" data-addv="${sid}" style="padding:2px 8px;margin-top:4px">＋ Visita</button></td>` : ''}
+          <td>${TIPO_V[v.tipo] || esc(v.tipo)}</td><td>${fDT(v.creado_en)}</td>
+          <td><select data-revis="${v.id}">${verifs.map(p => `<option value="${p.id}" ${p.id === v.verificador_id ? 'selected' : ''}>${esc(p.nombre)}${p.pago_por_visita ? ' (externo)' : ''}</option>`).join('')}</select></td></tr>`).join(''); }).join('')}
+      </tbody></table></div>` : '<div class="small muted">No hay visitas registradas en esas fechas.</div>'}
+  </details>`;
+}
+function enlazarCorreccionVisitas(M){
+  const d = M.querySelector('#pgCorr'); if (d) d.addEventListener('toggle', () => { S.pg.corrAbierto = d.open; });
+  M.querySelectorAll('[data-revis]').forEach(sel => sel.onchange = () => run(sel, async () => {
+    await rpc('reasignar_visita', { p_id: +sel.dataset.revis, p_verificador: sel.value }); toast('Visita corregida · pago recalculado'); S.pg.corrAbierto = true; pintarPagos(); }));
+  M.querySelectorAll('[data-addv]').forEach(b => b.onclick = () => {
+    const verifs = Object.values(S.perfiles).filter(p => ['verificador','admin'].includes(p.rol) && p.activo);
+    const w = dialogo(`<h3>＋ Agregar visita</h3>
+      <label class="f">Lugar</label><select id="avTipo"><option value="domicilio">🏠 Domicilio</option><option value="trabajo">🏢 Trabajo</option><option value="desembolso">💵 Entrega de efectivo</option></select>
+      <label class="f">Verificador</label><select id="avVer">${verifs.map(p => `<option value="${p.id}">${esc(p.nombre)}${p.pago_por_visita ? ' (externo)' : ''}</option>`).join('')}</select>
+      <label class="f">Fecha</label><input type="date" id="avFecha" value="${hoyHN()}" max="${hoyHN()}">
+      <div class="btns"><button class="btn ghost" data-close>Cancelar</button><button class="btn ok" id="avOk">Agregar</button></div>`);
+    w.querySelector('#avOk').onclick = e => run(e.target, async () => {
+      await rpc('agregar_visita', { p_solicitud: +b.dataset.addv, p_tipo: w.querySelector('#avTipo').value, p_verificador: w.querySelector('#avVer').value, p_fecha: w.querySelector('#avFecha').value });
+      cerrarDialogo(w); toast('Visita agregada · pago recalculado'); S.pg.corrAbierto = true; pintarPagos(); });
+  });
 }
 function pintarParams(){
   $('#main').innerHTML = `<div class="alert info small">Estos valores controlan el cálculo del análisis de ingresos (igual que la hoja de Excel).</div>
