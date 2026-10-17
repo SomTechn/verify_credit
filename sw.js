@@ -4,7 +4,7 @@ const V = 'verificredito-v2';
 const CDN = /^(cdn\.jsdelivr\.net|cdnjs\.cloudflare\.com|fonts\.googleapis\.com|fonts\.gstatic\.com|unpkg\.com)$/;
 
 self.addEventListener('install', e => {
-  e.waitUntil(caches.open(V).then(c => c.addAll(['./', './index.html', 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2']).catch(() => {})));
+  e.waitUntil(caches.open(V).then(c => c.addAll(['./', './index.html', './manifest.json', './icon-192.png', './icon-512.png', 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2']).catch(() => {})));
   self.skipWaiting();
 });
 self.addEventListener('activate', e => {
