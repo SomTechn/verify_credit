@@ -418,7 +418,7 @@ table.ht td.nota{max-width:220px;overflow:hidden;text-overflow:ellipsis;color:va
 // App disponible sin señal (sw.js debe estar junto a index.html). Va primero para registrarse aunque falle otra cosa.
 if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) navigator.serviceWorker.register('sw.js').catch(() => {});
 // Versión de esta copia de la app: cambia en cada entrega. La app la compara con la publicada y se actualiza sola.
-const APP_VER = '2026-10-17.0943';
+const APP_VER = '2026-10-17.1552';
 // ================== Configuración ==================
 const SB_URL = 'https://edmvfqelxsxevpmxgbav.supabase.co';
 const SB_KEY = 'sb_publishable_lgTmmLtUESDDyX2sff6ArQ_z65Ti9d6';
@@ -928,12 +928,12 @@ function tabsRol(){
     historial:['historial','Historial'],
     tablero:['tablero','Tablero', s => false],
     refi:['refi','Refinanciar'],
-    stats:['stats','Estadísticas'], usuarios:['usuarios','Usuarios'], params:['params','Parámetros']
+    stats:['stats','Estadísticas'], usuarios:['usuarios','Usuarios'], params:['params','Parámetros'], pagos:['pagos','Pago verificadores']
   };
   const m = { asesor:['tablero','solicitudes','revisadas','proceso','verificar','todas','refi','historial','stats'],
     analista:['tablero','analisis','desembolsos','todas','refi','historial','stats'],
     verificador:['verificar','tablero','verificadas','historial','stats'],
-    admin:['tablero','solicitudes','revisadas','analisis','verificar','desembolsos','todas','refi','historial','stats','usuarios','params'] };
+    admin:['tablero','solicitudes','revisadas','analisis','verificar','desembolsos','todas','refi','historial','stats','pagos','usuarios','params'] };
   return m[rol()].map(k => T[k]);
 }
 function pintarTabs(){
@@ -1342,6 +1342,7 @@ function pintar(){
   if (S.tab === 'refi') return $('#rfTop') ? rfPintar() : pintarRefi();
   if (S.tab === 'usuarios') return pintarUsuarios();
   if (S.tab === 'params') return pintarParams();
+  if (S.tab === 'pagos') return pintarPagos();
   let lista = S.sols.filter(tab[2]);
   let extra = '';
   if (S.tab === 'todas'){
@@ -3756,6 +3757,75 @@ function pintarUsuarios(){
       cerrarDialogo(w); await cargarPerfiles(); pintarUsuarios(); toast('Guardado');
     });
   });
+}
+// ================== Pago a verificadores externos (solo admin) ==================
+// Por cliente y verificador: un lugar (domicilio o trabajo) = pago_visita_1; los dos = pago_visita_2.
+// Si el domicilio lo visitó uno y el trabajo otro, a cada uno se le paga un lugar. Se paga cada sábado lo visitado hasta el viernes.
+function viernesAnterior(){ const d = new Date(hoyHN() + 'T12:00'); const back = (d.getDay() + 2) % 7 || 7; d.setDate(d.getDate() - back); return d.toLocaleDateString('en-CA'); }
+async function pintarPagos(){
+  if (rol() !== 'admin'){ $('#main').innerHTML = '<div class="empty">Solo el administrador.</div>'; return; }
+  S.pg = S.pg || { hasta: viernesAnterior(), abierto: {} };
+  const P = S.params, hasta = S.pg.hasta, sab = new Date(hasta + 'T12:00'); sab.setDate(sab.getDate() + 1);
+  $('#main').innerHTML = '<div class="empty">Calculando pagos…</div>';
+  let filas = [], hist = [];
+  try {
+    const [a, b] = await Promise.all([sb.rpc('pagos_verificacion_calculo', { p_hasta: hasta }), sb.from('pagos_verificacion').select('*').order('pagado_en', { ascending: false }).limit(40)]);
+    if (a.error) throw a.error; if (b.error) throw b.error; filas = a.data || []; hist = b.data || [];
+  } catch(e){ $('#main').innerHTML = `<div class="alert err">${navigator.onLine ? 'No se pudo calcular: ' + esc(e.message || e) : 'Esta sección necesita conexión a internet.'}</div>`; return; }
+  const verifs = Object.values(S.perfiles).filter(p => p.rol === 'verificador' && p.activo);
+  const externos = verifs.filter(p => p.pago_por_visita);
+  const grupos = externos.map(v => ({ v, rows: filas.filter(f => f.verificador_id === v.id) }));
+  const otros = {}; // quién más visitó al mismo cliente (para mostrar los casos compartidos)
+  filas.forEach(f => (otros[f.solicitud_id] = otros[f.solicitud_id] || []).push(f));
+  const lug = a => (a || []).map(x => x === 'domicilio' ? '🏠 Domicilio' : x === 'trabajo' ? '🏢 Trabajo' : '💵 ' + x).join(' + ');
+  $('#main').innerHTML = `
+    <div class="card"><h4 class="sec" style="margin-top:0">💰 Pago a verificadores externos</h4>
+      <div class="small muted">Por cliente: <b>${L(P.pago_visita_1 ?? 200)}</b> si visitó un solo lugar (domicilio o trabajo) y <b>${L(P.pago_visita_2 ?? 300)}</b> si visitó los dos.
+        Si el domicilio lo hizo un verificador y el trabajo otro, a cada uno se le paga un lugar. ${(P.pago_cuenta_entrega ?? 1) == 1 ? `Si solo entregó el efectivo, cuenta como un lugar.` : ''} Se paga cada sábado lo visitado hasta el viernes; lo que no se pague se acumula.</div>
+      <div class="row" style="gap:10px;flex-wrap:wrap;margin-top:10px;align-items:end">
+        <div><label class="f">Visitas hasta (viernes)</label><input type="date" id="pgHasta" value="${hasta}"></div>
+        <div class="small muted" style="padding-bottom:10px">Pago del sábado ${fDate(sab)}</div>
+      </div></div>
+    ${externos.length ? '' : '<div class="alert warn">No hay verificadores marcados como externos (con pago por visita). Márquelos abajo.</div>'}
+    ${grupos.map(({ v, rows }) => {
+      const pend = rows.filter(r => +r.pendiente > 0), tot = pend.reduce((a, r) => a + +r.pendiente, 0);
+      return `<div class="card" style="border-left:4px solid ${avColor(v.id)}">
+        <div class="row" style="gap:10px;flex-wrap:wrap;align-items:center">
+          <div style="flex:1;min-width:180px"><b style="font-size:16px">${esc(v.nombre)}</b>
+            <div class="small muted">${pend.length} cliente(s) pendiente(s) · ${pend.filter(r => (r.lugares || []).length >= 2).length} con domicilio y trabajo</div></div>
+          <div style="font:800 24px Poppins,Inter,sans-serif;color:${tot ? 'var(--green)' : 'var(--muted)'}">${L(tot)}</div>
+          ${tot ? `<button class="btn ok" data-pagar="${v.id}" data-monto="${tot}">✅ Registrar pago</button><button class="btn ghost sm" data-wa="${v.id}">📋 Copiar detalle</button>` : ''}
+        </div>
+        ${pend.length ? `<div style="overflow-x:auto;margin-top:10px"><table class="t"><thead><tr><th>Fecha</th><th>Código</th><th>Cliente</th><th>Visitó</th><th class="num">Corresponde</th><th class="num">Ya pagado</th><th class="num">A pagar</th></tr></thead><tbody>
+          ${pend.map(r => { const o = (otros[r.solicitud_id] || []).filter(x => x.verificador_id !== v.id);
+            return `<tr data-id="${r.solicitud_id}" style="cursor:pointer"><td>${fDate(r.primera + 'T12:00')}${r.ultima !== r.primera ? ' – ' + fDate(r.ultima + 'T12:00') : ''}</td><td>${esc(r.codigo)}</td><td>${esc(r.cliente)}${o.length ? `<div class="small" style="color:var(--amber)">↔ ${o.map(x => esc(x.verificador) + ': ' + lug(x.lugares)).join(', ')}</div>` : ''}</td>
+            <td>${lug(r.lugares)}</td><td class="num">${L(r.corresponde)}</td><td class="num">${+r.pagado ? L(r.pagado) : '—'}</td><td class="num"><b>${L(r.pendiente)}</b></td></tr>`; }).join('')}
+          </tbody><tfoot><tr><td colspan="6">Total</td><td class="num"><b>${L(tot)}</b></td></tr></tfoot></table></div>` : '<div class="small muted" style="margin-top:6px">Nada pendiente hasta esta fecha.</div>'}
+      </div>`; }).join('')}
+    <h4 class="sec">Pagos registrados</h4>
+    <div class="card" style="overflow-x:auto">${hist.length ? `<table class="t"><thead><tr><th>Fecha de pago</th><th>Verificador</th><th>Visitas hasta</th><th class="num">Clientes</th><th class="num">Monto</th><th>Referencia</th><th></th></tr></thead><tbody>
+      ${hist.map(h => `<tr style="${h.anulado ? 'text-decoration:line-through;color:var(--muted)' : ''}"><td>${fDT(h.pagado_en)}</td><td>${esc(nombre(h.verificador_id))}</td><td>${fDate(h.hasta + 'T12:00')}</td><td class="num">${h.clientes}</td><td class="num"><b>${L(h.monto)}</b></td><td>${esc(h.referencia || '')}${h.anulado ? ' (anulado)' : ''}</td>
+        <td>${h.anulado ? '' : `<button class="btn sm ghost" data-anular="${h.id}" style="color:var(--red)">Anular</button>`}</td></tr>`).join('')}</tbody></table>` : '<div class="small muted">Aún no hay pagos registrados.</div>'}</div>
+    <h4 class="sec">Verificadores con pago por visita</h4>
+    <div class="card">${verifs.map(p => `<label class="chk"><input type="checkbox" data-ext="${p.id}" ${p.pago_por_visita ? 'checked' : ''}> ${esc(p.nombre)} <span class="small muted">${p.pago_por_visita ? '· externo, se le paga por visita' : '· de planilla'}</span></label>`).join('') || '<div class="small muted">No hay verificadores activos.</div>'}
+      <div class="small muted" style="margin-top:6px">Montos y fecha de inicio: en Parámetros (pago_visita_1, pago_visita_2, pago_cuenta_entrega, pago_visitas_desde).</div></div>`;
+  const M = $('#main');
+  $('#pgHasta').onchange = e => { S.pg.hasta = e.target.value || viernesAnterior(); pintarPagos(); };
+  M.querySelectorAll('tbody tr[data-id]').forEach(tr => tr.onclick = () => abrirDetalle(+tr.dataset.id));
+  M.querySelectorAll('[data-pagar]').forEach(b => b.onclick = async () => {
+    const v = S.perfiles[b.dataset.pagar], ref = await pedirTexto(`Pagar ${L(b.dataset.monto)} a ${v.nombre}`, 'Referencia: transferencia, efectivo, recibo…', 'Registrar pago', 'ok');
+    if (ref === null || ref === undefined) return;
+    run(b, async () => { const m = await rpc('registrar_pago_verificacion', { p_verificador: v.id, p_hasta: hasta, p_referencia: ref || null }); toast(`Pago registrado: ${L(m)} a ${v.nombre}`); pintarPagos(); });
+  });
+  M.querySelectorAll('[data-wa]').forEach(b => b.onclick = async () => {
+    const v = S.perfiles[b.dataset.wa], pend = filas.filter(r => r.verificador_id === v.id && +r.pendiente > 0);
+    const txt = [`*Pago de verificaciones · ${v.nombre}*`, `Visitas hasta el ${fDate(hasta + 'T12:00')} · pago del sábado ${fDate(sab)}`, '',
+      ...pend.map(r => `• ${fDate(r.primera + 'T12:00')} · ${r.cliente} (${r.codigo}) · ${(r.lugares || []).join(' + ')}: ${L(r.pendiente)}`), '',
+      `*Total: ${L(pend.reduce((a, r) => a + +r.pendiente, 0))}*`].join('\n');
+    try { await navigator.clipboard.writeText(txt); toast('Detalle copiado'); } catch(e){ dialogo(`<h3>Detalle</h3><textarea rows="12" readonly>${esc(txt)}</textarea><div class="btns"><button class="btn pri" data-close>Cerrar</button></div>`); }
+  });
+  M.querySelectorAll('[data-anular]').forEach(b => b.onclick = () => { if (!confirm('¿Anular este pago? Lo pagado vuelve a quedar pendiente.')) return; run(b, async () => { await rpc('anular_pago_verificacion', { p_id: +b.dataset.anular }); toast('Pago anulado'); pintarPagos(); }); });
+  M.querySelectorAll('[data-ext]').forEach(c => c.onchange = () => run(null, async () => { await rpc('marcar_pago_por_visita', { p_id: c.dataset.ext, p_valor: c.checked }); S.perfiles[c.dataset.ext].pago_por_visita = c.checked; pintarPagos(); }));
 }
 function pintarParams(){
   $('#main').innerHTML = `<div class="alert info small">Estos valores controlan el cálculo del análisis de ingresos (igual que la hoja de Excel).</div>
