@@ -418,7 +418,7 @@ table.ht td.nota{max-width:220px;overflow:hidden;text-overflow:ellipsis;color:va
 // App disponible sin señal (sw.js debe estar junto a index.html). Va primero para registrarse aunque falle otra cosa.
 if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) navigator.serviceWorker.register('sw.js').catch(() => {});
 // Versión de esta copia de la app: cambia en cada entrega. La app la compara con la publicada y se actualiza sola.
-const APP_VER = '2026-10-17.0837';
+const APP_VER = '2026-10-17.0943';
 // ================== Configuración ==================
 const SB_URL = 'https://edmvfqelxsxevpmxgbav.supabase.co';
 const SB_KEY = 'sb_publishable_lgTmmLtUESDDyX2sff6ArQ_z65Ti9d6';
@@ -1687,7 +1687,7 @@ function renderDetalle(){
         <div class="box"><div class="l">Promedio mensual</div><div class="v">${L(c.promedio)}</div></div>
         ${s.dictamen_en && s.monto_aprobado ? `<div class="box"><div class="l">Límite aprobado</div><div class="v">${L(s.monto_aprobado)}</div>
           <div class="small" style="font-weight:600;color:var(--brand)">${autorizadoPor(s, 'ajuste_monto')}</div>${c.limite !== +s.monto_aprobado ? `<div class="small muted">Calculado: ${c.limite == null ? 'Insuficiente' : L(c.limite)}</div>` : ''}</div>`
-        : `<div class="box" style="${c.insuficiente?'background:var(--red-bg)':''}"><div class="l">Límite aprobado</div><div class="v">${c.limite == null ? 'Insuficiente' : L(c.limite)}</div></div>`}
+        : `<div class="box" style="${c.insuficiente && !s.politica_b ?'background:var(--red-bg)':''}"><div class="l">Límite aprobado${s.politica_b || c.tipoB ? ' · tipo B' : ''}</div><div class="v">${s.politica_b || c.tipoB ? L(limNuevo(s, c)) : c.limite == null ? 'Insuficiente' : L(c.limite)}</div></div>`}
         ${c.tipoB || s.politica_b ? `<div class="box" style="background:var(--r-verificacion-bg,#f3e8ff)"><div class="l">Tasa</div><div class="v">🅱️ Tipo B · ${+((S.params.tipob_tasa ?? 0.2) * 100).toFixed(2)}%</div><div class="small muted">nivelado · ${S.params.tipob_plazo ?? 3} meses</div></div>` : ''}
         <div class="box" ${c.tipoB || s.politica_b ? 'style="display:none"' : ''}><div class="l">Tasa preferencial</div><div class="v">${(s.dictamen_en && s.tasa_preferencial != null ? s.tasa_preferencial : c.tasaPref) ? 'SÍ' : 'NO'}</div>
           ${s.dictamen_en && s.tasa_preferencial != null && !!s.tasa_preferencial !== c.tasaPref ? `<div class="small muted">Calculada: ${c.tasaPref ? 'SÍ' : 'NO'}</div>` : ''}</div>
@@ -1696,7 +1696,7 @@ function renderDetalle(){
           <div class="small muted">Promedio por pago ${L(c.promPago.toFixed(2))} × ${c.factor} ${c.nCom ? '+ promedio comisiones' : ''} → redondeado a ${S.params.redondeo}</div></div>
       </div>
       ${s.dictamen_en && s.monto_solicitado && +s.monto_solicitado !== +s.monto_aprobado ? `<div class="alert info small" style="margin-top:10px">El cliente toma <b>${L(s.monto_solicitado)}</b> de ${L(s.monto_aprobado)} aprobados.</div>` : ''}
-      ${cuotasPlazoHTML(s.dictamen_en && s.monto_aprobado ? +(s.monto_solicitado || s.monto_aprobado) : (c.limite || 0), s.dictamen_en && s.tasa_preferencial != null ? !!s.tasa_preferencial : c.tasaPref, s.tipo_pago, c.promedio, null, c.tipoB || s.politica_b ? { tasa: S.params.tipob_tasa ?? 0.2, plazo: S.params.tipob_plazo ?? 3 } : null)}
+      ${cuotasPlazoHTML(s.dictamen_en && s.monto_aprobado ? +(s.monto_solicitado || s.monto_aprobado) : (limNuevo(s, c) || 0), s.dictamen_en && s.tasa_preferencial != null ? !!s.tasa_preferencial : c.tasaPref, s.tipo_pago, c.promedio, null, c.tipoB || s.politica_b ? { tasa: S.params.tipob_tasa ?? 0.2, plazo: S.params.tipob_plazo ?? 3 } : null)}
       </div>`}`;
   }
   // Análisis de refinanciamiento / reingreso (antigüedad, comportamiento de pago, cuotas)
@@ -1897,12 +1897,13 @@ function accionesHTML(s, c){
   }
   // Analista: dictamen
   if (s.estado === 'en_analisis' && es('analista')){
+    if (s.tipo === 'nuevo' && (c.tipoB || s.politica_b) && !s.dictamen_en) c = { ...c, limite: limNuevo(s, c) };
     const refi = s.tipo !== 'nuevo';
     h += `<div class="card"><h4 class="sec" style="margin-top:0">Dictamen</h4>
       ${c.insuficiente ? `<div class="alert err small">Ingresos por debajo del mínimo (${L(S.params.tipob_ingreso_min ?? 10000)}).</div>` : ''}
-      ${s.tipo === 'nuevo' && c.tipoB ? `<div class="alert small" style="background:var(--r-verificacion-bg,#f3e8ff)">🅱️ Cliente tipo B por ingreso: máximo ${L(S.params.tipob_limite ?? 5000)}, tasa ${+((S.params.tipob_tasa ?? 0.2) * 100).toFixed(2)}% nivelado, plazo ${S.params.tipob_plazo ?? 3} meses.</div>` : ''}
+      ${s.tipo === 'nuevo' ? nuevoBHTML(s, c) : ''}
       ${refi ? `<div id="dSug">${dictamenRefiHTML(calcRefi(s, c))}</div>` : ''}
-      <label class="f">Monto aprobado</label><input id="dMonto" inputmode="decimal" value="${s.tipo==='nuevo' ? (c.limite || '') : (calcRefi(s, c).limAprob || '')}" placeholder="L">
+      <label class="f">Monto aprobado</label><input id="dMonto" inputmode="decimal" value="${s.tipo==='nuevo' ? (limNuevo(s, c) || '') : (calcRefi(s, c).limAprob || '')}" placeholder="L">
       ${refi ? `<div class="alert info small" id="dLibre">Monto libre: —</div>` : ''}
       <label class="f">Nota / motivo</label><textarea id="dNota" rows="2" placeholder="Obligatorio si deniega o devuelve"></textarea>
       <div class="btns"><button class="btn ok" id="dAprobar">Aprobar</button><button class="btn bad" id="dDenegar">Denegar</button></div>
@@ -2086,6 +2087,14 @@ function enlazarDetalle(s, c){
   };
 
   // Analista
+  const cambiarB = (v, btn) => run(btn, async () => {
+    if (v && !confirm('¿Aplicar la política tipo B a este cliente? Tasa 20% nivelado, máximo L 5,000 y plazo 3 meses.')) return;
+    await rpc('actualizar_datos_refi', { p_id: s.id, p_datos: v ? { politica_b: true, plazo_meses: S.params.tipob_plazo ?? 3 } : { politica_b: false } });
+    Object.assign(S.detData.s, { politica_b: v, plazo_meses: v ? (S.params.tipob_plazo ?? 3) : null });
+    toast(v ? 'Política tipo B aplicada' : 'Política tipo B quitada'); S.dirty = false; await abrirDetalle(s.id, true);
+  });
+  if ($('#nbAplicar')) $('#nbAplicar').onclick = e => cambiarB(true, e.target);
+  if ($('#nbQuitar')) $('#nbQuitar').onclick = e => cambiarB(false, e.target);
   if ($('#dAprobar')){
     const libre = () => { const m = num($('#dMonto').value)||0, k = +S.detData.s.saldo_capital||0, i = +S.detData.s.saldo_intereses||0;
       if ($('#dLibre')) $('#dLibre').innerHTML = `Monto libre: <b>${L(m - k - i)}</b>${m - k - i < 0 ? ' ⚠ negativo' : ''}`; };
@@ -2097,7 +2106,7 @@ function enlazarDetalle(s, c){
       const cs = S.detData.s, rf = cs.tipo !== 'nuevo' ? calcRefi(cs, calcular(S.detData.ing, cs.tipo_pago, cs.rubro_especial)) : null;
       if (tipo === 'aprobada' && s.tipo === 'nuevo' && c.insuficiente && !confirm('Los ingresos están por debajo del mínimo. ¿Aprobar de todos modos?')) return;
       if (tipo === 'aprobada' && rf && rf.politicaB && num($('#dMonto').value) > rf.B.limite) throw new Error(`Política tipo B: el monto máximo es ${L(rf.B.limite)}`);
-      if (tipo === 'aprobada' && !rf && c.tipoB && num($('#dMonto').value) > (S.params.tipob_limite ?? 5000)) throw new Error(`Cliente tipo B: el monto máximo es ${L(S.params.tipob_limite ?? 5000)}`);
+      if (tipo === 'aprobada' && !rf && (c.tipoB || cs.politica_b) && num($('#dMonto').value) > (S.params.tipob_limite ?? 5000)) throw new Error(`Cliente tipo B: el monto máximo es ${L(S.params.tipob_limite ?? 5000)}`);
       if (tipo === 'aprobada' && !cs.politica_b && ((rf && rf.ingresoB) || (!rf && c.tipoB))) await rpc('actualizar_datos_refi', { p_id: s.id, p_datos: { politica_b: true, plazo_meses: S.params.tipob_plazo ?? 3 } });
       if (tipo === 'aprobada' && rf && rf.dictamen === 'RECHAZADO' && !confirm(`El análisis sugiere RECHAZADO (${rf.motivos.join('; ')}). ¿Aprobar de todos modos?`)) return;
       if (tipo === 'aprobada' && rf && rf.limAprob && num($('#dMonto').value) > rf.limAprob && !confirm(`El monto supera el límite aprobado calculado (${L(rf.limAprob)}). ¿Aprobar de todos modos?`)) return;
@@ -2472,8 +2481,9 @@ function calcRefi(s, c){
   const cuotas = plazos.map(n => { const q = limAprob / n + limAprob * tasaNiv; return { plazo: `${n} meses`, cuota: q, pct: prom ? q / prom : null }; });
   const qsi = limAprob * tasaSI; if (!politicaB) cuotas.push({ plazo: 'Solo interés', cuota: qsi, pct: prom ? qsi / prom : null });
   const motivos = [];
-  if (ingresoBajo) motivos.push(`ingreso menor a ${L(B.ingMin)}`);
-  if (bloq45) motivos.push(`pago con ${maxDif} días de atraso (bloqueo desde ${bloqDias})`);
+  // Con política tipo B el analista asume el caso: no se rechaza por ingreso bajo ni por atraso de 45+ días
+  if (ingresoBajo && !politicaB) motivos.push(`ingreso menor a ${L(B.ingMin)}`);
+  if (bloq45 && !politicaB) motivos.push(`pago con ${maxDif} días de atraso (bloqueo desde ${bloqDias})`);
   else if (bloqMin && !politicaB) motivos.push(`límite reducido a ${L(limPen)}, menor a ${L(limMin)}`);
   if (politicaB && autorizado && +s.monto_aprobado > B.limite) motivos.push(`monto mayor al máximo tipo B (${L(B.limite)})`);
   // Se rechaza solo si NINGÚN plazo nivelado (3 a 12 meses; en tipo B 3 o 4) queda dentro del 25% del ingreso
@@ -2575,13 +2585,28 @@ function refiResHTML(s, r){
     ${dictamenRefiHTML(r)}
     ${cuotasPlazoHTML(r.elegido ?? r.limAprob, r.pref, s.tipo_pago, r.prom, s.plan_pago, r.politicaB ? { tasa: r.B.tasa, plazo: r.B.plazo } : null)}`;
 }
+// Nuevo: límite con tipo B (automático por ingreso o aplicado por el analista)
+function limNuevo(s, c){
+  const lb = S.params.tipob_limite ?? 5000;
+  if (c.tipoB || s.politica_b) return Math.min(lb, c.limite > 0 ? c.limite : lb);
+  return c.limite;
+}
+function nuevoBHTML(s, c){
+  const P = S.params, cond = `tasa ${+((P.tipob_tasa ?? 0.2) * 100).toFixed(2)}% nivelado, máximo ${L(P.tipob_limite ?? 5000)}, plazo ${P.tipob_plazo ?? 3} meses`;
+  const lila = 'background:var(--r-verificacion-bg,#f3e8ff);border:1.5px solid var(--r-verificacion,#7c3aed)';
+  if (c.tipoB) return `<div class="alert small" style="${lila}">🅱️ <b>Cliente tipo B por ingreso:</b> ${cond}.</div>`;
+  if (s.politica_b) return `<div class="alert small" style="${lila}">🅱️ <b>Política tipo B aplicada por el analista:</b> ${cond}.
+    <div class="btns" style="margin-top:6px"><button class="btn sm ghost" id="nbQuitar">Quitar política tipo B</button></div></div>`;
+  return `<div class="alert small" style="background:var(--gray-bg);border:1px dashed var(--line)">🅱️ <b>Política tipo B</b> (decisión del analista, aunque no cumpla los parámetros) — ${cond}.
+    <div class="btns" style="margin-top:6px"><button class="btn sm ghost" id="nbAplicar">Aplicar política tipo B</button></div></div>`;
+}
 function politicaBHTML(s, r){
   const puede = es('analista') && ['borrador','en_analisis'].includes(s.estado) && !s.dictamen_en;
   const cond = `${+(r.B.tasa * 100).toFixed(2)}% mensual solo nivelado · límite máximo ${L(r.B.limite)} · plazo ${r.B.plazo} meses`;
   if (r.politicaB) return `<div class="alert small" style="background:var(--r-verificacion-bg,#f3e8ff);border:1.5px solid var(--r-verificacion,#7c3aed);margin-top:10px">
       <b>🅱️ ${r.ingresoB ? `Cliente tipo B por ingreso (${L(r.B.ingMin)} a ${L((S.params.ingreso_minimo ?? 13000) - 0.01)})` : 'Política tipo B aplicada'}</b> · ${cond}<br>Límite tipo B: <b>${L(r.limB)}</b>
       ${puede && !r.ingresoB ? `<div class="row" style="margin-top:8px;gap:6px;flex-wrap:wrap"><button class="btn sm ghost" id="bQuitar">Quitar política tipo B</button></div>` : ''}</div>`;
-  if (!r.sugB) return puede && s.tipo !== 'nuevo' ? `<div class="alert small" style="margin-top:10px;background:var(--gray-bg);border:1px dashed var(--line)"><b>🅱️ Política tipo B</b> (decisión del analista) — ${cond}. Quedaría en <b>${L(r.limB)}</b>${r.limCalc ? ` en lugar de ${L(r.limCalc)}` : ' en lugar de bloqueado'}.${r.maxDif >= (S.params.bloqueo_dias_atraso ?? 45) ? `<br><span style="color:var(--red)">Tiene un pago con ${r.maxDif} días de atraso: sigue bloqueado aunque se aplique.</span>` : ''}
+  if (!r.sugB) return puede && s.tipo !== 'nuevo' ? `<div class="alert small" style="margin-top:10px;background:var(--gray-bg);border:1px dashed var(--line)"><b>🅱️ Política tipo B</b> (decisión del analista) — ${cond}. Quedaría en <b>${L(r.limB)}</b>${r.limCalc ? ` en lugar de ${L(r.limCalc)}` : ' en lugar de bloqueado'}.${r.maxDif >= (S.params.bloqueo_dias_atraso ?? 45) ? `<br><span style="color:var(--red)">Ojo: tiene un pago con ${r.maxDif} días de atraso. Si aplica tipo B, queda bajo su responsabilidad.</span>` : ''}
       <div class="btns" style="margin-top:8px"><button class="btn sm ghost" id="bAplicar">Aplicar política tipo B</button></div></div>` : '';
   return `<div class="alert info small" style="margin-top:10px"><b>💡 Sugerencia: cliente tipo B</b> — ${r.tard3} pagos tardíos y ningún atraso mayor a ${r.B.maxD} días (máximo ${r.maxDif} días).<br>
       Con la política tipo B: ${cond}. Quedaría en <b>${L(r.limB)}</b> en lugar de ${r.limCalc ? L(r.limCalc) : 'bloqueado'}.
