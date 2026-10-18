@@ -418,7 +418,7 @@ table.ht td.nota{max-width:220px;overflow:hidden;text-overflow:ellipsis;color:va
 // App disponible sin señal (sw.js debe estar junto a index.html). Va primero para registrarse aunque falle otra cosa.
 if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) navigator.serviceWorker.register('sw.js').catch(() => {});
 // Versión de esta copia de la app: cambia en cada entrega. La app la compara con la publicada y se actualiza sola.
-const APP_VER = '2026-10-17.1629';
+const APP_VER = '2026-10-17.1943';
 // ================== Configuración ==================
 const SB_URL = 'https://edmvfqelxsxevpmxgbav.supabase.co';
 const SB_KEY = 'sb_publishable_lgTmmLtUESDDyX2sff6ArQ_z65Ti9d6';
@@ -2191,7 +2191,25 @@ function enlazarDetalle(s, c){
   });
   if ($('#vBad')) $('#vBad').onclick = e => run(e.target, async () => {
     if (!$('#vNota').value.trim()) throw new Error('Escriba el motivo del rechazo en la observación final');
-    if (!confirm('¿Rechazar la solicitud en verificación?')) return;
+    // Aunque se rechace, la visita se hizo: se registra cada lugar visitado (cuenta para el pago del verificador)
+    const lug = (S.detData.items || []).filter(i => ['domicilio','trabajo'].includes(i.item) && itemAplica(s, i));
+    const pend = lug.filter(i => !i.completado);
+    let marcar = [];
+    if (pend.length){
+      marcar = await new Promise(res => {
+        const w = dialogo(`<h3>Rechazar en verificación</h3><div class="small muted">¿Qué lugares visitó? Las visitas cuentan aunque se rechace.</div>
+          ${pend.map(i => `<label class="chk"><input type="checkbox" data-lv="${i.item}" checked> ${ITEM[i.item]}</label>`).join('')}
+          <div class="btns"><button class="btn ghost" data-close>Cancelar</button><button class="btn bad" id="lvOk">Rechazar</button></div>`);
+        let ok = false;
+        w.querySelector('#lvOk').onclick = () => { ok = true; const v = [...w.querySelectorAll('[data-lv]:checked')].map(x => x.dataset.lv); cerrarDialogo(w); res(v); };
+        const obs = new MutationObserver(() => { if (!w.isConnected){ obs.disconnect(); if (!ok) res(null); } }); obs.observe(document.body, { childList: true });
+      });
+      if (marcar === null) return;
+    } else if (!confirm('¿Rechazar la solicitud en verificación?')) return;
+    if (marcar.length){
+      const pos = await new Promise(r => navigator.geolocation ? navigator.geolocation.getCurrentPosition(p => r(p.coords), () => r(null), { enableHighAccuracy: true, timeout: 10000 }) : r(null));
+      for (const it of marcar) await rpc('guardar_item', { p_id: s.id, p_item: it, p_completado: true, p_nota: 'Visitado · verificación rechazada', p_foto: null, p_lat: pos ? pos.latitude : null, p_lng: pos ? pos.longitude : null });
+    }
     await rpc('finalizar_verificacion', { p_id: s.id, p_resultado: 'rechazada', p_nota: $('#vNota').value }); await refrescar();
   });
 
@@ -3842,7 +3860,10 @@ function correccionVisitasHTML(desde, hasta){
   const lista = Object.entries(porSol).sort((a, b) => (a[1].vs[0].creado_en < b[1].vs[0].creado_en ? 1 : -1));
   const TIPO_V = { domicilio: '🏠 Domicilio', trabajo: '🏢 Trabajo', desembolso: '💵 Entrega' };
   return `<details class="card" id="pgCorr" ${S.pg.corrAbierto ? 'open' : ''}><summary style="cursor:pointer;font-weight:700">✏️ Corregir quién visitó (${lista.length} cliente(s) del ${fDate(desde + 'T12:00')} al ${fDate(hasta + 'T12:00')})</summary>
-    <div class="small muted" style="margin:6px 0">Si un verificador marcó un lugar que en realidad visitó otro, cámbielo aquí y el pago se recalcula solo. Si falta una visita, agréguela con ＋.</div>
+    <div class="small muted" style="margin:6px 0">Si un verificador marcó un lugar que en realidad visitó otro, cámbielo aquí y el pago se recalcula solo. Si falta una visita, agréguela con ＋ (por ejemplo, verificaciones rechazadas donde no se marcó el lugar).</div>
+    <div class="row" style="gap:8px;flex-wrap:wrap;margin-bottom:8px"><input id="avBuscar" list="avLista" placeholder="Buscar cliente o código para agregar una visita…" style="flex:1;min-width:220px">
+      <datalist id="avLista">${S.sols.filter(x => x.verificador_id || ['por_verificar','rechazada_verificacion','desembolsada','desembolso_pendiente'].includes(x.estado)).slice(0, 400).map(x => `<option value="${esc(x.codigo)} · ${esc(x.nombre_cliente)}">`).join('')}</datalist>
+      <button class="btn sm pri" id="avBuscarOk">＋ Agregar visita</button></div>
     ${lista.length ? `<div style="overflow-x:auto"><table class="t"><thead><tr><th>Cliente</th><th>Visita</th><th>Fecha</th><th>Verificador</th></tr></thead><tbody>
       ${lista.map(([sid, g]) => { const mix = new Set(g.vs.map(v => v.verificador_id)).size > 1;
         return g.vs.map((v, i) => `<tr ${mix ? 'style="background:#fff8e6"' : ''}>${i === 0 ? `<td rowspan="${g.vs.length}"><b>${esc(g.cliente || '')}</b><div class="small muted">${esc(g.codigo || '')}${mix ? ' · <span style="color:var(--amber)">compartida</span>' : ''}</div><button class="btn sm ghost" data-addv="${sid}" style="padding:2px 8px;margin-top:4px">＋ Visita</button></td>` : ''}
@@ -3855,17 +3876,26 @@ function enlazarCorreccionVisitas(M){
   const d = M.querySelector('#pgCorr'); if (d) d.addEventListener('toggle', () => { S.pg.corrAbierto = d.open; });
   M.querySelectorAll('[data-revis]').forEach(sel => sel.onchange = () => run(sel, async () => {
     await rpc('reasignar_visita', { p_id: +sel.dataset.revis, p_verificador: sel.value }); toast('Visita corregida · pago recalculado'); S.pg.corrAbierto = true; pintarPagos(); }));
-  M.querySelectorAll('[data-addv]').forEach(b => b.onclick = () => {
+  const bb = M.querySelector('#avBuscarOk');
+  if (bb) bb.onclick = () => { const q = (M.querySelector('#avBuscar').value || '').split(' · ')[0].trim().toLowerCase();
+    const x = S.sols.find(y => y.codigo.toLowerCase() === q) || S.sols.find(y => norm(y.nombre_cliente).includes(norm(q)) && q.length > 2);
+    if (!x) return toast('No encontré esa solicitud', true);
+    abrirAgregarVisita(x.id); };
+  M.querySelectorAll('[data-addv]').forEach(b => b.onclick = () => abrirAgregarVisita(+b.dataset.addv));
+}
+function abrirAgregarVisita(sid){
+  {
     const verifs = Object.values(S.perfiles).filter(p => ['verificador','admin'].includes(p.rol) && p.activo);
     const w = dialogo(`<h3>＋ Agregar visita</h3>
       <label class="f">Lugar</label><select id="avTipo"><option value="domicilio">🏠 Domicilio</option><option value="trabajo">🏢 Trabajo</option><option value="desembolso">💵 Entrega de efectivo</option></select>
-      <label class="f">Verificador</label><select id="avVer">${verifs.map(p => `<option value="${p.id}">${esc(p.nombre)}${p.pago_por_visita ? ' (externo)' : ''}</option>`).join('')}</select>
-      <label class="f">Fecha</label><input type="date" id="avFecha" value="${hoyHN()}" max="${hoyHN()}">
+      <div class="small muted">${esc((S.sols.find(x => x.id === sid) || {}).codigo || '')} · ${esc((S.sols.find(x => x.id === sid) || {}).nombre_cliente || '')} · ${EST[(S.sols.find(x => x.id === sid) || {}).estado]?.t || ''}</div>
+      <label class="f">Verificador</label><select id="avVer">${verifs.map(p => `<option value="${p.id}" ${(S.sols.find(x => x.id === sid) || {}).verificador_id === p.id ? 'selected' : ''}>${esc(p.nombre)}${p.pago_por_visita ? ' (externo)' : ''}</option>`).join('')}</select>
+      <label class="f">Fecha</label><input type="date" id="avFecha" value="${(() => { const x = S.sols.find(y => y.id === sid); return x && x.verificado_en ? diaHN(x.verificado_en) : hoyHN(); })()}" max="${hoyHN()}">
       <div class="btns"><button class="btn ghost" data-close>Cancelar</button><button class="btn ok" id="avOk">Agregar</button></div>`);
     w.querySelector('#avOk').onclick = e => run(e.target, async () => {
-      await rpc('agregar_visita', { p_solicitud: +b.dataset.addv, p_tipo: w.querySelector('#avTipo').value, p_verificador: w.querySelector('#avVer').value, p_fecha: w.querySelector('#avFecha').value });
+      await rpc('agregar_visita', { p_solicitud: sid, p_tipo: w.querySelector('#avTipo').value, p_verificador: w.querySelector('#avVer').value, p_fecha: w.querySelector('#avFecha').value });
       cerrarDialogo(w); toast('Visita agregada · pago recalculado'); S.pg.corrAbierto = true; pintarPagos(); });
-  });
+  }
 }
 function pintarParams(){
   $('#main').innerHTML = `<div class="alert info small">Estos valores controlan el cálculo del análisis de ingresos (igual que la hoja de Excel).</div>
