@@ -418,7 +418,7 @@ table.ht td.nota{max-width:220px;overflow:hidden;text-overflow:ellipsis;color:va
 // App disponible sin señal (sw.js debe estar junto a index.html). Va primero para registrarse aunque falle otra cosa.
 if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) navigator.serviceWorker.register('sw.js').catch(() => {});
 // Versión de esta copia de la app: cambia en cada entrega. La app la compara con la publicada y se actualiza sola.
-const APP_VER = '2026-10-17.1943';
+const APP_VER = '2026-10-17.1957';
 // ================== Configuración ==================
 const SB_URL = 'https://edmvfqelxsxevpmxgbav.supabase.co';
 const SB_KEY = 'sb_publishable_lgTmmLtUESDDyX2sff6ArQ_z65Ti9d6';
@@ -3860,20 +3860,25 @@ function correccionVisitasHTML(desde, hasta){
   const lista = Object.entries(porSol).sort((a, b) => (a[1].vs[0].creado_en < b[1].vs[0].creado_en ? 1 : -1));
   const TIPO_V = { domicilio: '🏠 Domicilio', trabajo: '🏢 Trabajo', desembolso: '💵 Entrega' };
   return `<details class="card" id="pgCorr" ${S.pg.corrAbierto ? 'open' : ''}><summary style="cursor:pointer;font-weight:700">✏️ Corregir quién visitó (${lista.length} cliente(s) del ${fDate(desde + 'T12:00')} al ${fDate(hasta + 'T12:00')})</summary>
-    <div class="small muted" style="margin:6px 0">Si un verificador marcó un lugar que en realidad visitó otro, cámbielo aquí y el pago se recalcula solo. Si falta una visita, agréguela con ＋ (por ejemplo, verificaciones rechazadas donde no se marcó el lugar).</div>
+    <div class="small muted" style="margin:6px 0">Si un verificador marcó un lugar que en realidad visitó otro, o lo marcó otro día, corrija el verificador o la fecha real aquí y el pago se recalcula solo (pasa a la semana que corresponde). Si falta una visita, agréguela con ＋ (por ejemplo, verificaciones rechazadas donde no se marcó el lugar).</div>
     <div class="row" style="gap:8px;flex-wrap:wrap;margin-bottom:8px"><input id="avBuscar" list="avLista" placeholder="Buscar cliente o código para agregar una visita…" style="flex:1;min-width:220px">
       <datalist id="avLista">${S.sols.filter(x => x.verificador_id || ['por_verificar','rechazada_verificacion','desembolsada','desembolso_pendiente'].includes(x.estado)).slice(0, 400).map(x => `<option value="${esc(x.codigo)} · ${esc(x.nombre_cliente)}">`).join('')}</datalist>
       <button class="btn sm pri" id="avBuscarOk">＋ Agregar visita</button></div>
-    ${lista.length ? `<div style="overflow-x:auto"><table class="t"><thead><tr><th>Cliente</th><th>Visita</th><th>Fecha</th><th>Verificador</th></tr></thead><tbody>
+    ${lista.length ? `<div style="overflow-x:auto"><table class="t"><thead><tr><th>Cliente</th><th>Visita</th><th>Fecha real</th><th>Verificador</th></tr></thead><tbody>
       ${lista.map(([sid, g]) => { const mix = new Set(g.vs.map(v => v.verificador_id)).size > 1;
         return g.vs.map((v, i) => `<tr ${mix ? 'style="background:#fff8e6"' : ''}>${i === 0 ? `<td rowspan="${g.vs.length}"><b>${esc(g.cliente || '')}</b><div class="small muted">${esc(g.codigo || '')}${mix ? ' · <span style="color:var(--amber)">compartida</span>' : ''}</div><button class="btn sm ghost" data-addv="${sid}" style="padding:2px 8px;margin-top:4px">＋ Visita</button></td>` : ''}
-          <td>${TIPO_V[v.tipo] || esc(v.tipo)}</td><td>${fDT(v.creado_en)}</td>
+          <td>${TIPO_V[v.tipo] || esc(v.tipo)}</td><td><input type="date" data-fecv="${v.id}" value="${diaHN(v.creado_en)}" max="${hoyHN()}" title="Fecha real de la visita" style="min-width:140px"></td>
           <td><select data-revis="${v.id}">${verifs.map(p => `<option value="${p.id}" ${p.id === v.verificador_id ? 'selected' : ''}>${esc(p.nombre)}${p.pago_por_visita ? ' (externo)' : ''}</option>`).join('')}</select></td></tr>`).join(''); }).join('')}
       </tbody></table></div>` : '<div class="small muted">No hay visitas registradas en esas fechas.</div>'}
   </details>`;
 }
 function enlazarCorreccionVisitas(M){
   const d = M.querySelector('#pgCorr'); if (d) d.addEventListener('toggle', () => { S.pg.corrAbierto = d.open; });
+  M.querySelectorAll('[data-fecv]').forEach(inp => inp.onchange = () => { if (!inp.value) return; run(inp, async () => {
+    try { await rpc('cambiar_fecha_visita', { p_id: +inp.dataset.fecv, p_fecha: inp.value }); }
+    catch(e){ if (/cambiar_fecha_visita|function|schema cache/i.test(e.message || '')) { inp.value = inp.defaultValue; throw new Error('La corrección de fechas aún no está activada en la base de datos. Estará disponible en breve.'); } throw e; }
+    toast('Fecha corregida · pago recalculado'); S.pg.corrAbierto = true;
+    if (inp.value < S.pg.desde) S.pg.desde = lunesDe(inp.value); pintarPagos(); }); });
   M.querySelectorAll('[data-revis]').forEach(sel => sel.onchange = () => run(sel, async () => {
     await rpc('reasignar_visita', { p_id: +sel.dataset.revis, p_verificador: sel.value }); toast('Visita corregida · pago recalculado'); S.pg.corrAbierto = true; pintarPagos(); }));
   const bb = M.querySelector('#avBuscarOk');
