@@ -42,6 +42,9 @@
 }}
 *{box-sizing:border-box}
 html,body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.45 Inter,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;-webkit-font-smoothing:antialiased}
+.entrega{display:flex;flex-wrap:wrap;max-width:420px;align-items:center;justify-content:space-between;gap:10px;margin-top:8px;padding:8px 12px;border-radius:12px;border:2px solid var(--green);background:var(--green-bg,#e8f7ee);color:var(--green)}
+.entrega.tr{border-color:var(--brand);background:var(--blue-bg,#e3eefc);color:var(--brand-dk,#0B5AD6)}
+.entrega span{font-weight:700;font-size:13px}.entrega b{font:800 24px/1.1 Poppins,Inter,sans-serif;letter-spacing:-.3px}
 h1,h2,h3,.name,.kpi .v,.res .box .v,.login .logo,.col-h b{font-family:Poppins,Inter,system-ui,sans-serif}
 button,input,select,textarea{font:inherit;color:inherit}
 button{cursor:pointer}
@@ -253,7 +256,8 @@ table.ht td.nota{max-width:220px;overflow:hidden;text-overflow:ellipsis;color:va
 .grp span{font:600 11.5px Inter,sans-serif;color:var(--muted)}
 .parada{display:inline-flex;align-items:center;justify-content:center;min-width:22px;height:22px;border-radius:11px;background:var(--brand);color:#fff;font:700 12px Inter,sans-serif;padding:0 6px}
 #vMap{height:62vh;min-height:360px;border-radius:14px;border:1px solid var(--line);overflow:hidden;z-index:0}
-.asig{display:flex;gap:6px;align-items:center;margin-top:6px;font-size:12.5px}
+.asig{display:flex;flex-direction:column;align-items:flex-start;gap:4px;margin-top:6px;font-size:12.5px}
+.asig select{max-width:100%}
 .asig select{width:auto;padding:4px 8px;font-size:12.5px}
 .col-h b{font-size:14.5px;flex:1}
 .col-h .cnt{background:var(--card);border-radius:999px;padding:1px 9px;font-weight:700;font-size:13px}
@@ -418,7 +422,7 @@ table.ht td.nota{max-width:220px;overflow:hidden;text-overflow:ellipsis;color:va
 // App disponible sin señal (sw.js debe estar junto a index.html). Va primero para registrarse aunque falle otra cosa.
 if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) navigator.serviceWorker.register('sw.js').catch(() => {});
 // Versión de esta copia de la app: cambia en cada entrega. La app la compara con la publicada y se actualiza sola.
-const APP_VER = '2026-10-17.1957';
+const APP_VER = '2026-10-19.1126';
 // ================== Configuración ==================
 const SB_URL = 'https://edmvfqelxsxevpmxgbav.supabase.co';
 const SB_KEY = 'sb_publishable_lgTmmLtUESDDyX2sff6ArQ_z65Ti9d6';
@@ -921,7 +925,7 @@ function tabsRol(){
     revisadas:['revisadas','Revisadas', s => mio(s) && !s.importado && (s.estado === 'aprobada' || (s.estado === 'denegada' && dias(s.dictamen_en, 15)))],
     proceso:['proceso','En proceso', s => mio(s) && (['por_verificar','desembolso_pendiente'].includes(s.estado) || (s.estado==='desembolsada' && dias(s.desembolsado_en, 7)))],
     analisis:['analisis','Análisis', s => s.estado === 'en_analisis'],
-    verificar:['verificar','Por verificar', s => s.estado === 'por_verificar' && (!s.verificador_id || s.verificador_id === S.me.id || ['admin','asesor','analista'].includes(rol()))],
+    verificar:['verificar','Por verificar', s => s.estado === 'por_verificar' && (!s.verificador_id || s.verificador_id === S.me.id || s.verificador_trabajo_id === S.me.id || ['admin','asesor','analista'].includes(rol()))],
     verificadas:['verificadas','Mis verificaciones', s => s.verificado_en && s.verificador_id === S.me.id],
     desembolsos:['desembolsos','Desembolsos', s => s.estado === 'desembolso_pendiente' || (s.estado === 'desembolsada' && dias(s.desembolsado_en, 7))],
     todas:['todas','Todas', s => true],
@@ -937,6 +941,7 @@ function tabsRol(){
   return m[rol()].map(k => T[k]);
 }
 function pintarTabs(){
+  const sx = $('#tabs').scrollLeft;
   $('#tabs').innerHTML = tabsRol().map(([k, t, f]) => {
     let n = '';
     if (f && k !== 'todas' && k !== 'verificadas'){
@@ -945,6 +950,7 @@ function pintarTabs(){
     }
     return `<button data-k="${k}" class="${S.tab===k?'on':''}">${t}${n}</button>`;
   }).join('');
+  $('#tabs').scrollLeft = sx;
   $('#tabs').querySelectorAll('button').forEach(b => b.onclick = () => { S.tab = b.dataset.k; S.q=''; pintarTabs(); pintar(); window.scrollTo(0,0); });
   $('#fab').classList.toggle('hidden', !(es('asesor') && ['tablero','solicitudes','revisadas','proceso'].includes(S.tab)));
 }
@@ -1333,6 +1339,16 @@ function rfCambio(p, corte){
 }
 
 // ================== Listas ==================
+// Repintado en segundo plano (tiempo real / cada minuto): no mueve la pantalla ni interrumpe al usuario
+function pintarSuave(){
+  if ((S.dlgs || []).some(w => w.isConnected)) return;
+  const a = document.activeElement; if (a && /^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName) && a.id !== 'q') return;
+  if (['stats','pagos','params','usuarios','refi'].includes(S.tab)) return;   // pantallas pesadas: se actualizan al entrar
+  const y = window.scrollY, M = $('#main'), sc = [...M.querySelectorAll('*')].map((e, i) => [i, e.scrollLeft, e.scrollTop]).filter(x => x[1] || x[2]);
+  const h0 = M.offsetHeight; M.style.minHeight = h0 + 'px';
+  const fin = () => { const els = M.querySelectorAll('*'); sc.forEach(([i, l, t]) => { const e = els[i]; if (e){ e.scrollLeft = l; e.scrollTop = t; } }); window.scrollTo(0, y); M.style.minHeight = ''; };
+  const r = pintar(); if (r && typeof r.then === 'function') r.then(fin, fin); else { fin(); requestAnimationFrame(fin); }
+}
 function pintar(){
   const tab = tabsRol().find(t => t[0] === S.tab);
   $('#main').classList.toggle('wide', ['tablero','historial'].includes(S.tab));
@@ -1355,7 +1371,8 @@ function pintar(){
   if (S.tab === 'verificar'){
     const ef = lista.filter(s => s.forma_desembolso === 'efectivo' && !s.en_espera);
     const tot = ef.reduce((a, s) => a + (montoLibre(s) || 0), 0);
-    if (ef.length) extra = `<div class="alert ok small">💵 Efectivo a entregar: <b>${L(tot)}</b> en ${ef.length} solicitud(es)${lista.some(s => s.en_espera && s.forma_desembolso === 'efectivo') ? ' · no incluye las que están en espera' : ''}</div>`;
+    if (es('analista')) extra += `<div class="btns" style="margin:0 0 8px"><button class="btn ghost sm" id="irCtrlVis">📋 Control de visitas por verificador</button></div>`;
+    if (ef.length) extra += `<div class="alert ok" style="font-size:15px">💵 Efectivo a entregar: <b style="font:800 22px Poppins,Inter,sans-serif">${L(tot)}</b> en ${ef.length} solicitud(es)${lista.some(s => s.en_espera && s.forma_desembolso === 'efectivo') ? ' · no incluye las que están en espera' : ''}</div>`;
   }
   if (S.tab === 'revisadas'){
     const ap = lista.filter(s => s.estado === 'aprobada').length, dn = lista.length - ap;
@@ -1379,10 +1396,14 @@ function pintar(){
   $('#main').querySelectorAll('.sol').forEach(c => c.onclick = () => abrirDetalle(+c.dataset.id));
 }
 function asignarHTML(s){
+  const trab = itemAplica(s, 'trabajo') && itemAplica(s, 'domicilio');
   if (es('analista','asesor')){
     const vs = Object.values(S.perfiles).filter(p => p.rol === 'verificador' && p.activo);
-    return `<div class="asig" data-stop>Verificador: <select data-asig="${s.id}"><option value="">— Sin asignar —</option>${vs.map(p => `<option value="${p.id}" ${p.id === s.verificador_id ? 'selected' : ''}>${esc(p.nombre)}</option>`).join('')}</select></div>`;
+    return `<div class="asig" data-stop><label style="display:block">${trab ? '🏠 Domicilio' : 'Verificador'}: <select data-asig="${s.id}"><option value="">— Sin asignar —</option>${vs.map(p => `<option value="${p.id}" ${p.id === s.verificador_id ? 'selected' : ''}>${esc(p.nombre)}</option>`).join('')}</select></label>
+      ${trab ? `<label style="display:block;margin-top:4px">🏢 Trabajo: <select data-asigt="${s.id}"><option value="">El mismo del domicilio</option>${vs.map(p => `<option value="${p.id}" ${p.id === s.verificador_trabajo_id ? 'selected' : ''}>${esc(p.nombre)}</option>`).join('')}</select></label>` : ''}</div>`;
   }
+  if (rol() === 'verificador' && s.verificador_trabajo_id && s.verificador_trabajo_id !== s.verificador_id)
+    return `<div class="asig" data-stop>${s.verificador_id === S.me.id ? '🏠 Usted: domicilio' : '🏢 Usted: trabajo'} · ${s.verificador_id === S.me.id ? '🏢 Trabajo: ' + esc(nombre(s.verificador_trabajo_id)) : '🏠 Domicilio: ' + esc(nombre(s.verificador_id))}</div>`;
   if (rol() === 'verificador' && !s.verificador_id) return `<div class="asig" data-stop><button class="btn sm pri" data-tomar="${s.id}">Tomar esta visita</button></div>`;
   return '';
 }
@@ -1431,6 +1452,9 @@ function pintarVerificar(lista, extra){
   $('#main').querySelectorAll('[data-stop]').forEach(el => el.addEventListener('click', e => e.stopPropagation()));
   $('#main').querySelectorAll('[data-asig]').forEach(sel => sel.onchange = e => run(e.target, async () => {
     await rpc('asignar_verificador', { p_id: +sel.dataset.asig, p_verificador: sel.value || null }); toast('Verificador asignado'); await cargarSolicitudes(); pintarTabs(); pintar(); }));
+  const irc = $('#irCtrlVis'); if (irc) irc.onclick = async () => { S.tab = 'stats'; pintarTabs(); await pintar(); const h = $('#ctrlVisitas'); if (h) h.scrollIntoView({ behavior: 'smooth', block: 'start' }); };
+  $('#main').querySelectorAll('[data-asigt]').forEach(sel => sel.onchange = e => run(e.target, async () => {
+    await rpc('asignar_verificador_trabajo', { p_id: +sel.dataset.asigt, p_verificador: sel.value || null }); toast(sel.value ? 'Trabajo asignado a otro verificador' : 'El trabajo lo hace el mismo del domicilio'); await cargarSolicitudes(); pintarTabs(); pintar(); }));
   $('#main').querySelectorAll('[data-tomar]').forEach(b => b.onclick = e => run(e.target, async () => {
     await rpc('asignar_verificador', { p_id: +b.dataset.tomar, p_verificador: S.me.id }); toast('Visita asignada a usted'); await cargarSolicitudes(); pintarTabs(); pintar(); }));
   $('#main').querySelectorAll('.sol').forEach(c => c.onclick = () => abrirDetalle(+c.dataset.id));
@@ -1476,10 +1500,11 @@ function cardSol(s, ctx){
       <div style="margin-bottom:4px">${rolPill(s)}</div>
       <div class="name">${esc(s.nombre_cliente)}</div>
       <div class="sub"><span>${esc(s.codigo)}</span>${tipoChip(s.tipo)}${pendChip(s)}<span>👤 ${esc(nombre(s.asesor_id))}</span>${extra}${c}</div>
+      ${entregaHTML(s)}
       ${s.en_espera && s.espera_motivo ? `<div class="small" style="color:var(--gray);margin-top:3px">⏸ ${esc(s.espera_motivo)}</div>` : ''}
       ${ctx ? locHTML(s, ctx.parada ? `<span class="parada">${ctx.parada}</span>${ctx.d != null ? `<span class="km">${fKm(ctx.d)}</span>` : ''}` : ctx.d != null ? `<span class="km">a ${fKm(ctx.d)}</span>` : '') + (ctx.asignar ? asignarHTML(s) : '') : ''}
     </div>
-    <div class="right">${chip(s.estado)}${s.en_espera ? '<div style="margin-top:4px">' + esperaChip(s) + '</div>' : ''}<div class="amt" style="margin-top:6px">${monto}</div>${entregaHTML(s)}<div class="small muted">${fecha}</div></div>
+    <div class="right">${chip(s.estado)}${s.en_espera ? '<div style="margin-top:4px">' + esperaChip(s) + '</div>' : ''}<div class="amt" style="margin-top:6px">${monto}</div><div class="small muted">${fecha}</div></div>
   </div>`;
 }
 
@@ -1758,7 +1783,7 @@ function distKm(a, b){
 }
 const fKm = d => d == null ? '' : d < 1 ? Math.round(d * 1000) + ' m' : d.toFixed(1) + ' km';
 // Punto principal a visitar: domicilio; si no tiene, el trabajo
-const puntoVerif = s => s.dom_lat != null ? { lat:+s.dom_lat, lng:+s.dom_lng, lugar:'domicilio' } : s.trab_lat != null ? { lat:+s.trab_lat, lng:+s.trab_lng, lugar:'trabajo' } : null;
+const puntoVerif = s => (rol() === 'verificador' && s.verificador_trabajo_id === S.me?.id && s.verificador_id !== S.me?.id && s.trab_lat != null) ? { lat:+s.trab_lat, lng:+s.trab_lng, lugar:'trabajo' } : s.dom_lat != null ? { lat:+s.dom_lat, lng:+s.dom_lng, lugar:'domicilio' } : s.trab_lat != null ? { lat:+s.trab_lat, lng:+s.trab_lng, lugar:'trabajo' } : null;
 const sectorDe = s => s.dom_sector || s.trab_sector || s.datos_cliente?.sector || null;
 const ciudadDe = s => s.dom_ciudad || s.trab_ciudad || s.datos_cliente?.ciudad || null;
 const linkMapa = (lat, lng) => `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`;
@@ -1838,8 +1863,8 @@ function entregaHTML(s, kc){
   if (!['por_verificar','desembolso_pendiente'].includes(s.estado) || !s.forma_desembolso) return '';
   const v = montoLibre(s); if (v == null) return '';
   const ef = s.forma_desembolso === 'efectivo';
-  return kc ? `<div class="ln"><span class="chip ${ef ? 'c-green' : 'c-blue'}" style="font-size:12.5px">${ef ? '💵 Entregar' : '🏦 Transferir'} <b>${L(v)}</b></span></div>`
-            : `<div class="chip ${ef ? 'c-green' : 'c-blue'}" style="margin-top:6px;font-size:13px">${ef ? '💵 Entregar' : '🏦 Transferir'} <b>${L(v)}</b></div>`;
+  return kc ? `<div class="ln"><span class="chip ${ef ? 'c-green' : 'c-blue'}" style="font-size:13.5px">${ef ? '💵 Entregar' : '🏦 Transferir'} <b style="font-size:15px">${L(v)}</b></span></div>`
+            : `<div class="entrega ${ef ? 'ef' : 'tr'}"><span>${ef ? '💵 Entregar en efectivo' : '🏦 Transferir'}</span><b>${L(v)}</b></div>`;
 }
 function montoLibre(s){
   const base = s.monto_solicitado || s.monto_aprobado;
@@ -1975,7 +2000,8 @@ function completarHTML(s){
     <h4 class="sec">Forma de desembolso</h4>
     <div class="seg" id="cForma"><button type="button" data-v="efectivo" class="${s.forma_desembolso==='efectivo'?'on':''}">💵 Efectivo</button><button type="button" data-v="transferencia" class="${s.forma_desembolso==='transferencia'?'on':''}">🏦 Transferencia</button></div>
     <div id="cCtaF" class="${s.forma_desembolso==='transferencia'?'':'hidden'}"><label class="f">Banco y número de cuenta</label><input id="cCta" value="${esc(s.cuenta_banco||'')}" placeholder="Ej. BAC 7412..."></div>
-    <div id="cVerF"><h4 class="sec">Verificador</h4><select id="cVer"><option value="">Cualquier verificador</option>${verifs.map(p => `<option value="${p.id}" ${s.verificador_id===p.id?'selected':''}>${esc(p.nombre)}</option>`).join('')}</select></div>
+    <div id="cVerF"><h4 class="sec">Verificador</h4><select id="cVer"><option value="">Cualquier verificador</option>${verifs.map(p => `<option value="${p.id}" ${s.verificador_id===p.id?'selected':''}>${esc(p.nombre)}</option>`).join('')}</select>
+      <div id="cVerTF"><label class="f">🏢 Trabajo (si lo visita otro verificador)</label><select id="cVerT"><option value="">El mismo del domicilio</option>${verifs.map(p => `<option value="${p.id}" ${s.verificador_trabajo_id===p.id?'selected':''}>${esc(p.nombre)}</option>`).join('')}</select></div></div>
     <div id="cDestino" class="alert info small" style="margin-top:12px"></div>
     <div class="btns"><button class="btn pri" id="cEnviar">Enviar</button></div>
   </div>`;
@@ -1991,9 +2017,9 @@ function datosVisitaHTML(s){
   return `<div class="dvbox">
     ${s.telefono ? `<div class="dv"><span>📞 <b>Teléfono</b></span><span><a href="tel:${esc(s.telefono)}">${esc(s.telefono)}</a> · <a href="https://wa.me/504${esc(s.telefono.replace(/\D/g,'').slice(-8))}" target="_blank">WhatsApp</a></span></div>` : ''}
     ${s.dni ? `<div class="dv"><span>🪪 <b>Identidad</b></span><span>${esc(s.dni)}</span></div>` : ''}
-    ${itemAplica(s, 'domicilio') ? lug('dom', '🏠', 'Domicilio') : ''}
-    ${itemAplica(s, 'trabajo') ? lug('trab', '🏢', 'Trabajo') : ''}
-    <div class="dv"><span>${s.forma_desembolso === 'efectivo' ? '💵' : '🏦'} <b>Desembolso</b></span><span>${s.forma_desembolso === 'efectivo' ? `Efectivo · <b>entregar ${L(libre)}</b>` : `Transferencia${s.cuenta_banco ? ' · ' + esc(s.cuenta_banco) : ''} · no entrega efectivo`}</span></div>
+    ${itemAplica(s, 'domicilio') ? lug('dom', '🏠', 'Domicilio' + (s.verificador_trabajo_id && s.verificador_id ? ' · ' + nombre(s.verificador_id) : '')) : ''}
+    ${itemAplica(s, 'trabajo') ? lug('trab', '🏢', 'Trabajo' + (s.verificador_trabajo_id ? ' · ' + nombre(s.verificador_trabajo_id) : '')) : ''}
+    <div class="dv"><span>${s.forma_desembolso === 'efectivo' ? '💵' : '🏦'} <b>Desembolso</b></span><span>${s.forma_desembolso === 'efectivo' ? `Efectivo · entregar <b style="font:800 20px Poppins,Inter,sans-serif;color:var(--green)">${L(libre)}</b>` : `Transferencia${s.cuenta_banco ? ' · ' + esc(s.cuenta_banco) : ''} · no entrega efectivo`}</span></div>
   </div>`;
 }
 function verificacionHTML(s, items){
@@ -2280,6 +2306,9 @@ function enlazarCompletar(s, refrescar){
     const r = await rpc('completar_solicitud', { p_id: s.id, p_datos: {}, p_forma: forma,
       p_act_domicilio: !nuevo && $('#cDom').checked, p_act_trabajo: nuevo ? verTrab : $('#cTrab').checked, p_act_foto: false,
       p_verificador: $('#cVer').value || null, p_monto_solicitado: (() => { const m = num($('#cMonto').value); if (!m || m <= 0) throw new Error('Indique el monto que toma el cliente'); if (m > +s.monto_aprobado) throw new Error(`El monto excede el aprobado (${L(s.monto_aprobado)})`); return m; })(), p_plazo: null, p_cuenta: $('#cCta').value || null });
+    const vt = $('#cVerT') && $('#cVerT').value;
+    if (r === 'por_verificar' && (nuevo ? verTrab : $('#cTrab').checked) && vt && vt !== ($('#cVer').value || ''))
+      await rpc('asignar_verificador_trabajo', { p_id: s.id, p_verificador: vt });
     S.dirty = false;
     toast(r === 'por_verificar' ? 'Enviada a verificación' : 'Enviada a desembolsos por transferencia');
     await refrescar();
@@ -3563,11 +3592,12 @@ async function pintarStats(){
   </div>
   <div class="card"><h4 class="sec" style="margin-top:0">Colocado por día</h4><div class="chart" id="chCap"></div></div>
   <div class="card"><h4 class="sec" style="margin-top:0">Solicitudes exitosas por día</h4><div class="chart" id="chExi"></div></div>
-  <h4 class="sec">Visitas de verificación y desembolso</h4>
+  <h4 class="sec" id="ctrlVisitas">📋 Control de visitas por verificador</h4>
   <div class="card" style="overflow-x:auto">${(r.visitas || []).length ? `<table class="t"><thead><tr><th>Verificador</th><th class="num">🏠 Domicilio</th><th class="num">🏢 Trabajo</th><th class="num">💵 Desembolso</th><th class="num">Total</th><th class="num">Rechaz.</th></tr></thead><tbody>
     ${r.visitas.map(v => `<tr><td>${esc(v.nombre)}</td><td class="num">${v.domicilio}</td><td class="num">${v.trabajo}</td><td class="num">${v.desembolso}</td><td class="num"><b>${v.total}</b></td><td class="num">${v.rechazadas}</td></tr>`).join('')}</tbody></table>
     <div class="small muted" style="margin-top:6px">Cada punto que el verificador marca como realizado queda registrado como una visita (cliente, hora y GPS): domicilio, trabajo o entrega de efectivo.</div>` : '<div class="muted small">Sin visitas en el período</div>'}</div>
-  ${es('analista') ? `<h4 class="sec">Mapa de verificaciones</h4><div class="card"><div id="vMapStats" style="height:420px;border-radius:10px;overflow:hidden;background:var(--bg2,#eef)"></div><div class="small muted" id="vMapInfo" style="margin-top:6px">Cargando visitas…</div></div>` : ''}
+  ${es('analista') ? `<div class="card" style="overflow-x:auto"><b>Visitas por día</b><div id="vDias" class="small muted" style="margin-top:6px">Cargando…</div></div>
+  <h4 class="sec">Mapa de verificaciones</h4><div class="card"><div id="vMapStats" style="height:420px;border-radius:10px;overflow:hidden;background:var(--bg2,#eef)"></div><div class="small muted" id="vMapInfo" style="margin-top:6px">Cargando visitas…</div></div>` : ''}
   <h4 class="sec">Cartera en proceso ahora</h4>
   <div class="pipe">${['borrador','en_analisis','aprobada','por_verificar','desembolso_pendiente'].map(k => `<div class="st"><b>${pe[k]||0}</b><span class="small">${EST[k].t}</span></div>`).join('')}</div>
   <h4 class="sec">Tiempo promedio por paso (hábil)</h4>
@@ -3589,11 +3619,28 @@ async function pintarStats(){
   graficoBarras($('#chExi'), activos.map(x => ({ l: fd(x), v: x.desembolsadas, t: String(x.desembolsadas), tip: `${fDate(x.dia + 'T12:00')}<br>${x.desembolsadas} exitosa(s) · ${L(x.capital)}` })));
   if (es('analista')) mapaVisitas(d0, d1);
 }
+// Tabla verificador × día: lugares visitados (domicilio/trabajo) y entregas
+function visitasPorDia(vs){
+  const box = $('#vDias'); if (!box) return;
+  if (!vs.length){ box.textContent = 'Sin visitas en el período.'; return; }
+  const dias = [...new Set(vs.map(v => diaHN(v.creado_en)))].sort();
+  const ver = {}; vs.forEach(v => { const k = v.verificador_id || v.verificador; (ver[k] = ver[k] || { n: v.verificador || nombre(k), d: {} }); const d = diaHN(v.creado_en);
+    const o = (ver[k].d[d] = ver[k].d[d] || { l: 0, e: 0 }); if (v.tipo === 'desembolso') o.e++; else o.l++; });
+  const DS = ['dom','lun','mar','mié','jue','vie','sáb'];
+  const fd = d => { const x = new Date(d + 'T12:00'); return `${DS[x.getDay()]} ${x.getDate()}/${x.getMonth() + 1}`; };
+  const cel = o => o ? `${o.l}${o.e ? `<span class="muted"> +${o.e}💵</span>` : ''}` : '<span class="muted">—</span>';
+  box.classList.remove('muted');
+  box.innerHTML = `<table class="t"><thead><tr><th>Verificador</th>${dias.map(d => `<th class="num">${fd(d)}</th>`).join('')}<th class="num">Total</th></tr></thead><tbody>
+    ${Object.values(ver).map(x => { const tl = Object.values(x.d).reduce((a, o) => a + o.l, 0), te = Object.values(x.d).reduce((a, o) => a + o.e, 0);
+      return `<tr><td><b>${esc(x.n)}</b></td>${dias.map(d => `<td class="num">${cel(x.d[d])}</td>`).join('')}<td class="num"><b>${tl}</b>${te ? `<span class="muted"> +${te}💵</span>` : ''}</td></tr>`; }).join('')}</tbody></table>
+    <div class="small muted" style="margin-top:4px">Número = lugares visitados (domicilio o trabajo) · +💵 = entregas de efectivo.</div>`;
+}
 async function mapaVisitas(d0, d1){
   const box = $('#vMapStats'), info = $('#vMapInfo'); if (!box) return;
   let vs;
   try { const { data, error } = await sb.rpc('visitas_mapa', { p_desde: d0, p_hasta: d1 }); if (error) throw error; vs = data || []; }
   catch(e){ box.style.display = 'none'; info.textContent = navigator.onLine ? 'No se pudo cargar el mapa de visitas: ' + (e.message || e) : 'El mapa de visitas necesita conexión a internet.'; return; }
+  visitasPorDia(vs);
   const con = vs.filter(v => v.lat != null && v.lng != null), sin = vs.length - con.length;
   if (!con.length){ box.style.display = 'none'; info.textContent = vs.length ? `${vs.length} visita(s) en el período, ninguna con GPS registrado.` : 'Sin visitas registradas en el período.'; return; }
   try {
@@ -3952,7 +3999,7 @@ function programarRecarga(p){
   tRe = setTimeout(async () => {
     const antes = S.det ? S.sols.find(x => x.id === S.det) : null;
     await cargarSolicitudes(); pintarTabs();
-    if ($('#sheet').classList.contains('hidden')) pintar();
+    if ($('#sheet').classList.contains('hidden')) pintarSuave();
     else if (antes){
       const ahora = S.sols.find(x => x.id === S.det);
       if (ahora && ahora.estado !== antes.estado){
@@ -3980,9 +4027,9 @@ function notificar(t, b, id){
   } } catch(e){}
 }
 document.addEventListener('visibilitychange', async () => {
-  if (!document.hidden && S.me){ await cargarSolicitudes(); pintarTabs(); if ($('#sheet').classList.contains('hidden')) pintar(); }
+  if (!document.hidden && S.me){ await cargarSolicitudes(); pintarTabs(); if ($('#sheet').classList.contains('hidden')) pintarSuave(); }
 });
-setInterval(async () => { if (S.me && !document.hidden && $('#sheet').classList.contains('hidden')){ await cargarSolicitudes(); pintarTabs(); if (!document.activeElement || document.activeElement.id !== 'q') pintar(); } }, 60000);
+setInterval(async () => { if (S.me && !document.hidden && $('#sheet').classList.contains('hidden')){ await cargarSolicitudes(); pintarTabs(); pintarSuave(); } }, 60000);
 
 sb.auth.onAuthStateChange(ev => { if (ev === 'SIGNED_OUT') location.reload(); });
 init();
