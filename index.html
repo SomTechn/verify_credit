@@ -42,6 +42,7 @@
 }}
 *{box-sizing:border-box}
 html,body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.45 Inter,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;-webkit-font-smoothing:antialiased}
+.kpi .cmp{font-size:11.5px;font-weight:700;margin-top:3px;color:var(--muted)}.kpi .cmp.up{color:var(--green)}.kpi .cmp.down{color:var(--red)}.kpi .cmp span{font-weight:500;color:var(--muted)}
 .entrega{display:flex;flex-wrap:wrap;max-width:420px;align-items:center;justify-content:space-between;gap:10px;margin-top:8px;padding:8px 12px;border-radius:12px;border:2px solid var(--green);background:var(--green-bg,#e8f7ee);color:var(--green)}
 .entrega.tr{border-color:var(--brand);background:var(--blue-bg,#e3eefc);color:var(--brand-dk,#0B5AD6)}
 .entrega span{font-weight:700;font-size:13px}.entrega b{font:800 24px/1.1 Poppins,Inter,sans-serif;letter-spacing:-.3px}
@@ -422,7 +423,7 @@ table.ht td.nota{max-width:220px;overflow:hidden;text-overflow:ellipsis;color:va
 // App disponible sin señal (sw.js debe estar junto a index.html). Va primero para registrarse aunque falle otra cosa.
 if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) navigator.serviceWorker.register('sw.js').catch(() => {});
 // Versión de esta copia de la app: cambia en cada entrega. La app la compara con la publicada y se actualiza sola.
-const APP_VER = '2026-10-19.1126';
+const APP_VER = '2026-10-20.0844';
 // ================== Configuración ==================
 const SB_URL = 'https://edmvfqelxsxevpmxgbav.supabase.co';
 const SB_KEY = 'sb_publishable_lgTmmLtUESDDyX2sff6ArQ_z65Ti9d6';
@@ -3559,7 +3560,26 @@ async function pintarStats(){
     ${meses.map(([k,t]) => `<button data-r="${k}" class="${S.statsRange===k?'on':''}" style="white-space:nowrap">${t}</button>`).join('')}</div><div id="stBody"><div class="empty">Cargando…</div></div>`;
   $('#main').querySelectorAll('[data-r]').forEach(b => b.onclick = () => { S.statsRange = b.dataset.r; pintarStats(); });
   const [d0, d1, dFin] = rango(S.statsRange);
-  let r, rt; try { [r, rt] = await Promise.all([rpc('estadisticas', { p_desde: d0, p_hasta: d1 }), rpc('estadisticas_tiempos', { p_desde: d0, p_hasta: d1 })]); } catch(e){ return $('#stBody').innerHTML = `<div class="alert err">${esc(errMsg(e))}</div>`; }
+  // Comparación: el mismo período un mes antes (a la misma fecha)
+  const mesAntes = iso => { const x = new Date(iso + 'T12:00'), dia = x.getDate(); x.setDate(1); x.setMonth(x.getMonth() - 1); x.setDate(Math.min(dia, new Date(x.getFullYear(), x.getMonth() + 1, 0).getDate())); return x.toLocaleDateString('en-CA'); };
+  const p0 = mesAntes(d0), p1 = mesAntes(d1);
+  let r, rt, rp = null, rtp = null;
+  try { [r, rt, rp, rtp] = await Promise.all([rpc('estadisticas', { p_desde: d0, p_hasta: d1 }), rpc('estadisticas_tiempos', { p_desde: d0, p_hasta: d1 }),
+    rpc('estadisticas', { p_desde: p0, p_hasta: p1 }).catch(() => null), rpc('estadisticas_tiempos', { p_desde: p0, p_hasta: p1 }).catch(() => null)]); }
+  catch(e){ return $('#stBody').innerHTML = `<div class="alert err">${esc(errMsg(e))}</div>`; }
+  // Indicador de cambio vs el mes anterior: ▲/▼ %, valor anterior; malo = true cuando subir es malo (denegadas, ciclo)
+  const cmp = (act, ant, fmt = v => String(v), malo = false) => {
+    if (rp == null || ant == null || act == null || isNaN(+ant) || isNaN(+act)) return '';
+    const a = +act, b = +ant;
+    if (!b && !a) return `<div class="cmp">= igual que el mes anterior</div>`;
+    const dif = b ? (a - b) / Math.abs(b) * 100 : null, sube = a > b, igual = a === b;
+    const bueno = igual ? null : (sube !== malo);
+    return `<div class="cmp ${igual ? '' : bueno ? 'up' : 'down'}" title="Mismo período del mes anterior: ${fDate(p0 + 'T12:00')} – ${fDate(p1 + 'T12:00')}">${igual ? '= igual' : (sube ? '▲ ' : '▼ ') + (dif == null ? 'nuevo' : Math.abs(dif).toFixed(Math.abs(dif) < 10 ? 1 : 0) + '%')} <span>vs ${fmt(b)} mes ant.</span></div>`;
+  };
+  const cmpL = (a, b, m) => cmp(a, b, v => L(Math.round(v)), m), cmpN = (a, b, m) => cmp(a, b, v => String(Math.round(v)), m);
+  const ctp = (rp && rp.colocado_por_tipo) || {}, tkp = t => ctp[t] || { n:0, capital:0 };
+  const diasP = rp ? rp.dias_activos || 0 : 0, promDiaP = diasP ? rp.monto_desembolsado / diasP : null;
+  const cip = (rtp && rtp.ciclo) || {};
   const ci = rt.ciclo || {};
   const dict = r.aprobadas + r.denegadas, tasa = dict ? Math.round(r.aprobadas / dict * 100) : null;
   const pctDen = dict ? (r.denegadas / dict * 100).toFixed(2) : null;
@@ -3567,24 +3587,25 @@ async function pintarStats(){
   const tk = t => ct[t] || { n:0, capital:0 };
   const dias = r.dias_activos || 0;
   const promDia = dias ? r.monto_desembolsado / dias : null, cantDia = dias ? Math.round(r.desembolsadas / dias) : null;
-  const kpiT = (t, c) => `<div class="kpi" style="border-top:3px solid ${c}"><div class="l" style="color:${c}">${t === 'nuevo' ? 'Nuevos préstamos' : TIPO[t]}</div><div class="v" style="font-size:20px">${L(tk(t).capital)}</div><div class="s">Cant.: <b>${tk(t).n}</b>${t !== 'nuevo' && tk(t).prestamos ? ` · préstamos ${L(tk(t).prestamos)}` : ''}</div></div>`;
+  const kpiT = (t, c) => `<div class="kpi" style="border-top:3px solid ${c}"><div class="l" style="color:${c}">${t === 'nuevo' ? 'Nuevos préstamos' : TIPO[t]}</div><div class="v" style="font-size:20px">${L(tk(t).capital)}</div>${cmpL(+tk(t).capital || 0, +tkp(t).capital || 0)}<div class="s">Cant.: <b>${tk(t).n}</b>${t !== 'nuevo' && tk(t).prestamos ? ` · préstamos ${L(tk(t).prestamos)}` : ''}</div></div>`;
   const visT = (r.visitas || []).reduce((a, v) => ({ dom: a.dom + v.domicilio, tra: a.tra + v.trabajo, des: a.des + v.desembolso }), { dom:0, tra:0, des:0 });
-  let h = `${metaHTML(r, d0, d1, dFin || d1)}<div class="kpis">
-    <div class="kpi" style="border-top:3px solid var(--green)"><div class="l" style="color:var(--green)">Nuevo capital</div><div class="v" style="font-size:22px">${L(r.monto_desembolsado)}</div><div class="s" title="Préstamos desembolsados (incluye capital refinanciado)">Préstamos ${L(r.monto_prestamos)}</div></div>
-    <div class="kpi" style="border-top:3px solid var(--brand)"><div class="l" style="color:var(--brand)">Solicitudes exitosas</div><div class="v">${r.desembolsadas}</div><div class="s">💵 ${r.desembolso_efectivo} · 🏦 ${r.desembolso_transferencia}</div></div>
-    <div class="kpi" style="border-top:3px solid var(--red)"><div class="l" style="color:var(--red)">Denegadas</div><div class="v">${r.denegadas}</div><div class="s">${pctDen == null ? '—' : pctDen + '% de lo dictaminado'}</div></div>
-    <div class="kpi" style="border-top:3px solid var(--teal)"><div class="l" style="color:var(--teal)">Capital prom. diario</div><div class="v" style="font-size:20px">${promDia == null ? '—' : L(Math.round(promDia))}</div><div class="s">Cant.: <b>${cantDia ?? '—'}</b> por día · ${dias} día(s) con desembolsos</div></div>
+  let h = `${metaHTML(r, d0, d1, dFin || d1)}${rp ? `<div class="small muted" style="margin:4px 2px 8px">▲▼ Comparado con el mismo período del mes anterior: <b>${fDate(p0 + 'T12:00')} – ${fDate(p1 + 'T12:00')}</b> (a la misma fecha).</div>` : ''}<div class="kpis">
+    <div class="kpi" style="border-top:3px solid var(--green)"><div class="l" style="color:var(--green)">Nuevo capital</div><div class="v" style="font-size:22px">${L(r.monto_desembolsado)}</div>${cmpL(r.monto_desembolsado, rp && rp.monto_desembolsado)}<div class="s" title="Préstamos desembolsados (incluye capital refinanciado)">Préstamos ${L(r.monto_prestamos)}</div></div>
+    <div class="kpi" style="border-top:3px solid var(--brand)"><div class="l" style="color:var(--brand)">Solicitudes exitosas</div><div class="v">${r.desembolsadas}</div>${cmpN(r.desembolsadas, rp && rp.desembolsadas)}<div class="s">💵 ${r.desembolso_efectivo} · 🏦 ${r.desembolso_transferencia}</div></div>
+    <div class="kpi" style="border-top:3px solid var(--red)"><div class="l" style="color:var(--red)">Denegadas</div><div class="v">${r.denegadas}</div>${cmpN(r.denegadas, rp && rp.denegadas, true)}<div class="s">${pctDen == null ? '—' : pctDen + '% de lo dictaminado'}</div></div>
+    <div class="kpi" style="border-top:3px solid var(--teal)"><div class="l" style="color:var(--teal)">Capital prom. diario</div><div class="v" style="font-size:20px">${promDia == null ? '—' : L(Math.round(promDia))}</div>${promDia != null && promDiaP != null ? cmpL(promDia, promDiaP) : ''}<div class="s">Cant.: <b>${cantDia ?? '—'}</b> por día · ${dias} día(s) con desembolsos</div></div>
     ${kpiT('nuevo', 'var(--blue)')}${kpiT('refinanciamiento', 'var(--amber)')}${kpiT('reingreso', 'var(--violet)')}${['reestructuracion','cambio_modalidad'].filter(t => tk(t).n).map(t => kpiT(t, 'var(--teal)')).join('')}
     ${(() => { const nN = tk('nuevo').n, cN = +tk('nuevo').capital || 0, nR = tk('refinanciamiento').n + tk('reingreso').n, cR = (+tk('refinanciamiento').capital || 0) + (+tk('reingreso').capital || 0);
       const proc = S.sols.filter(x => ['aprobada','por_verificar','desembolso_pendiente'].includes(x.estado) && !x.en_espera), cP = proc.reduce((a, x) => a + capitalColocado(x), 0);
-      return `<div class="kpi" style="border-top:3px solid var(--green)"><div class="l" style="color:var(--green)">Promedio por préstamo nuevo</div><div class="v" style="font-size:20px">${nN ? L(Math.round(cN / nN)) : '—'}</div><div class="s">${nN} préstamo(s) nuevo(s)</div></div>
-      <div class="kpi" style="border-top:3px solid var(--green)"><div class="l" style="color:var(--green)">Promedio refi / reingreso</div><div class="v" style="font-size:20px">${nR ? L(Math.round(cR / nR)) : '—'}</div><div class="s">${nR} préstamo(s) · capital nuevo colocado</div></div>
+      const nNp = tkp('nuevo').n, cNp = +tkp('nuevo').capital || 0, nRp = tkp('refinanciamiento').n + tkp('reingreso').n, cRp = (+tkp('refinanciamiento').capital || 0) + (+tkp('reingreso').capital || 0);
+      return `<div class="kpi" style="border-top:3px solid var(--green)"><div class="l" style="color:var(--green)">Promedio por préstamo nuevo</div><div class="v" style="font-size:20px">${nN ? L(Math.round(cN / nN)) : '—'}</div>${nN && nNp ? cmpL(cN / nN, cNp / nNp) : ''}<div class="s">${nN} préstamo(s) nuevo(s)</div></div>
+      <div class="kpi" style="border-top:3px solid var(--green)"><div class="l" style="color:var(--green)">Promedio refi / reingreso</div><div class="v" style="font-size:20px">${nR ? L(Math.round(cR / nR)) : '—'}</div>${nR && nRp ? cmpL(cR / nR, cRp / nRp) : ''}<div class="s">${nR} préstamo(s) · capital nuevo colocado</div></div>
       <div class="kpi" style="border-top:3px solid var(--accent)"><div class="l">En proceso de colocación (ahora)</div><div class="v" style="font-size:20px">${L(cP)}</div><div class="s">${proc.length} aprobada(s) por desembolsar</div></div>
       <div class="kpi"><div class="l">Colocado + en proceso</div><div class="v" style="font-size:20px">${L((r.monto_desembolsado || 0) + cP)}</div><div class="s">si se desembolsa todo lo aprobado</div></div>`; })()}
-    <div class="kpi"><div class="l">Solicitudes creadas</div><div class="v">${r.creadas}</div><div class="s">Aprobación ${tasa == null ? '—' : tasa + '%'}</div></div>
-    <div class="kpi"><div class="l">Ciclo promedio (hábil)</div><div class="v">${fmtDur(ci.prom_habil_seg)}</div><div class="s">creación → desembolso</div></div>
-    <div class="kpi"><div class="l">Dentro de la meta</div><div class="v">${ci.n ? Math.round(ci.dentro_meta / ci.n * 100) + '%' : '—'}</div><div class="s">${ci.dentro_meta||0} de ${ci.n||0} · meta ${fmtDur((S.params.meta_total_min||0)*60)}</div></div>
-    <div class="kpi"><div class="l">Visitas de verificadores</div><div class="v">${r.visitas_total || 0}</div><div class="s">🏠 ${visT.dom} · 🏢 ${visT.tra} · 💵 ${visT.des}</div></div>
+    <div class="kpi"><div class="l">Solicitudes creadas</div><div class="v">${r.creadas}</div>${cmpN(r.creadas, rp && rp.creadas)}<div class="s">Aprobación ${tasa == null ? '—' : tasa + '%'}</div></div>
+    <div class="kpi"><div class="l">Ciclo promedio (hábil)</div><div class="v">${fmtDur(ci.prom_habil_seg)}</div>${ci.prom_habil_seg && cip.prom_habil_seg ? cmp(ci.prom_habil_seg, cip.prom_habil_seg, fmtDur, true) : ''}<div class="s">creación → desembolso</div></div>
+    <div class="kpi"><div class="l">Dentro de la meta</div><div class="v">${ci.n ? Math.round(ci.dentro_meta / ci.n * 100) + '%' : '—'}</div>${ci.n && cip.n ? cmp(Math.round(ci.dentro_meta / ci.n * 100), Math.round(cip.dentro_meta / cip.n * 100), v => v + '%') : ''}<div class="s">${ci.dentro_meta||0} de ${ci.n||0} · meta ${fmtDur((S.params.meta_total_min||0)*60)}</div></div>
+    <div class="kpi"><div class="l">Visitas de verificadores</div><div class="v">${r.visitas_total || 0}</div>${cmpN(r.visitas_total || 0, rp && (rp.visitas_total || 0))}<div class="s">🏠 ${visT.dom} · 🏢 ${visT.tra} · 💵 ${visT.des}</div></div>
   </div>
   <div class="grid-ch">
     <div class="card"><h4 class="sec" style="margin-top:0">Colocado últimas 5 semanas</h4><div class="chart" id="chSem"></div></div>
