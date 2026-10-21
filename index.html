@@ -367,6 +367,21 @@ table.ht td.nota{max-width:220px;overflow:hidden;text-overflow:ellipsis;color:va
 .rd-page .huella{position:absolute;border:.75pt solid #000;border-radius:8pt;background:#fff}
 .toast{position:fixed;left:50%;bottom:90px;transform:translateX(-50%);z-index:90;background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:12px;font-size:14px;max-width:92vw;box-shadow:0 4px 16px rgba(0,0,0,.3)}
 .toast.err{background:var(--red);color:#fff}
+/* Celebraciones y mensajes motivadores */
+.cel-wrap{position:fixed;inset:0;z-index:120;display:flex;align-items:center;justify-content:center;padding:16px;background:rgba(10,20,40,.45);animation:celIn .25s ease}
+.cel{background:var(--card);color:var(--ink);border-radius:22px;padding:26px 22px 20px;max-width:380px;width:100%;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.3);animation:celPop .45s cubic-bezier(.2,1.4,.4,1)}
+.cel .e{font-size:58px;line-height:1;margin-bottom:8px}
+.cel h2{font:800 26px Poppins,Inter,sans-serif;margin:0 0 6px;color:var(--brand)}
+.cel p{margin:0 0 16px;color:var(--ink2);font-size:15px}
+.cel .btn{width:100%}
+#confeti{position:fixed;inset:0;z-index:121;pointer-events:none}
+.motiva{position:fixed;left:50%;top:14px;transform:translateX(-50%);z-index:95;display:flex;gap:10px;align-items:flex-start;background:var(--card);color:var(--ink);border:1px solid var(--line);border-left:4px solid var(--brand);border-radius:14px;padding:11px 12px 11px 14px;max-width:min(440px,calc(100vw - 32px));width:max-content;box-shadow:0 10px 30px rgba(0,0,0,.18);font-size:14px;animation:motIn .35s ease}
+.motiva b{display:block;margin-bottom:2px}
+.motiva button{flex:none;background:none;border:0;color:var(--muted);font-size:18px;line-height:1;padding:0 2px}
+@keyframes celIn{from{opacity:0}to{opacity:1}}
+@keyframes celPop{from{transform:scale(.7);opacity:0}to{transform:scale(1);opacity:1}}
+@keyframes motIn{from{transform:translate(-50%,-20px);opacity:0}to{transform:translate(-50%,0);opacity:1}}
+@media (prefers-reduced-motion:reduce){.cel-wrap,.cel,.motiva{animation:none}}
 .login{max-width:380px;margin:9vh auto;padding:0 16px}
 .login .logo{font-size:26px;font-weight:800;color:var(--brand);text-align:center;margin-bottom:4px}
 .login p.s{text-align:center;color:var(--ink2);margin-top:0}
@@ -429,7 +444,7 @@ table.ht td.nota{max-width:220px;overflow:hidden;text-overflow:ellipsis;color:va
 // App disponible sin señal (sw.js debe estar junto a index.html). Va primero para registrarse aunque falle otra cosa.
 if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) navigator.serviceWorker.register('sw.js').catch(() => {});
 // Versión de esta copia de la app: cambia en cada entrega. La app la compara con la publicada y se actualiza sola.
-const APP_VER = '2026-10-21.1900';
+const APP_VER = '2026-10-22.0100';
 // ================== Configuración ==================
 const SB_URL = 'https://edmvfqelxsxevpmxgbav.supabase.co';
 const SB_KEY = 'sb_publishable_lgTmmLtUESDDyX2sff6ArQ_z65Ti9d6';
@@ -777,7 +792,7 @@ async function init(){
   pintarTabs(); pintar(); suscribir(); indicadorRed();
   if (vuelta){ window.scrollTo(0, vuelta.y || 0); if (vuelta.det != null && S.sols.some(x => x.id === vuelta.det)) abrirDetalle(vuelta.det); if (vuelta.ver) toast(`✨ App actualizada a la versión más reciente`); }
   if (outbox().length) programarEnvio(1500);
-  vigilarVersion(); mostrarInstalar(); pushRevisar();
+  vigilarVersion(); mostrarInstalar(); pushRevisar(); revisarMeta(); iniciarMotivacion();
   // Abierta desde un aviso: va directo a la solicitud
   const solQ = +new URLSearchParams(location.search).get('sol');
   if (solQ){ history.replaceState(null, '', location.pathname); if (S.sols.some(x => x.id === solQ)) abrirDetalle(solQ); }
@@ -924,10 +939,16 @@ $('#btnBell').onclick = () => {
     <div class="alert ${PUSH.on ? 'ok' : 'info'} small" id="pbEst" style="margin-top:10px">${PUSH.on ? '✅ Activadas en este dispositivo.' : 'Desactivadas en este dispositivo.'}</div>
     <div class="small muted">Se activan por dispositivo: hágalo en cada computadora y teléfono donde quiera recibirlas.${esIOS() ? ' En iPhone solo funcionan con la app instalada en la pantalla de inicio.' : ''}</div>
     <div class="btns">
-      ${PUSH.on ? '<button class="btn ghost" id="pbOff">Desactivar</button><button class="btn ghost" id="pbTest">Enviar prueba</button>' : '<button class="btn pri" id="pbOn">Activar notificaciones</button>'}
+      ${PUSH.on ? '<button class="btn ghost" id="pbOff">Desactivar</button><button class="btn ghost" id="pbLocal">Probar este dispositivo</button><button class="btn ghost" id="pbTest">Enviar prueba</button>' : '<button class="btn pri" id="pbOn">Activar notificaciones</button>'}
       <button class="btn ghost" data-close>Cerrar</button></div>`);
   w.querySelector('#pbOn')?.addEventListener('click', e => run(e.target, async () => { await pushActivar(); await cerrarDialogo(w); toast('🔔 Notificaciones activadas en este dispositivo'); $('#btnBell').onclick(); }));
   w.querySelector('#pbOff')?.addEventListener('click', e => run(e.target, async () => { await pushDesactivar(); await cerrarDialogo(w); toast('Notificaciones desactivadas en este dispositivo'); }));
+  // Muestra un aviso sin pasar por el servidor: si este no aparece, el bloqueo está en el sistema (Windows/Android), no en la app
+  w.querySelector('#pbLocal')?.addEventListener('click', e => run(e.target, async () => {
+    const reg = await navigator.serviceWorker.ready;
+    await reg.showNotification('🔔 Prueba en este dispositivo', { body:'Si ve este aviso, el dispositivo puede mostrar notificaciones.', tag:'vc-local', icon:'icon-192.png' });
+    toast('Aviso local enviado. Si no lo ve, revise los permisos del sistema (Windows: Configuración → Notificaciones → Chrome; Android: Ajustes → Apps → Chrome → Notificaciones).');
+  }));
   w.querySelector('#pbTest')?.addEventListener('click', e => run(e.target, async () => {
     const { data, error } = await sb.functions.invoke('push', { body:{ prueba:true } });
     if (error) throw new Error('No se pudo enviar la prueba. Revise la conexión.');
@@ -2300,6 +2321,7 @@ function enlazarDetalle(s, c){
   if ($('#vOk')) $('#vOk').onclick = e => run(e.target, async () => {
     const r = await rpc('finalizar_verificacion', { p_id: s.id, p_resultado: 'ok', p_nota: $('#vNota').value || null });
     toast(r === 'desembolsada' ? 'Verificada y desembolsada en efectivo' : 'Verificada · pasa a desembolso por transferencia'); await refrescar();
+    celebrar('🎉', '¡Bien hecho!!', `Verificación de ${s.nombre_cliente} completada con éxito. ¡Excelente trabajo!`);
   });
   if ($('#vBad')) $('#vBad').onclick = e => run(e.target, async () => {
     if (!$('#vNota').value.trim()) throw new Error('Escriba el motivo del rechazo en la observación final');
@@ -4091,6 +4113,7 @@ function suscribir(){
       }
       programarRecarga();
     })
+    .on('postgres_changes', { event:'INSERT', schema:'public', table:'celebraciones' }, p => celebrarMeta(p.new))
     .on('postgres_changes', { event:'*', schema:'public', table:'refi_clientes' }, p => rfCambio(p))
     .on('postgres_changes', { event:'*', schema:'public', table:'refi_cortes' }, p => rfCambio(p, true))
     .on('postgres_changes', { event:'*', schema:'public', table:'comentario_likes' }, () => { if (S.det) cargarComentarios(); })
@@ -4133,8 +4156,89 @@ function notificar(t, b, id){
     const nt = new Notification(t, { body: b, tag: 'vc-' + id }); nt.onclick = () => { window.focus(); abrirDetalle(id); };
   } } catch(e){}
 }
+// ================== Celebraciones y motivación ==================
+// Confeti sin librerías (funciona sin señal)
+function confeti(ms = 3200){
+  if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  document.getElementById('confeti')?.remove();
+  const c = document.createElement('canvas'); c.id = 'confeti'; document.body.appendChild(c);
+  const x = c.getContext('2d'), dpr = devicePixelRatio || 1, W = innerWidth, H = innerHeight;
+  c.width = W * dpr; c.height = H * dpr; x.scale(dpr, dpr);
+  const cols = ['#1877F2','#22C55E','#F59E0B','#EF4444','#8B5CF6','#06B6D4','#FACC15','#EC4899'];
+  const ps = Array.from({ length: Math.min(220, Math.round(W / 3)) }, (_, i) => ({
+    x: i % 2 ? W * .15 : W * .85, y: H * .65, vx: (i % 2 ? 1 : -1) * (2 + Math.random() * 7), vy: -(9 + Math.random() * 11),
+    w: 6 + Math.random() * 6, h: 8 + Math.random() * 8, r: Math.random() * 6.28, vr: (Math.random() - .5) * .35, c: cols[i % cols.length] }));
+  const t0 = performance.now();
+  const paso = t => {
+    const fin = t - t0 > ms; x.clearRect(0, 0, W, H); let vivos = 0;
+    for (const p of ps){
+      p.vy += .32; p.vx *= .99; p.x += p.vx; p.y += p.vy; p.r += p.vr;
+      if (p.y < H + 30){ vivos++; x.save(); x.translate(p.x, p.y); x.rotate(p.r); x.fillStyle = p.c; x.globalAlpha = fin ? Math.max(0, 1 - (t - t0 - ms) / 600) : 1; x.fillRect(-p.w / 2, -p.h / 2, p.w, p.h * Math.abs(Math.cos(p.r))); x.restore(); }
+    }
+    if (vivos && t - t0 < ms + 600) requestAnimationFrame(paso); else c.remove();
+  };
+  requestAnimationFrame(paso);
+}
+function celebrar(emoji, titulo, texto, boton = '¡Gracias!'){
+  confeti();
+  const w = document.createElement('div'); w.className = 'cel-wrap';
+  w.innerHTML = `<div class="cel" role="dialog" aria-live="polite"><div class="e">${emoji}</div><h2>${esc(titulo)}</h2><p>${esc(texto)}</p><button class="btn pri">${esc(boton)}</button></div>`;
+  const cerrar = () => w.remove();
+  w.onclick = e => { if (e.target === w || e.target.closest('button')) cerrar(); };
+  document.body.appendChild(w); setTimeout(() => setTimeout(confeti, 0), 1400);
+}
+// Meta diaria alcanzada: la registra la base al desembolsar; cada usuario la ve una vez ese día
+const metaVista = d => { try { return localStorage.getItem('vc_meta_' + d) === '1'; } catch(e){ return false; } };
+function celebrarMeta(c){
+  if (!c || c.dia !== hoyHN() || metaVista(c.dia)) return;
+  try { localStorage.setItem('vc_meta_' + c.dia, '1'); } catch(e){}
+  celebrar('🏆', '¡Meta del día alcanzada!', `El equipo colocó ${L(c.monto)} de una meta de ${L(c.meta)}. ¡Gracias por el esfuerzo de todos!`, '¡Vamos por más!');
+}
+async function revisarMeta(){
+  if (metaVista(hoyHN())) return;
+  try { const { data } = await sb.from('celebraciones').select('*').eq('dia', hoyHN()).maybeSingle(); if (data) celebrarMeta(data); } catch(e){}
+}
+// Mensajes optimistas: uno al entrar cada día y de vez en cuando mientras se trabaja
+const MOTIVA = [
+  'Cada solicitud bien hecha es una familia que sale adelante. ¡Gracias por tu trabajo!',
+  'Paso a paso se llega lejos. ¡Hoy es un gran día para avanzar!',
+  'Tu esfuerzo hace la diferencia en este equipo. 💪',
+  'La constancia vence lo que la dicha no alcanza. ¡Sigue así!',
+  'Un cliente bien atendido siempre regresa. ¡Excelente servicio!',
+  'Los grandes resultados se construyen con pequeños detalles bien hechos.',
+  '¡Vas muy bien! Recuerda tomar agua y respirar profundo. 😊',
+  'Juntos llegamos más lejos. ¡Qué orgullo este equipo!',
+  'Hoy puede ser el día en que superemos la meta. ¡A darle!',
+  'Tu dedicación inspira a los demás. ¡Gracias por dar lo mejor!',
+  'Cada verificación cuidadosa protege a todo el equipo. ¡Buen trabajo!',
+  'Lo que hoy siembras con esfuerzo, mañana lo cosechas con éxito. 🌱',
+  'Una actitud positiva convierte los retos en oportunidades.',
+  '¡Ánimo! Lo estás haciendo mejor de lo que crees.',
+  'La excelencia no es un acto, es un hábito. ¡Y tú lo estás construyendo!',
+  'Detrás de cada número hay una persona a la que estás ayudando. ❤️',
+  'Un día productivo empieza con una sonrisa. ¡Que tengas una excelente jornada!',
+  'El éxito es la suma de pequeños esfuerzos repetidos día tras día.'
+];
+function motivar(saludo){
+  if (!S.me || document.hidden || (S.dlgs || []).some(w => w.isConnected) || document.querySelector('.cel-wrap')) return;
+  document.querySelector('.motiva')?.remove();
+  const h = +new Date().toLocaleString('en-US', { hour:'numeric', hour12:false, timeZone:'America/Tegucigalpa' });
+  const nom = (S.me.nombre || '').split(' ')[0];
+  const tit = saludo ? `${h < 12 ? '¡Buenos días' : h < 18 ? '¡Buenas tardes' : '¡Buenas noches'}${nom ? ', ' + nom : ''}! ☀️` : '✨ Un mensaje para ti';
+  const el = document.createElement('div'); el.className = 'motiva'; el.setAttribute('role', 'status');
+  el.innerHTML = `<div><b>${esc(tit)}</b>${esc(MOTIVA[Math.floor(Math.random() * MOTIVA.length)])}</div><button aria-label="Cerrar">×</button>`;
+  el.querySelector('button').onclick = () => el.remove();
+  document.body.appendChild(el); setTimeout(() => el.remove(), 12000);
+}
+function iniciarMotivacion(){
+  let ult = null; try { ult = localStorage.getItem('vc_motiva_dia'); } catch(e){}
+  if (ult !== hoyHN()){ try { localStorage.setItem('vc_motiva_dia', hoyHN()); } catch(e){} setTimeout(() => motivar(true), 4000); }
+  // De vez en cuando: entre 1.5 y 3 horas
+  const prog = () => setTimeout(() => { motivar(false); prog(); }, (90 + Math.random() * 90) * 60000);
+  prog();
+}
 document.addEventListener('visibilitychange', async () => {
-  if (!document.hidden && S.me){ await cargarSolicitudes(); pintarTabs(); if ($('#sheet').classList.contains('hidden')) pintarSuave(); }
+  if (!document.hidden && S.me){ revisarMeta(); await cargarSolicitudes(); pintarTabs(); if ($('#sheet').classList.contains('hidden')) pintarSuave(); }
 });
 setInterval(async () => { if (S.me && !document.hidden && $('#sheet').classList.contains('hidden')){ await cargarSolicitudes(); pintarTabs(); pintarSuave(); } }, 60000);
 

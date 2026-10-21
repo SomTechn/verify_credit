@@ -54,6 +54,10 @@ async function evento(ev: Record<string, any>) {
   const admins = por('admin'), analistas = por('analista', 'admin');
   const sin = (ids: string[]) => ids.filter((id) => id && id !== ev.actor);   // quien hizo el cambio no recibe su propio aviso
   let sol = ev;
+  if (ev.tabla === 'meta') {   // meta diaria alcanzada: se avisa a todo el equipo
+    const L = (n: number) => 'L ' + Math.round(n).toLocaleString('es-HN');
+    return enviar((perf || []).map((p) => p.id as string), { title: '🎉 ¡Meta del día alcanzada!', body: `Colocado ${L(ev.monto)} de ${L(ev.meta)}. ¡Excelente trabajo, equipo!` });
+  }
   if (ev.tabla === 'comentarios') {
     const { data } = await sb.from('solicitudes').select('id, codigo, nombre_cliente, asesor_id, analista_id, verificador_id').eq('id', ev.solicitud).maybeSingle();
     if (!data) return 0;
