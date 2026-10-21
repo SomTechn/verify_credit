@@ -109,6 +109,12 @@ label.f{display:block;font-size:12px;color:var(--ink2);margin:10px 0 4px;font-we
 .filters{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}
 .filters button{flex:none;border:1px solid var(--line);background:var(--card);border-radius:999px;padding:5px 11px;font-size:13px}
 .filters button.on{background:var(--brand);border-color:var(--brand);color:#fff}
+.subtabs{display:flex;gap:2px;overflow-x:auto;scrollbar-width:none;border-bottom:1px solid var(--line);margin-bottom:10px}
+.subtabs::-webkit-scrollbar{display:none}
+.subtabs button{flex:none;background:none;border:0;border-bottom:3px solid transparent;color:var(--ink2);padding:8px 10px 9px;font-weight:600;font-size:14px;white-space:nowrap}
+.subtabs button.on{color:var(--brand);border-color:var(--brand)}
+.subtabs .n{display:inline-block;min-width:18px;padding:0 5px;margin-left:4px;border-radius:9px;background:var(--gray-bg);font-size:11px;line-height:18px;text-align:center}
+.subtabs button.on .n{background:var(--brand);color:#fff}
 
 /* Modal / hoja */
 .sheet{position:fixed;inset:0;z-index:40;background:var(--bg);overflow-y:auto;-webkit-overflow-scrolling:touch}
@@ -423,7 +429,7 @@ table.ht td.nota{max-width:220px;overflow:hidden;text-overflow:ellipsis;color:va
 // App disponible sin señal (sw.js debe estar junto a index.html). Va primero para registrarse aunque falle otra cosa.
 if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) navigator.serviceWorker.register('sw.js').catch(() => {});
 // Versión de esta copia de la app: cambia en cada entrega. La app la compara con la publicada y se actualiza sola.
-const APP_VER = '2026-10-20.1606';
+const APP_VER = '2026-10-21.1500';
 // ================== Configuración ==================
 const SB_URL = 'https://edmvfqelxsxevpmxgbav.supabase.co';
 const SB_KEY = 'sb_publishable_lgTmmLtUESDDyX2sff6ArQ_z65Ti9d6';
@@ -959,7 +965,9 @@ function pintarTabs(){
 // ================== Refinanciar (clientes con disponible) ==================
 // Se carga la lista de préstamos y el reporte de cuotas del sistema; si el cliente está al día se calcula
 // disponible = límite asignado (o sugerido = capital del último préstamo) − balance total de sus préstamos.
-const RF = { corte:null, gest:{}, cargado:false, cargando:false, estado:'disp', gf:'todas', orden:'disp', q:'' };
+const RF = { corte:null, gest:{}, cargado:false, cargando:false, etapa:'pendiente', gf:'todas', orden:'disp', q:'' };
+// Pestañas por etapa de gestión (cada cliente cae en una sola). Pendiente y Aplica solo muestran clientes al día con disponible.
+const RF_ETAPAS = [['pendiente','Pendiente'],['aplica','Aplica'],['noaplica','No aplica'],['contactado','Contactado'],['desembolsado','Desembolsado'],['bloqueado','🔒 Bloqueados'],['todos','Todos']];
 const rfKey = n => String(n || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim().replace(/\s+/g, ' ').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 180) || 'sin-nombre';
 const rfHn = h => String(h || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]/g, '');
 const rfEdita = () => es('analista');            // analista o admin: límite, si aplica, cargar archivos
@@ -1021,13 +1029,16 @@ function rfCalcular(){
     const atraso = pd.monto > tol;
     const limG = g.limite == null ? null : Number(g.limite);
     const base = limG ?? u.cap, bruto = base - balance, disp = bruto >= minimo ? bruto : 0;
-    const noAplica = g.aplica === 'no', elegible = !atraso && disp > 0 && !noAplica;
+    // Bloqueado: línea de crédito cerrada; se conserva entre cortes y no cuenta como oportunidad
+    const bloq = !!g.bloqueado, noAplica = g.aplica === 'no', elegible = !atraso && disp > 0 && !noAplica && !bloq;
     const sol = sols[k] && (!CERRADAS.includes(sols[k].estado) || new Date(sols[k].creado_en) >= new Date(Date.now() - 45 * 864e5)) ? sols[k] : null;
-    const an = antig(u.f), aumento = !!an && an.cumple && !atraso && !noAplica && g.nivel !== 100;
-    rows.push({ k, nombre:u.c, tipo:u.t, dia:u.dia, fecha:u.f, capital:u.cap, nPrest:ls.length, prest:ls, balance, pd, atraso, limG, sugerido:u.cap, bruto, disp, elegible, noAplica, g, sol, an, aumento });
+    const an = antig(u.f), aumento = !!an && an.cumple && !atraso && !noAplica && !bloq && g.nivel !== 100;
+    const etapa = bloq ? 'bloqueado' : g.colocado ? 'desembolsado' : noAplica ? 'noaplica' : g.contactado ? 'contactado' : !elegible ? null : g.aplica === 'si' ? 'aplica' : 'pendiente';
+    rows.push({ k, nombre:u.c, tipo:u.t, dia:u.dia, fecha:u.f, capital:u.cap, nPrest:ls.length, prest:ls, balance, pd, atraso, limG, sugerido:u.cap, bruto, disp, elegible, noAplica, bloq, etapa, g, sol, an, aumento });
   }
-  const st = { clientes:rows.length, prestamos:(c.prestamos || []).length, alDia:0, atraso:0, opN:0, opM:0, conN:0, conM:0, colN:0, colM:0, porN:0, porM:0, sugN:0, revN:0, aumN:0, menosN:0, modal:{} };
+  const st = { clientes:rows.length, prestamos:(c.prestamos || []).length, alDia:0, atraso:0, opN:0, opM:0, conN:0, conM:0, colN:0, colM:0, porN:0, porM:0, sugN:0, revN:0, aumN:0, menosN:0, bloqN:0, modal:{} };
   for (const r of rows){
+    if (r.bloq){ st.bloqN++; continue; }
     r.atraso ? st.atraso++ : st.alDia++;
     if (r.aumento) st.aumN++; if (r.an && !r.an.cumple) st.menosN++;
     if (r.elegible){
@@ -1042,7 +1053,7 @@ function rfCalcular(){
 }
 async function pintarRefi(){
   $('#main').innerHTML = `<div id="rfHead"></div><div id="rfTop"></div>
-    <div class="filters" id="rfEst"></div>
+    <div class="subtabs" id="rfEst"></div>
     <div class="filters" id="rfGf"></div>
     <div class="search"><input id="rfQ" type="search" placeholder="Buscar cliente…" value="${esc(RF.q)}" autocomplete="off">
       <select id="rfOrden" style="width:auto;flex:none">
@@ -1086,32 +1097,25 @@ function rfPintar(){
       ${bar('Contactados', st.conM, 'var(--violet)', `${rfL0(st.conM)} · ${st.conN}`)}
       ${bar('Colocado', st.colM, 'var(--green)', `${rfL0(st.colM)} · ${st.colN}`)}
       <div class="small muted" style="margin-top:8px;display:flex;flex-wrap:wrap;gap:4px 14px">
-        <span>Clientes <b>${st.clientes}</b></span><span>Préstamos <b>${st.prestamos}</b></span><span>Al día <b>${st.alDia}</b></span><span>En atraso <b>${st.atraso}</b></span><span>Aplica sin definir <b>${st.revN}</b></span><span>Préstamo con menos de ${S.params.refi_meses_aumento ?? 3} meses <b>${st.menosN}</b></span><span style="color:var(--teal)">Para aumento de límite <b>${st.aumN}</b></span></div>
+        <span>Clientes <b>${st.clientes}</b></span><span>Préstamos <b>${st.prestamos}</b></span><span>Al día <b>${st.alDia}</b></span><span>En atraso <b>${st.atraso}</b></span><span>Aplica sin definir <b>${st.revN}</b></span><span>Préstamo con menos de ${S.params.refi_meses_aumento ?? 3} meses <b>${st.menosN}</b></span><span style="color:var(--teal)">Para aumento de límite <b>${st.aumN}</b></span>${st.bloqN ? `<span>Bloqueados <b>${st.bloqN}</b></span>` : ''}</div>
       ${mods.length ? `<details style="margin-top:8px"><summary class="small" style="cursor:pointer;font-weight:600">Oportunidad por modalidad</summary>
         ${mods.map(([t, v]) => `<div class="row small" style="justify-content:space-between;border-bottom:1px solid var(--line);padding:5px 0"><span>${esc(t)}</span><span><b>${rfL0(v.m)}</b> · ${v.n}</span></div>`).join('')}</details>` : ''}
     </div>`;
-  const ests = [['disp','Con disponible', rows.filter(r => r.elegible).length], ['aldia','Al día', st.alDia], ['atraso','En atraso', st.atraso], ['todos','Todos', rows.length]];
-  $('#rfEst').innerHTML = ests.map(([k, t, n]) => `<button data-e="${k}" class="${RF.estado === k ? 'on' : ''}">${t} · ${n}</button>`).join('');
-  const gfs = [['todas','Toda gestión'],['sin','Sin contactar'],['contactado','Contactados'],['colocado','Colocados'],['revisar','Aplica sin definir'],['si','Aplica: sí'],['no','No aplica'],['sugerido','Sin límite'],['aumento','⬆ Para aumento de límite'],['menos',`Préstamo < ${S.params.refi_meses_aumento ?? 3} meses`]];
+  const nEt = k => k === 'todos' ? rows.length : rows.filter(r => r.etapa === k).length;
+  $('#rfEst').innerHTML = RF_ETAPAS.map(([k, t]) => `<button data-e="${k}" class="${RF.etapa === k ? 'on' : ''}">${t}<span class="n">${nEt(k)}</span></button>`).join('');
+  const gfs = [['todas','Todos'],['aldia','Al día'],['atraso','En atraso'],['sugerido','Sin límite'],['aumento','⬆ Para aumento de límite'],['menos',`Préstamo < ${S.params.refi_meses_aumento ?? 3} meses`]];
   $('#rfGf').innerHTML = gfs.map(([k, t]) => `<button data-g="${k}" class="${RF.gf === k ? 'on' : ''}">${t}</button>`).join('');
-  $('#rfEst').querySelectorAll('[data-e]').forEach(b => b.onclick = () => { RF.estado = b.dataset.e; rfPintar(); });
+  $('#rfEst').querySelectorAll('[data-e]').forEach(b => b.onclick = () => { RF.etapa = b.dataset.e; rfPintar(); });
   $('#rfGf').querySelectorAll('[data-g]').forEach(b => b.onclick = () => { RF.gf = b.dataset.g; rfPintar(); });
   rfPintarLista(rows);
 }
 function rfFiltrar(rows){
   const q = RF.q.trim() ? rfKey(RF.q).replace(/-/g, ' ') : '';
   const out = rows.filter(r => {
-    if (RF.estado === 'disp' && !r.elegible) return false;
-    if (RF.estado === 'aldia' && r.atraso) return false;
-    if (RF.estado === 'atraso' && !r.atraso) return false;
-    const g = r.g;
+    if (RF.etapa !== 'todos' && r.etapa !== RF.etapa) return false;
     switch (RF.gf){
-      case 'sin': if (g.contactado || g.colocado) return false; break;
-      case 'contactado': if (!g.contactado) return false; break;
-      case 'colocado': if (!g.colocado) return false; break;
-      case 'revisar': if (g.aplica) return false; break;
-      case 'si': if (g.aplica !== 'si') return false; break;
-      case 'no': if (g.aplica !== 'no') return false; break;
+      case 'aldia': if (r.atraso) return false; break;
+      case 'atraso': if (!r.atraso) return false; break;
       case 'sugerido': if (r.limG != null) return false; break;
       case 'aumento': if (!r.aumento) return false; break;
       case 'menos': if (!r.an || r.an.cumple) return false; break;
@@ -1130,6 +1134,7 @@ function rfPintarLista(rows){
   if (!lista.length){ $('#rfLista').innerHTML = '<div class="empty">Ningún cliente con estos filtros.</div>'; return; }
   $('#rfLista').innerHTML = lista.map(r => {
     const g = r.g, ch = [];
+    if (r.bloq) ch.push(`<span class="chip c-red" title="${esc(g.motivo_bloqueo || '')}">🔒 Bloqueado${g.bloqueado_en ? ' ' + rfFd(g.bloqueado_en) : ''}</span>`);
     ch.push(r.atraso ? `<span class="chip c-red">En atraso ${L(r.pd.monto)} · ${r.pd.max} d</span>` : '<span class="chip c-green">Al día</span>');
     ch.push(r.limG == null ? `<span class="chip c-amber" title="No tiene límite asignado: se usa el capital de su último préstamo">Sugerido ${rfL0(r.sugerido)}</span>` : `<span class="chip c-blue">Límite ${rfL0(r.limG)}</span>`);
     if (r.an){ const tx = rfAntTxt(r.an);
@@ -1139,7 +1144,7 @@ function rfPintarLista(rows){
     if (g.colocado) ch.push(`<span class="chip c-green">✔ Colocado ${rfL0(g.monto_colocado)}</span>`);
     else if (g.contactado) ch.push(`<span class="chip c-violet">☎ Contactado ${g.fecha_contacto ? rfFd(g.fecha_contacto) : ''}</span>`);
     if (r.sol) ch.push(`<span class="chip c-gray" style="border:1px solid var(--line)">${esc(r.sol.codigo || 'Solicitud')} · ${esc(EST[r.sol.estado]?.t || r.sol.estado)}</span>`);
-    const dCls = r.disp > 0 && (r.atraso || r.noAplica) ? 'text-decoration:line-through;color:var(--muted);font-weight:500' : r.disp > 0 ? '' : 'color:var(--muted);font-weight:500';
+    const dCls = r.disp > 0 && (r.atraso || r.noAplica || r.bloq) ? 'text-decoration:line-through;color:var(--muted);font-weight:500' : r.disp > 0 ? '' : 'color:var(--muted);font-weight:500';
     return `<div class="card sol" data-rk="${r.k}">
       <div class="main"><div class="name">${esc(r.nombre)}</div>
         <div class="sub"><span>${esc(r.tipo)}${r.nPrest > 1 ? ` · ${r.nPrest} préstamos` : ''}</span><span>Último ${rfL0(r.capital)} · ${rfFd(r.fecha)}</span><span>Balance ${L(r.balance)}</span></div>
@@ -1159,7 +1164,7 @@ const rfAntTxt = a => a.dias < 60 ? `${a.dias} días` : `${a.meses} meses`;
 async function rfGuardar(k, patch, msg){
   const r = rfCalcular().rows.find(x => x.k === k);
   const row = { clave:k, nombre:r?.nombre || RF.gest[k]?.nombre || k, ...patch };
-  if (!rfEdita()){ delete row.limite; delete row.aplica; delete row.nivel; }
+  if (!rfEdita()){ delete row.limite; delete row.aplica; delete row.nivel; delete row.bloqueado; delete row.motivo_bloqueo; delete row.bloqueado_en; delete row.bloqueado_por; }
   const { data, error } = await sb.from('refi_clientes').upsert(row, { onConflict:'clave' }).select().single();
   if (error) throw (esRed(error) ? new Error('Sin conexión: este cambio necesita señal') : error);
   RF.gest[k] = data; KV.set(ck('refi'), { corte:RF.corte, gest:RF.gest });
@@ -1173,6 +1178,7 @@ function rfAbrir(k){
   const cuotas = r.pd.list.length ? r.pd.list.slice().sort((a, b) => String(a.f).localeCompare(String(b.f))).map(q => `<tr><td>${rfFd(q.f)}</td><td style="text-align:right">${L(q.bal)}</td><td style="text-align:right">${L(q.pend)}</td><td style="text-align:right">${q.atr} d</td></tr>`).join('') : '<tr><td colspan="4" class="muted">Sin cuotas pendientes en el reporte.</td></tr>';
   const w = dialogo(`<h3>${esc(r.nombre)}</h3>
     <div class="small muted">${esc(r.tipo)} · ${esc(r.dia || '')}${g.actualizado_en ? ` · actualizado ${hace(g.actualizado_en)}${g.actualizado_por ? ' por ' + esc(nombre(g.actualizado_por)) : ''}` : ''}</div>
+    ${r.bloq ? `<div class="alert err small">🔒 <b>Cliente bloqueado</b>${g.bloqueado_en ? ` el ${rfFd(g.bloqueado_en)}` : ''}${g.bloqueado_por ? ' por ' + esc(nombre(g.bloqueado_por)) : ''}: no se le ofrece refinanciamiento aunque tenga disponible.${g.motivo_bloqueo ? `<br>Motivo: ${esc(g.motivo_bloqueo)}` : ''}</div>` : ''}
     ${r.atraso ? `<div class="alert err small">En atraso: ${L(r.pd.monto)} pendiente en ${r.pd.n} cuota(s), hasta ${r.pd.max} días. No se cuenta en la oportunidad.</div>` : ''}
     <dl class="kv" style="margin-top:10px">
       <dt>Último préstamo</dt><dd>${rfL0(r.capital)} · ${rfFd(r.fecha)}</dd>
@@ -1196,8 +1202,9 @@ function rfAbrir(k){
       <table class="small" style="width:100%;border-collapse:collapse;margin-top:6px"><tr class="muted"><td>Fecha</td><td>Tipo</td><td style="text-align:right">Capital</td><td style="text-align:right">Balance</td></tr>${loans}</table>
       <table class="small" style="width:100%;border-collapse:collapse;margin-top:8px"><tr class="muted"><td>Cuota</td><td style="text-align:right">Balance</td><td style="text-align:right">Cuenta</td><td style="text-align:right">Atraso</td></tr>${cuotas}</table></details>
     <div class="btns">
-      ${es('asesor') && !r.sol ? '<button class="btn ghost" id="rfSol">＋ Crear solicitud</button>' : ''}
+      ${es('asesor') && !r.sol && !r.bloq ? '<button class="btn ghost" id="rfSol">＋ Crear solicitud</button>' : ''}
       ${ed && (g.contactado || g.colocado || g.aplica) ? '<button class="btn ghost" id="rfReset">Reiniciar gestión</button>' : ''}
+      ${ed ? `<button class="btn ghost" id="rfBloq"${r.bloq ? '' : ' style="color:var(--red)"'}>${r.bloq ? '🔓 Desbloquear' : '🔒 Bloquear cliente'}</button>` : ''}
       <button class="btn ghost" data-close>Cerrar</button>
       ${gs ? '<button class="btn pri" id="rfOk">Guardar</button>' : ''}</div>`);
   let ap = g.aplica || '', nv = g.nivel == null ? '' : String(g.nivel);
@@ -1214,6 +1221,17 @@ function rfAbrir(k){
     if (!confirm('¿Reiniciar la gestión de este cliente? Se borran el contacto, la colocación y la decisión de si aplica. El límite y el comentario se conservan.')) return;
     const hist = (g.historial || []).slice(-9); if (g.colocado) hist.push({ monto:g.monto_colocado, fecha:g.fecha_colocado, cerrado:hoyHN() });
     await rfGuardar(k, { aplica:null, contactado:false, fecha_contacto:null, colocado:false, monto_colocado:null, fecha_colocado:null, historial:hist }, 'Gestión reiniciada');
+    cerrarDialogo(w);
+  });
+  if (w.querySelector('#rfBloq')) w.querySelector('#rfBloq').onclick = e => run(e.target, async () => {
+    if (r.bloq){
+      if (!confirm('¿Desbloquear este cliente? Volverá a aparecer en las pestañas según su gestión.')) return;
+      await rfGuardar(k, { bloqueado:false, motivo_bloqueo:null, bloqueado_en:null, bloqueado_por:null }, 'Cliente desbloqueado');
+    } else {
+      const m = prompt('Motivo del bloqueo (ej.: línea de crédito cerrada). El cliente no volverá a aparecer como disponible aunque se carguen nuevos cortes.', 'Línea de crédito cerrada');
+      if (m === null) return;
+      await rfGuardar(k, { bloqueado:true, motivo_bloqueo:m.trim() || null, bloqueado_en:new Date().toISOString(), bloqueado_por:S.me?.id ?? null }, 'Cliente bloqueado');
+    }
     cerrarDialogo(w);
   });
   if (w.querySelector('#rfOk')) w.querySelector('#rfOk').onclick = e => run(e.target, async () => {
@@ -1317,13 +1335,13 @@ function rfDialogoCarga(){
 async function rfExportar(){
   const X = await rfXlsx();
   const rows = rfFiltrar(rfCalcular().rows).map(r => ({
-    'Cliente':r.nombre, 'Tipo':r.tipo, 'Fecha último préstamo':r.fecha, 'Capital último':r.capital, 'Antigüedad (días)':r.an?.dias ?? '', 'Más de 3 meses':r.an?.cumple ? 'SÍ' : 'NO', 'Nivel límite':r.g.nivel ? r.g.nivel + '%' : '', 'Para aumento de límite':r.aumento ? 'SÍ' : '', 'Préstamos activos':r.nPrest, 'Balance total':+r.balance.toFixed(2),
+    'Cliente':r.nombre, 'Etapa':RF_ETAPAS.find(e => e[0] === r.etapa)?.[1].replace('🔒 ', '') || '', 'Tipo':r.tipo, 'Fecha último préstamo':r.fecha, 'Capital último':r.capital, 'Antigüedad (días)':r.an?.dias ?? '', 'Más de 3 meses':r.an?.cumple ? 'SÍ' : 'NO', 'Nivel límite':r.g.nivel ? r.g.nivel + '%' : '', 'Para aumento de límite':r.aumento ? 'SÍ' : '', 'Préstamos activos':r.nPrest, 'Balance total':+r.balance.toFixed(2),
     'Estatus':r.atraso ? 'EN ATRASO' : 'AL DIA', 'Saldo pendiente':+r.pd.monto.toFixed(2), 'Días atraso máx':r.pd.max,
     'Límite asignado':r.limG, 'Sugerido (último capital)':r.sugerido, 'Disponible':+(r.elegible ? r.disp : 0).toFixed(2),
     'Aplica':r.g.aplica === 'si' ? 'SÍ' : r.g.aplica === 'no' ? 'NO' : '', 'Contactado':r.g.contactado ? 'SÍ' : '', 'Fecha contacto':r.g.fecha_contacto || '',
-    'Colocado':r.g.colocado ? 'SÍ' : '', 'Monto colocado':r.g.monto_colocado ?? '', 'Fecha colocación':r.g.fecha_colocado || '', 'Comentarios':r.g.comentario || '' }));
+    'Colocado':r.g.colocado ? 'SÍ' : '', 'Monto colocado':r.g.monto_colocado ?? '', 'Fecha colocación':r.g.fecha_colocado || '', 'Comentarios':r.g.comentario || '', 'Motivo bloqueo':r.g.motivo_bloqueo || '' }));
   const ws = X.utils.json_to_sheet(rows);
-  ws['!cols'] = [34,20,12,11,10,9,9,11,8,12,11,11,8,11,11,12,7,9,11,8,11,11,40].map(wch => ({ wch }));
+  ws['!cols'] = [34,13,20,12,11,10,9,9,11,8,12,11,11,8,11,11,12,7,9,11,8,11,11,40,30].map(wch => ({ wch }));
   const wb = X.utils.book_new(); X.utils.book_append_sheet(wb, ws, 'Refinanciamientos');
   const blob = new Blob([X.write(wb, { type:'array', bookType:'xlsx' })], { type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
   const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `refinanciamientos_${RF.corte?.fecha_corte || hoyHN()}.xlsx`;
