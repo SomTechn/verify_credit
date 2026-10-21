@@ -1,6 +1,6 @@
 // VerifiCrédito · service worker: permite abrir la app sin señal.
 // Los datos (Supabase) NO pasan por aquí: la app los guarda en el teléfono y envía los cambios al volver la conexión.
-const V = 'verificredito-v2';
+const V = 'verificredito-v3';
 const CDN = /^(cdn\.jsdelivr\.net|cdnjs\.cloudflare\.com|fonts\.googleapis\.com|fonts\.gstatic\.com|unpkg\.com)$/;
 
 self.addEventListener('install', e => {
@@ -40,4 +40,20 @@ self.addEventListener('fetch', e => {
   if (u.hostname.endsWith('tile.openstreetmap.org')){
     e.respondWith(caches.open(V + '-mapa').then(c => c.match(r).then(hit => hit || fetch(r).then(res => { c.put(r, res.clone()); return res; }).catch(() => hit))));
   }
+});
+
+// Notificaciones push: llegan aunque la app esté cerrada
+self.addEventListener('push', e => {
+  let d = {}; try { d = e.data ? e.data.json() : {}; } catch(_) { d = { body: e.data ? e.data.text() : '' }; }
+  e.waitUntil(self.registration.showNotification(d.title || 'VerifyCredit', {
+    body: d.body || '', tag: d.tag || 'vc', renotify: true, icon: 'icon-192.png', badge: 'icon-192.png', data: { id: d.id || null } }));
+});
+self.addEventListener('notificationclick', e => {
+  e.notification.close();
+  const id = e.notification.data && e.notification.data.id;
+  e.waitUntil(self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(cs => {
+    const c = cs.find(x => x.focused) || cs[0];
+    if (c){ if (id) c.postMessage({ abrir: id }); return c.focus(); }
+    return self.clients.openWindow('./' + (id ? '?sol=' + id : ''));
+  }));
 });
