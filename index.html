@@ -444,7 +444,7 @@ table.ht td.nota{max-width:220px;overflow:hidden;text-overflow:ellipsis;color:va
 // App disponible sin señal (sw.js debe estar junto a index.html). Va primero para registrarse aunque falle otra cosa.
 if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) navigator.serviceWorker.register('sw.js').catch(() => {});
 // Versión de esta copia de la app: cambia en cada entrega. La app la compara con la publicada y se actualiza sola.
-const APP_VER = '2026-10-22.1200';
+const APP_VER = '2026-10-22.1500';
 // ================== Configuración ==================
 const SB_URL = 'https://edmvfqelxsxevpmxgbav.supabase.co';
 const SB_KEY = 'sb_publishable_lgTmmLtUESDDyX2sff6ArQ_z65Ti9d6';
@@ -582,7 +582,7 @@ function aplicarOp(op, nuevo){
         tipo_pago:'Quincenal', rubro_especial:false, datos_cliente:{}, asesor_id:a.p_asesor || S.me.id, creado_en:op.ts, actualizado_en:op.ts, estado_desde:op.ts, fecha_ingreso:a.p_fecha_ingreso, pagos_historial:[], plan_pago:'nivelado', _pend:true, _tmp:true });
       evento(op.tmpId, 'creada', null, 'borrador'); return op.tmpId; }
     case 'guardar_origen':
-      if (s) Object.assign(s, { origen_canal:a.p_canal, referido_nombre:a.p_referido_nombre, referido_telefono:a.p_referido_telefono, referido_empleado:a.p_referido_empleado, _pend:true });
+      if (s) Object.assign(s, { origen_canal:a.p_canal, origen_asumido:false, referido_nombre:a.p_referido_nombre, referido_telefono:a.p_referido_telefono, referido_empleado:a.p_referido_empleado, _pend:true });
       return;
     case 'enviar_analisis':
       if (nuevo && s?.tipo === 'nuevo' && !det(s.id).ing.some(i => i.categoria === 'salario')) throw new Error('Agregue al menos un ingreso (salario) antes de enviar a análisis');
@@ -1655,8 +1655,18 @@ function origenLeer(w, obligatorio){
   if (c === 'otro') a.p_referido_nombre = q('#oOtroN').value.trim() || null;
   return a;
 }
+// Dialogo para agregar / revisar cómo llegó el cliente (detalle e historial)
+const puedeOrigen = s => s.tipo === 'nuevo' && s.id > 0 && (es('analista') || s.asesor_id === S.me.id);
+function abrirOrigen(s, despues){
+  const w = dialogo(`<h3>¿Cómo llegó ${esc(s.nombre_cliente)}?</h3>
+    ${s.origen_asumido ? '<div class="alert info small">Se asumió <b>Facebook</b> porque no estaba registrado. Confírmelo o cambie al canal real.</div>' : ''}
+    ${origenCampos(s)}<div class="btns"><button class="btn ghost" data-close>Cancelar</button><button class="btn pri" id="oOk">${s.origen_asumido ? 'Confirmar' : 'Guardar'}</button></div>`);
+  origenEnlazar(w);
+  w.querySelector('#oOk').onclick = e => run(e.target, async () => { const o = origenLeer(w, true);
+    await rpc('guardar_origen', { p_id:s.id, ...o }); await cerrarDialogo(w); toast('Origen del cliente guardado'); await cargarSolicitudes(); despues?.(); });
+}
 const referidor = s => s.origen_canal === 'referido_empleado' ? (s.referido_empleado ? nombre(s.referido_empleado) : s.referido_nombre || '—') : s.referido_nombre || '—';
-const origenTxt = s => !s.origen_canal ? null : CANAL[s.origen_canal] + (esReferido(s.origen_canal) ? ': ' + referidor(s) : s.referido_nombre ? ': ' + s.referido_nombre : '');
+const origenTxt = s => !s.origen_canal ? null : CANAL[s.origen_canal] + (esReferido(s.origen_canal) ? ': ' + referidor(s) : s.referido_nombre ? ': ' + s.referido_nombre : '') + (s.origen_asumido ? ' (asumido)' : '');
 $('#fab').onclick = () => {
   const w = dialogo(`
     <h3>Nueva solicitud</h3>
@@ -1784,7 +1794,7 @@ function renderDetalle(){
       <dt>Asesor</dt><dd>${rol() === 'admin' && !CERRADAS.includes(s.estado) ? `<select id="dAsesor" style="padding:4px 8px">${Object.values(S.perfiles).filter(p => p.activo && ['asesor','admin'].includes(p.rol)).map(p => `<option value="${p.id}" ${p.id === s.asesor_id ? 'selected' : ''}>${esc(p.nombre)}</option>`).join('')}</select>` : esc(nombre(s.asesor_id))}</dd>
       ${s.telefono ? `<dt>Teléfono</dt><dd><a href="tel:${esc(s.telefono)}">${esc(s.telefono)}</a> · <a href="https://wa.me/504${esc(s.telefono.replace(/\D/g,'').slice(-8))}" target="_blank">WhatsApp</a></dd>` : ''}
       ${s.dni ? `<dt>DNI</dt><dd>${esc(s.dni)}</dd>` : ''}
-      ${s.tipo === 'nuevo' ? `<dt>Cómo llegó</dt><dd>${s.origen_canal ? esc(origenTxt(s)) + (s.referido_telefono ? ` · <a href="tel:${esc(s.referido_telefono)}">${esc(s.referido_telefono)}</a>` : '') : '<span class="muted">Sin dato</span>'}${es('analista') || s.asesor_id === S.me.id ? ' · <a href="#" id="dOrigen">' + (s.origen_canal ? 'Cambiar' : 'Agregar') + '</a>' : ''}
+      ${s.tipo === 'nuevo' ? `<dt>Cómo llegó</dt><dd>${s.origen_canal ? esc(origenTxt(s)) + (s.referido_telefono ? ` · <a href="tel:${esc(s.referido_telefono)}">${esc(s.referido_telefono)}</a>` : '') : '<span class="muted">Sin dato</span>'}${puedeOrigen(s) ? ' · <a href="#" id="dOrigen">' + (s.origen_asumido ? 'Revisar' : s.origen_canal ? 'Cambiar' : 'Agregar') + '</a>' : ''}
         ${esReferido(s.origen_canal) && s.estado === 'desembolsada' ? `<br>${s.bono_pagado_en ? `<span class="chip c-green">Bono pagado${s.bono_monto ? ' ' + L(s.bono_monto) : ''} · ${fDate(s.bono_pagado_en)}</span>` : '<span class="chip c-amber">Bono por referido pendiente</span>'}` : ''}</dd>` : ''}
       <dt>Creada</dt><dd>${fDT(s.creado_en)}</dd>
       ${s.espera_total_habil_seg > 0 ? `<dt>Tiempo en espera</dt><dd>${fmtDur(s.espera_total_habil_seg)} hábil (acumulado)</dd>` : ''}
@@ -2260,11 +2270,7 @@ function enlazarDetalle(s, c){
       const b = await (await fetch(url)).blob(); descargarBlob(b, nombreContratoFirmado(cs));
     });
   })();
-  if ($('#dOrigen')) $('#dOrigen').onclick = ev => { ev.preventDefault();
-    const w = dialogo(`<h3>¿Cómo llegó ${esc(s.nombre_cliente)}?</h3>${origenCampos(s)}<div class="btns"><button class="btn ghost" data-close>Cancelar</button><button class="btn pri" id="oOk">Guardar</button></div>`);
-    origenEnlazar(w);
-    w.querySelector('#oOk').onclick = e => run(e.target, async () => { const o = origenLeer(w, true);
-      await rpc('guardar_origen', { p_id:s.id, ...o }); await cerrarDialogo(w); toast('Origen del cliente guardado'); await refrescar(); }); };
+  if ($('#dOrigen')) $('#dOrigen').onclick = ev => { ev.preventDefault(); abrirOrigen(s, () => abrirDetalle(s.id, true)); };
   if ($('#dAsesor')) $('#dAsesor').onchange = e => run(e.target, async () => { await rpc('reasignar_asesor', { p_id: s.id, p_asesor: e.target.value }); toast('Asesor reasignado'); await refrescar(); });
   // Asesor: enviar
   if ($('#aEnviar')) $('#aEnviar').onclick = e => {
@@ -3586,6 +3592,12 @@ const H_COLS = [
   { k:'cliente', t:'Cliente', v:s => s.nombre_cliente, h:s => `<b>${esc(s.nombre_cliente)}</b>${s.dni ? `<div class="small muted">${esc(s.dni)}</div>` : ''}${puedeRepetir(s) ? `<button class="btn sm ghost" data-rep="${s.id}" title="Crear una nueva solicitud con los mismos datos e ingresos" style="margin-top:4px;padding:2px 8px;font-size:11px">↻ Nueva a partir de esta</button>` : ''}`, cls:'cli' },
   { k:'dni', t:'Identidad', v:s => s.dni || '', oculta:true },
   { k:'tipo', t:'Tipo', v:s => TIPO[s.tipo] || s.tipo, h:s => tipoChip(s.tipo) },
+  { k:'canal', t:'Cómo llegó', v:s => s.tipo === 'nuevo' ? origenTxt(s) || '' : '', h:s => {
+      if (s.tipo !== 'nuevo') return '<span class="muted">—</span>';
+      const btn = t => puedeOrigen(s) ? ` <button class="btn sm ghost" data-org="${s.id}">${t}</button>` : '';
+      if (!s.origen_canal) return `<span class="muted">Sin dato</span>${btn('＋ Agregar')}`;
+      const txt = esc(CANAL[s.origen_canal] + (esReferido(s.origen_canal) ? ': ' + referidor(s) : ''));
+      return s.origen_asumido ? `${txt} <span class="chip c-amber" title="Se asumió Facebook: falta confirmarlo">asumido</span>${btn('Revisar')}` : txt; } },
   { k:'estado', t:'Estado', v:s => EST[s.estado]?.t || s.estado, h:s => chip(s.estado) + (s.en_espera ? ' ' + esperaChip(s) : '') },
   { k:'asesor', t:'Asesor', v:s => nombre(s.asesor_id) },
   { k:'analista', t:'Analista', v:s => s.analista_id ? nombre(s.analista_id) : '' },
@@ -3621,6 +3633,7 @@ function hFiltrar(){
     if (f.verificador && (f.verificador === 'sin' ? s.verificador_id : s.verificador_id !== f.verificador)) return false;
     if (f.forma && s.forma_desembolso !== f.forma) return false;
     if (f.origen && (f.origen === 'excel') !== !!s.importado) return false;
+    if (f.canal && (s.tipo !== 'nuevo' || (f.canal === 'revisar' ? s.origen_canal && !s.origen_asumido : s.origen_canal !== f.canal))) return false;
     if (q && ![s.nombre_cliente, s.codigo, s.dni, s.telefono, sectorDe(s), ciudadDe(s)].some(v => norm(v || '').includes(q))) return false;
     return true;
   });
@@ -3633,7 +3646,7 @@ function hOrdenar(l){
 }
 function pintarHistorial(){
   const R = hRangos();
-  if (!S.h) S.h = { base:'cierre', preset:'mes', desde:R.mes[1][0], hasta:R.mes[1][1], estado:'', tipo:'', asesor:'', verificador:'', forma:'', origen:'', q:'', sort:'fecha', dir:-1, page:0, size:100 };
+  if (!S.h) S.h = { base:'cierre', preset:'mes', desde:R.mes[1][0], hasta:R.mes[1][1], estado:'', tipo:'', canal:'', asesor:'', verificador:'', forma:'', origen:'', q:'', sort:'fecha', dir:-1, page:0, size:100 };
   const f = S.h;
   const lista = hOrdenar(hFiltrar());
   const cols = H_COLS.filter(c => !c.oculta);
@@ -3646,7 +3659,7 @@ function pintarHistorial(){
   $('#main').innerHTML = `
     <div class="card" style="padding:12px">
       <div class="filters" style="margin-bottom:8px">${Object.entries(R).map(([k, [t]]) => `<button data-hp="${k}" class="${f.preset === k ? 'on' : ''}">${t}</button>`).join('')}</div>
-      <details class="hfd" ${f.abierto ?? (innerWidth > 700) ? 'open' : ''}><summary>Filtros${(() => { const n = ['estado','tipo','asesor','verificador','forma','origen','q'].filter(k => f[k]).length; return n ? ` <span class="parada">${n}</span>` : ''; })()}</summary>
+      <details class="hfd" ${f.abierto ?? (innerWidth > 700) ? 'open' : ''}><summary>Filtros${(() => { const n = ['estado','tipo','asesor','verificador','forma','origen','canal','q'].filter(k => f[k]).length; return n ? ` <span class="parada">${n}</span>` : ''; })()}</summary>
       <div class="hf">
         <div><label>Fecha de</label><select data-hf="base">${opt('cierre','Cierre / desembolso',f.base)}${opt('solicitud','Solicitud (creación)',f.base)}</select></div>
         <div><label>Desde</label><input type="date" data-hf="desde" value="${f.desde}"></div>
@@ -3656,6 +3669,7 @@ function pintarHistorial(){
         <div><label>Asesor</label><select data-hf="asesor">${opt('','Todos',f.asesor)}${users(['asesor','admin']).map(p => opt(p.id, p.nombre, f.asesor)).join('')}</select></div>
         <div><label>Verificador</label><select data-hf="verificador">${opt('','Todos',f.verificador)}${opt('sin','Sin verificador',f.verificador)}${users(['verificador']).map(p => opt(p.id, p.nombre, f.verificador)).join('')}</select></div>
         <div><label>Forma de desembolso</label><select data-hf="forma">${opt('','Todas',f.forma)}${opt('efectivo','Efectivo',f.forma)}${opt('transferencia','Transferencia',f.forma)}</select></div>
+        <div><label>Cómo llegó (nuevos)</label><select data-hf="canal">${opt('','Todos',f.canal)}${opt('revisar','⚠ Por revisar (asumido o sin dato)',f.canal)}${Object.entries(CANAL).map(([k, t]) => opt(k, t, f.canal)).join('')}</select></div>
         <div><label>Origen</label><select data-hf="origen">${opt('','App + histórico Excel',f.origen)}${opt('app','Solo app',f.origen)}${opt('excel','Solo histórico Excel',f.origen)}</select></div>
         <div style="grid-column:span 2"><label>Buscar</label><input data-hf="q" value="${esc(f.q)}" placeholder="Nombre, código, identidad, teléfono o sector"></div>
         <div style="display:flex;gap:6px"><button class="btn sm ghost" id="hLimpiar">Limpiar</button><button class="btn sm pri" id="hCsv">⬇ Excel (CSV)</button></div>
@@ -3685,6 +3699,7 @@ function pintarHistorial(){
     if (f.sort === k) f.dir = -f.dir; else { f.sort = k; f.dir = H_COLS.find(c => c.k === k).num || k === 'fecha' ? -1 : 1; } f.page = 0; pintarHistorial(); });
   M.querySelectorAll('[data-pg]').forEach(b => b.onclick = () => { f.page += +b.dataset.pg; pintarHistorial(); M.querySelector('.tbl-wrap')?.scrollTo(0, 0); });
   M.querySelectorAll('tbody tr[data-id]').forEach(tr => tr.onclick = () => abrirDetalle(+tr.dataset.id));
+  M.querySelectorAll('[data-org]').forEach(b => b.onclick = e => { e.stopPropagation(); abrirOrigen(S.sols.find(x => x.id === +b.dataset.org), pintarHistorial); });
   M.querySelectorAll('[data-rep]').forEach(b => b.onclick = e => { e.stopPropagation(); repetirSolicitud(S.sols.find(x => x.id === +b.dataset.rep), b); });
   $('#hLimpiar').onclick = () => { S.h = null; pintarHistorial(); };
   $('#hCsv').onclick = () => {
@@ -3942,7 +3957,8 @@ function graficoLinea(el, data){
 }
 // ----- Estadística: qué canal atrae más clientes y más capital -----
 function canalesHTML(d0, d1){
-  const nv = S.sols.filter(s => s.tipo === 'nuevo' && s.id > 0 && !s.importado && diaHN(s.creado_en) >= d0 && diaHN(s.creado_en) <= d1);
+  const nv = S.sols.filter(s => s.tipo === 'nuevo' && s.id > 0 && diaHN(s.creado_en) >= d0 && diaHN(s.creado_en) <= d1);
+  const asum = nv.filter(s => s.origen_asumido).length;
   if (!nv.length) return '';
   const g = {};
   for (const s of nv){ const k = s.origen_canal || ''; const o = g[k] = g[k] || { n:0, des:0, cap:0 }; o.n++; if (s.estado === 'desembolsada'){ o.des++; o.cap += capitalColocado(s); } }
@@ -3952,7 +3968,7 @@ function canalesHTML(d0, d1){
   <div class="card">${barras(rows.filter(([, o]) => o.cap > 0).map(([k, o]) => [nom(k), o.cap, L(Math.round(o.cap))]))}
     <div style="overflow-x:auto;margin-top:8px"><table class="t"><thead><tr><th>Canal</th><th class="num">Solicitudes</th><th class="num">Desemb.</th><th class="num">Conversión</th><th class="num">Capital colocado</th><th class="num">% capital</th><th class="num">Prom. por cliente</th></tr></thead><tbody>
     ${rows.map(([k, o]) => `<tr><td>${nom(k)}</td><td class="num">${o.n}</td><td class="num">${o.des}</td><td class="num">${Math.round(o.des / o.n * 100)}%</td><td class="num">${L(Math.round(o.cap))}</td><td class="num">${tot ? Math.round(o.cap / tot * 100) : 0}%</td><td class="num">${o.des ? L(Math.round(o.cap / o.des)) : '—'}</td></tr>`).join('')}</tbody></table></div>
-    <div class="small muted" style="margin-top:6px">Clientes nuevos creados en el período, según cómo llegaron. Conversión = desembolsadas ÷ solicitudes.</div></div>`;
+    <div class="small muted" style="margin-top:6px">Clientes nuevos creados en el período, según cómo llegaron. Conversión = desembolsadas ÷ solicitudes.${asum ? ` <b>${asum}</b> tienen Facebook asumido sin revisar (Historial → filtro "Por revisar").` : ''}</div></div>`;
 }
 // ================== Referidos: sorteo y bono por referido ==================
 function pintarReferidos(){
