@@ -429,7 +429,7 @@ table.ht td.nota{max-width:220px;overflow:hidden;text-overflow:ellipsis;color:va
 // App disponible sin señal (sw.js debe estar junto a index.html). Va primero para registrarse aunque falle otra cosa.
 if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) navigator.serviceWorker.register('sw.js').catch(() => {});
 // Versión de esta copia de la app: cambia en cada entrega. La app la compara con la publicada y se actualiza sola.
-const APP_VER = '2026-10-21.1800';
+const APP_VER = '2026-10-21.1900';
 // ================== Configuración ==================
 const SB_URL = 'https://edmvfqelxsxevpmxgbav.supabase.co';
 const SB_KEY = 'sb_publishable_lgTmmLtUESDDyX2sff6ArQ_z65Ti9d6';
@@ -777,7 +777,10 @@ async function init(){
   pintarTabs(); pintar(); suscribir(); indicadorRed();
   if (vuelta){ window.scrollTo(0, vuelta.y || 0); if (vuelta.det != null && S.sols.some(x => x.id === vuelta.det)) abrirDetalle(vuelta.det); if (vuelta.ver) toast(`✨ App actualizada a la versión más reciente`); }
   if (outbox().length) programarEnvio(1500);
-  vigilarVersion(); mostrarInstalar();
+  vigilarVersion(); mostrarInstalar(); pushRevisar();
+  // Abierta desde un aviso: va directo a la solicitud
+  const solQ = +new URLSearchParams(location.search).get('sol');
+  if (solQ){ history.replaceState(null, '', location.pathname); if (S.sols.some(x => x.id === solQ)) abrirDetalle(solQ); }
 }
 // ================== Instalar la app (PWA) ==================
 const INST = { ev: null };
@@ -880,12 +883,59 @@ $('#fBoot').onsubmit = async e => {
 $('#btnOut').onclick = async () => {
   const n = outbox().length;
   if (!confirm(n ? `Hay ${n} cambio(s) sin enviar. Si cierra sesión se perderán. ¿Cerrar sesión de todos modos?` : '¿Cerrar sesión?')) return;
-  localStorage.removeItem('vc_ult_uid'); try { await sb.auth.signOut(); } catch(e){} location.reload(); };
-$('#btnBell').onclick = async () => {
-  if (!('Notification' in window)) return toast('Este navegador no soporta notificaciones');
+  localStorage.removeItem('vc_ult_uid'); try { await pushDesactivar(); } catch(e){} try { await sb.auth.signOut(); } catch(e){} location.reload(); };
+// ================== Notificaciones push (llegan aunque la app esté cerrada) ==================
+const PUSH = { on:false };
+const pushSoportado = () => 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window;
+const b64u = s => { const b = atob((s + '='.repeat((4 - s.length % 4) % 4)).replace(/-/g, '+').replace(/_/g, '/')); return Uint8Array.from(b, c => c.charCodeAt(0)); };
+async function pushSub(){ if (!pushSoportado()) return null; const reg = await navigator.serviceWorker.ready; return reg.pushManager.getSubscription(); }
+async function pushGuardar(sub){
+  const j = sub.toJSON();
+  const { error } = await sb.rpc('guardar_push', { p_endpoint:j.endpoint, p_p256dh:j.keys.p256dh, p_auth:j.keys.auth, p_agente:navigator.userAgent.slice(0, 200) });
+  if (error) throw error;
+  PUSH.on = true; pintarBell();
+}
+async function pushActivar(){
+  if (!pushSoportado()) throw new Error(esIOS() && !instalada() ? 'En iPhone primero instale la app (Compartir → Agregar a pantalla de inicio) y ábrala desde el ícono.' : 'Este navegador no soporta notificaciones push.');
   const p = await Notification.requestPermission();
-  toast(p === 'granted' ? 'Notificaciones activadas' : 'Notificaciones bloqueadas');
+  if (p !== 'granted') throw new Error('Las notificaciones están bloqueadas. Permítalas en la configuración del navegador para este sitio (ícono del candado junto a la dirección).');
+  const reg = await navigator.serviceWorker.ready;
+  let sub = await reg.pushManager.getSubscription();
+  if (!sub){
+    const { data, error } = await sb.functions.invoke('push', { body:{ clave:true } });
+    if (error || !data?.publica) throw new Error('No se pudo preparar las notificaciones. Revise la conexión.');
+    sub = await reg.pushManager.subscribe({ userVisibleOnly:true, applicationServerKey:b64u(data.publica) });
+  }
+  await pushGuardar(sub);
+}
+async function pushDesactivar(){
+  const sub = await pushSub().catch(() => null);
+  if (sub){ try { await sb.rpc('borrar_push', { p_endpoint:sub.endpoint }); } catch(e){} try { await sub.unsubscribe(); } catch(e){} }
+  PUSH.on = false; pintarBell();
+}
+// Al entrar: si este dispositivo ya estaba suscrito, renueva el registro (queda a nombre del usuario actual)
+async function pushRevisar(){
+  try { const sub = await pushSub(); if (sub && Notification.permission === 'granted') await pushGuardar(sub); else { PUSH.on = false; pintarBell(); } } catch(e){}
+}
+function pintarBell(){ const b = $('#btnBell'); if (b){ b.textContent = PUSH.on ? '🔔' : '🔕'; b.title = PUSH.on ? 'Notificaciones activadas' : 'Activar notificaciones'; } }
+$('#btnBell').onclick = () => {
+  const w = dialogo(`<h3>🔔 Notificaciones</h3>
+    <div class="small muted">Reciba un aviso en este dispositivo (computadora o teléfono) cuando entre una solicitud nueva, cambie de estado o le comenten, <b>aunque la app esté cerrada</b>. Al tocar el aviso se abre la solicitud.</div>
+    <div class="alert ${PUSH.on ? 'ok' : 'info'} small" id="pbEst" style="margin-top:10px">${PUSH.on ? '✅ Activadas en este dispositivo.' : 'Desactivadas en este dispositivo.'}</div>
+    <div class="small muted">Se activan por dispositivo: hágalo en cada computadora y teléfono donde quiera recibirlas.${esIOS() ? ' En iPhone solo funcionan con la app instalada en la pantalla de inicio.' : ''}</div>
+    <div class="btns">
+      ${PUSH.on ? '<button class="btn ghost" id="pbOff">Desactivar</button><button class="btn ghost" id="pbTest">Enviar prueba</button>' : '<button class="btn pri" id="pbOn">Activar notificaciones</button>'}
+      <button class="btn ghost" data-close>Cerrar</button></div>`);
+  w.querySelector('#pbOn')?.addEventListener('click', e => run(e.target, async () => { await pushActivar(); await cerrarDialogo(w); toast('🔔 Notificaciones activadas en este dispositivo'); $('#btnBell').onclick(); }));
+  w.querySelector('#pbOff')?.addEventListener('click', e => run(e.target, async () => { await pushDesactivar(); await cerrarDialogo(w); toast('Notificaciones desactivadas en este dispositivo'); }));
+  w.querySelector('#pbTest')?.addEventListener('click', e => run(e.target, async () => {
+    const { data, error } = await sb.functions.invoke('push', { body:{ prueba:true } });
+    if (error) throw new Error('No se pudo enviar la prueba. Revise la conexión.');
+    toast(data?.enviados ? 'Prueba enviada: debería ver el aviso en unos segundos' : 'No hay dispositivos activos. Desactive y vuelva a activar.', !data?.enviados);
+  }));
 };
+// Toque en un aviso con la app abierta: abre la solicitud
+if ('serviceWorker' in navigator) navigator.serviceWorker.addEventListener('message', e => { const id = +e.data?.abrir; if (id && S.me) abrirDetalle(id); });
 
 // ================== Datos ==================
 async function cargarPerfiles(){
@@ -4078,7 +4128,8 @@ function avisar(p){
 }
 function notificar(t, b, id){
   toast(`${t}: ${b}`);
-  try { if ('Notification' in window && Notification.permission === 'granted' && document.hidden){
+  // Con push activo el aviso de escritorio lo envía el servidor (evita duplicados)
+  try { if (!PUSH.on && 'Notification' in window && Notification.permission === 'granted' && document.hidden){
     const nt = new Notification(t, { body: b, tag: 'vc-' + id }); nt.onclick = () => { window.focus(); abrirDetalle(id); };
   } } catch(e){}
 }
