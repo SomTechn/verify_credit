@@ -444,7 +444,7 @@ table.ht td.nota{max-width:220px;overflow:hidden;text-overflow:ellipsis;color:va
 // App disponible sin señal (sw.js debe estar junto a index.html). Va primero para registrarse aunque falle otra cosa.
 if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) navigator.serviceWorker.register('sw.js').catch(() => {});
 // Versión de esta copia de la app: cambia en cada entrega. La app la compara con la publicada y se actualiza sola.
-const APP_VER = '2026-10-22.0100';
+const APP_VER = '2026-10-22.1200';
 // ================== Configuración ==================
 const SB_URL = 'https://edmvfqelxsxevpmxgbav.supabase.co';
 const SB_KEY = 'sb_publishable_lgTmmLtUESDDyX2sff6ArQ_z65Ti9d6';
@@ -531,12 +531,12 @@ const lsSet = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } ca
 const outbox = () => lsGet(OB_KEY(), []), fallidos = () => lsGet(OBF_KEY(), []);
 // Acciones que se pueden hacer sin señal (las de administración requieren conexión)
 const COLA = new Set(['crear_solicitud','enviar_analisis','dictaminar','completar_solicitud','guardar_item','finalizar_verificacion','marcar_desembolsada','desistir',
-  'poner_en_espera','reanudar','guardar_ubicacion','asignar_verificador','actualizar_datos_refi','actualizar_datos_analisis','registrar_reconocimiento','regresar_a_revisadas']);
+  'poner_en_espera','reanudar','guardar_ubicacion','asignar_verificador','actualizar_datos_refi','actualizar_datos_analisis','registrar_reconocimiento','regresar_a_revisadas','guardar_origen']);
 const OB_DESC = { crear_solicitud:'Crear solicitud', enviar_analisis:'Enviar a análisis', dictaminar:'Dictamen', completar_solicitud:'Completar con el cliente',
   guardar_item:'Verificación', finalizar_verificacion:'Cerrar verificación', marcar_desembolsada:'Marcar desembolsada', desistir:'Cerrar (desistió)',
   poner_en_espera:'Poner en espera', reanudar:'Reanudar', guardar_ubicacion:'Ubicación', asignar_verificador:'Asignar verificador',
   actualizar_datos_refi:'Datos del préstamo', actualizar_datos_analisis:'Datos de análisis', registrar_reconocimiento:'Contrato de línea de crédito',
-  regresar_a_revisadas:'Regresar a revisadas', 'ins:ingresos':'Agregar ingreso', 'upd:ingresos':'Editar ingreso', 'del:ingresos':'Borrar ingreso', 'ins:comentarios':'Comentario' };
+  regresar_a_revisadas:'Regresar a revisadas', guardar_origen:'Cómo llegó el cliente', 'ins:ingresos':'Agregar ingreso', 'upd:ingresos':'Editar ingreso', 'del:ingresos':'Borrar ingreso', 'ins:comentarios':'Comentario' };
 const opSid = op => op.t === 'rpc' ? (op.args.p_id ?? op.tmpId) : (op.row?.solicitud_id ?? op.sid);
 function opDesc(op){ const sid = opSid(op), so = S.sols.find(x => x.id === sid);
   return `${OB_DESC[op.t === 'rpc' ? op.fn : op.t + ':' + op.tabla] || op.fn || op.tabla}${so ? ' · ' + so.nombre_cliente : op.args?.p_nombre ? ' · ' + op.args.p_nombre : ''}`; }
@@ -581,6 +581,9 @@ function aplicarOp(op, nuevo){
       if (!sol(op.tmpId)) S.sols.unshift({ id:op.tmpId, codigo:'Pendiente de enviar', tipo:a.p_tipo, nombre_cliente:a.p_nombre, telefono:a.p_telefono, dni:a.p_dni, estado:a.p_enviar ? 'en_analisis' : 'borrador',
         tipo_pago:'Quincenal', rubro_especial:false, datos_cliente:{}, asesor_id:a.p_asesor || S.me.id, creado_en:op.ts, actualizado_en:op.ts, estado_desde:op.ts, fecha_ingreso:a.p_fecha_ingreso, pagos_historial:[], plan_pago:'nivelado', _pend:true, _tmp:true });
       evento(op.tmpId, 'creada', null, 'borrador'); return op.tmpId; }
+    case 'guardar_origen':
+      if (s) Object.assign(s, { origen_canal:a.p_canal, referido_nombre:a.p_referido_nombre, referido_telefono:a.p_referido_telefono, referido_empleado:a.p_referido_empleado, _pend:true });
+      return;
     case 'enviar_analisis':
       if (nuevo && s?.tipo === 'nuevo' && !det(s.id).ing.some(i => i.categoria === 'salario')) throw new Error('Agregue al menos un ingreso (salario) antes de enviar a análisis');
       evento(a.p_id, 'enviada_analisis', s?.estado, 'en_analisis'); est(s, 'en_analisis'); return;
@@ -1010,12 +1013,12 @@ function tabsRol(){
     historial:['historial','Historial'],
     tablero:['tablero','Tablero', s => false],
     refi:['refi','Refinanciar'],
-    stats:['stats','Estadísticas'], usuarios:['usuarios','Usuarios'], params:['params','Parámetros'], pagos:['pagos','Pago verificadores']
+    stats:['stats','Estadísticas'], referidos:['referidos','Referidos'], usuarios:['usuarios','Usuarios'], params:['params','Parámetros'], pagos:['pagos','Pago verificadores']
   };
   const m = { asesor:['tablero','solicitudes','revisadas','proceso','verificar','todas','refi','historial','stats'],
-    analista:['tablero','analisis','desembolsos','todas','refi','historial','stats'],
+    analista:['tablero','analisis','desembolsos','todas','refi','referidos','historial','stats'],
     verificador:['verificar','tablero','verificadas','historial','stats'],
-    admin:['tablero','solicitudes','revisadas','analisis','verificar','desembolsos','todas','refi','historial','stats','pagos','usuarios','params'] };
+    admin:['tablero','solicitudes','revisadas','analisis','verificar','desembolsos','todas','refi','referidos','historial','stats','pagos','usuarios','params'] };
   return m[rol()].map(k => T[k]);
 }
 function pintarTabs(){
@@ -1450,7 +1453,7 @@ function rfCambio(p, corte){
 function pintarSuave(){
   if ((S.dlgs || []).some(w => w.isConnected)) return;
   const a = document.activeElement; if (a && /^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName) && a.id !== 'q') return;
-  if (['stats','pagos','params','usuarios','refi'].includes(S.tab)) return;   // pantallas pesadas: se actualizan al entrar
+  if (['stats','pagos','params','usuarios','refi','referidos'].includes(S.tab)) return;   // pantallas pesadas: se actualizan al entrar
   const y = window.scrollY, M = $('#main'), sc = [...M.querySelectorAll('*')].map((e, i) => [i, e.scrollLeft, e.scrollTop]).filter(x => x[1] || x[2]);
   const h0 = M.offsetHeight; M.style.minHeight = h0 + 'px';
   const fin = () => { const els = M.querySelectorAll('*'); sc.forEach(([i, l, t]) => { const e = els[i]; if (e){ e.scrollLeft = l; e.scrollTop = t; } }); window.scrollTo(0, y); M.style.minHeight = ''; };
@@ -1458,10 +1461,11 @@ function pintarSuave(){
 }
 function pintar(){
   const tab = tabsRol().find(t => t[0] === S.tab);
-  $('#main').classList.toggle('wide', ['tablero','historial'].includes(S.tab));
+  $('#main').classList.toggle('wide', ['tablero','historial','referidos'].includes(S.tab));
   if (S.tab === 'tablero') return pintarTablero();
   if (S.tab === 'historial') return pintarHistorial();
   if (S.tab === 'stats') return pintarStats();
+  if (S.tab === 'referidos') return pintarReferidos();
   if (S.tab === 'refi') return $('#rfTop') ? rfPintar() : pintarRefi();
   if (S.tab === 'usuarios') return pintarUsuarios();
   if (S.tab === 'params') return pintarParams();
@@ -1616,6 +1620,43 @@ function cardSol(s, ctx){
 }
 
 // ================== Nueva solicitud ==================
+// ================== Origen del cliente nuevo y referidos ==================
+// Canal por el que llegó el cliente (para medir qué medio atrae más y mejores clientes)
+const CANAL = { facebook:'Facebook', instagram:'Instagram', tiktok:'TikTok', whatsapp:'WhatsApp', referido_cliente:'Referido por cliente',
+  referido_empleado:'Referido por empleado', oficina:'Visitó la oficina', volante:'Volante / publicidad', otro:'Otro' };
+const esReferido = c => c === 'referido_cliente' || c === 'referido_empleado';
+function origenCampos(s = {}){
+  const emp = Object.values(S.perfiles).filter(p => p.activo).sort((a, b) => a.nombre.localeCompare(b.nombre));
+  return `<label class="f">¿Cómo llegó a nosotros?</label>
+    <select id="oCanal"><option value="">— Seleccione —</option>${Object.entries(CANAL).map(([k, t]) => `<option value="${k}" ${s.origen_canal === k ? 'selected' : ''}>${t}</option>`).join('')}</select>
+    <div id="oRefC" class="hidden"><div class="grid2">
+      <div><label class="f">Nombre del cliente que lo refirió</label><input id="oRefN" autocomplete="off" value="${esc(s.origen_canal === 'referido_cliente' ? s.referido_nombre || '' : '')}"></div>
+      <div><label class="f">Teléfono de quien refirió (opcional)</label><input id="oRefT" inputmode="tel" autocomplete="off" value="${esc(s.referido_telefono || '')}"></div></div></div>
+    <div id="oRefE" class="hidden"><label class="f">Empleado que lo refirió</label>
+      <select id="oEmp"><option value="">— Seleccione —</option>${emp.map(p => `<option value="${p.id}" ${s.referido_empleado === p.id ? 'selected' : ''}>${esc(p.nombre)}</option>`).join('')}<option value="otro" ${s.origen_canal === 'referido_empleado' && !s.referido_empleado && s.referido_nombre ? 'selected' : ''}>Otro (escribir nombre)</option></select>
+      <input id="oEmpN" class="hidden" style="margin-top:6px" placeholder="Nombre del empleado" autocomplete="off" value="${esc(s.origen_canal === 'referido_empleado' && !s.referido_empleado ? s.referido_nombre || '' : '')}"></div>
+    <div id="oOtro" class="hidden"><label class="f">Especifique (opcional)</label><input id="oOtroN" autocomplete="off" value="${esc(s.origen_canal === 'otro' ? s.referido_nombre || '' : '')}"></div>`;
+}
+function origenEnlazar(w){
+  const q = x => w.querySelector(x), ver = () => { const c = q('#oCanal').value;
+    q('#oRefC').classList.toggle('hidden', c !== 'referido_cliente'); q('#oRefE').classList.toggle('hidden', c !== 'referido_empleado');
+    q('#oOtro').classList.toggle('hidden', c !== 'otro'); q('#oEmpN').classList.toggle('hidden', q('#oEmp').value !== 'otro'); };
+  q('#oCanal').onchange = ver; q('#oEmp').onchange = ver; ver();
+}
+function origenLeer(w, obligatorio){
+  const q = x => w.querySelector(x), c = q('#oCanal').value;
+  if (!c){ if (obligatorio) throw new Error('Indique cómo llegó el cliente'); return null; }
+  const a = { p_canal:c, p_referido_nombre:null, p_referido_telefono:null, p_referido_empleado:null };
+  if (c === 'referido_cliente'){ a.p_referido_nombre = q('#oRefN').value.trim(); a.p_referido_telefono = q('#oRefT').value.trim() || null;
+    if (!a.p_referido_nombre) throw new Error('Escriba el nombre del cliente que lo refirió'); }
+  if (c === 'referido_empleado'){ const e = q('#oEmp').value;
+    if (e === 'otro'){ a.p_referido_nombre = q('#oEmpN').value.trim(); if (!a.p_referido_nombre) throw new Error('Escriba el nombre del empleado que lo refirió'); }
+    else if (e) a.p_referido_empleado = e; else throw new Error('Seleccione el empleado que lo refirió'); }
+  if (c === 'otro') a.p_referido_nombre = q('#oOtroN').value.trim() || null;
+  return a;
+}
+const referidor = s => s.origen_canal === 'referido_empleado' ? (s.referido_empleado ? nombre(s.referido_empleado) : s.referido_nombre || '—') : s.referido_nombre || '—';
+const origenTxt = s => !s.origen_canal ? null : CANAL[s.origen_canal] + (esReferido(s.origen_canal) ? ': ' + referidor(s) : s.referido_nombre ? ': ' + s.referido_nombre : '');
 $('#fab').onclick = () => {
   const w = dialogo(`
     <h3>Nueva solicitud</h3>
@@ -1626,6 +1667,7 @@ $('#fab').onclick = () => {
     ${rol() === 'admin' ? `<label class="f">Asesor responsable</label><select id="nAsesor">${Object.values(S.perfiles).filter(p => p.activo && ['asesor','admin'].includes(p.rol)).map(p => `<option value="${p.id}" ${p.id === S.me.id ? 'selected' : ''}>${esc(p.nombre)}${p.rol === 'admin' ? ' (admin)' : ''}</option>`).join('')}</select>` : ''}
     <label class="f">Teléfono (opcional)</label><input id="nTel" inputmode="tel" autocomplete="off">
     <div id="nIngF" class="hidden"><label class="f">Fecha de ingreso del cliente (antigüedad)</label><input id="nIng" type="date" max="${hoyHN()}"></div>
+    <div id="nOrigen">${origenCampos()}</div>
     <div id="nHelp" class="alert info small">Se crea con el nombre; luego agrega los ingresos y la envía a análisis.</div>
     <div id="nCoin"></div>
     <div class="btns"><button class="btn ghost" data-close>Cancelar</button><button class="btn pri" id="nOk">Crear</button></div>`);
@@ -1635,15 +1677,19 @@ $('#fab').onclick = () => {
     const nuevo = tipo === 'nuevo';
     $('#nOk').textContent = 'Crear';
     $('#nIngF').classList.toggle('hidden', nuevo);
+    $('#nOrigen').classList.toggle('hidden', !nuevo);
     $('#nHelp').textContent = 'Se crea con el nombre; luego agrega los ingresos y, cuando esté lista, la envía a análisis.';
   });
   const coin = () => { $('#nCoin').innerHTML = coincidencias({ id:0, nombre_cliente: $('#nNombre').value, telefono: $('#nTel').value, dni: $('#nDni').value }); };
   $('#nNombre').oninput = coin;
   $('#nDni').oninput = () => { $('#nDni').value = RD.fmtId($('#nDni').value); coin(); };
   $('#nNombre').focus();
+  origenEnlazar(w);
   $('#nOk').onclick = e => run(e.target, async () => {
     if ($('#nDni').value.replace(/\D/g,'').length !== 13) throw new Error('Ingrese el número de identidad (13 dígitos)');
+    const origen = tipo === 'nuevo' ? origenLeer(w, true) : null;
     const id = await rpc('crear_solicitud', { p_dni: $('#nDni').value, p_nombre: $('#nNombre').value, p_tipo: tipo, p_telefono: $('#nTel').value || null, p_enviar: false, p_fecha_ingreso: tipo !== 'nuevo' ? ($('#nIng').value || null) : null, p_asesor: $('#nAsesor')?.value || null });
+    if (origen) await rpc('guardar_origen', { p_id:id, ...origen });
     await cerrarDialogo(w); await cargarSolicitudes(); pintarTabs(); pintar();
     toast('Solicitud creada. Agregue los ingresos.');
     abrirDetalle(id);
@@ -1738,6 +1784,8 @@ function renderDetalle(){
       <dt>Asesor</dt><dd>${rol() === 'admin' && !CERRADAS.includes(s.estado) ? `<select id="dAsesor" style="padding:4px 8px">${Object.values(S.perfiles).filter(p => p.activo && ['asesor','admin'].includes(p.rol)).map(p => `<option value="${p.id}" ${p.id === s.asesor_id ? 'selected' : ''}>${esc(p.nombre)}</option>`).join('')}</select>` : esc(nombre(s.asesor_id))}</dd>
       ${s.telefono ? `<dt>Teléfono</dt><dd><a href="tel:${esc(s.telefono)}">${esc(s.telefono)}</a> · <a href="https://wa.me/504${esc(s.telefono.replace(/\D/g,'').slice(-8))}" target="_blank">WhatsApp</a></dd>` : ''}
       ${s.dni ? `<dt>DNI</dt><dd>${esc(s.dni)}</dd>` : ''}
+      ${s.tipo === 'nuevo' ? `<dt>Cómo llegó</dt><dd>${s.origen_canal ? esc(origenTxt(s)) + (s.referido_telefono ? ` · <a href="tel:${esc(s.referido_telefono)}">${esc(s.referido_telefono)}</a>` : '') : '<span class="muted">Sin dato</span>'}${es('analista') || s.asesor_id === S.me.id ? ' · <a href="#" id="dOrigen">' + (s.origen_canal ? 'Cambiar' : 'Agregar') + '</a>' : ''}
+        ${esReferido(s.origen_canal) && s.estado === 'desembolsada' ? `<br>${s.bono_pagado_en ? `<span class="chip c-green">Bono pagado${s.bono_monto ? ' ' + L(s.bono_monto) : ''} · ${fDate(s.bono_pagado_en)}</span>` : '<span class="chip c-amber">Bono por referido pendiente</span>'}` : ''}</dd>` : ''}
       <dt>Creada</dt><dd>${fDT(s.creado_en)}</dd>
       ${s.espera_total_habil_seg > 0 ? `<dt>Tiempo en espera</dt><dd>${fmtDur(s.espera_total_habil_seg)} hábil (acumulado)</dd>` : ''}
       ${s.analista_id ? `<dt>Analista</dt><dd>${esc(nombre(s.analista_id))}</dd>` : ''}
@@ -2212,6 +2260,11 @@ function enlazarDetalle(s, c){
       const b = await (await fetch(url)).blob(); descargarBlob(b, nombreContratoFirmado(cs));
     });
   })();
+  if ($('#dOrigen')) $('#dOrigen').onclick = ev => { ev.preventDefault();
+    const w = dialogo(`<h3>¿Cómo llegó ${esc(s.nombre_cliente)}?</h3>${origenCampos(s)}<div class="btns"><button class="btn ghost" data-close>Cancelar</button><button class="btn pri" id="oOk">Guardar</button></div>`);
+    origenEnlazar(w);
+    w.querySelector('#oOk').onclick = e => run(e.target, async () => { const o = origenLeer(w, true);
+      await rpc('guardar_origen', { p_id:s.id, ...o }); await cerrarDialogo(w); toast('Origen del cliente guardado'); await refrescar(); }); };
   if ($('#dAsesor')) $('#dAsesor').onchange = e => run(e.target, async () => { await rpc('reasignar_asesor', { p_id: s.id, p_asesor: e.target.value }); toast('Asesor reasignado'); await refrescar(); });
   // Asesor: enviar
   if ($('#aEnviar')) $('#aEnviar').onclick = e => {
@@ -3737,6 +3790,7 @@ async function pintarStats(){
   <h4 class="sec">Por asesor</h4>
   <div class="card" style="overflow-x:auto">${r.por_asesor.length ? `<table class="t"><thead><tr><th>Asesor</th><th class="num">Creadas</th><th class="num">Desemb.</th><th class="num">Rechaz.</th><th class="num">Capital colocado</th></tr></thead><tbody>
     ${r.por_asesor.map(a => `<tr><td>${esc(a.nombre)}</td><td class="num">${a.creadas}</td><td class="num">${a.desembolsadas}</td><td class="num">${a.rechazadas}</td><td class="num">${L(a.monto)}</td></tr>`).join('')}</tbody></table>` : '<div class="muted small">Sin datos</div>'}</div>
+  ${canalesHTML(d0, d1)}
   ${r.motivos_denegacion.length ? `<h4 class="sec">Motivos de denegación</h4><div class="card">${barras(r.motivos_denegacion.map(m => [m.nota || 'Sin nota', m.n, m.n]))}</div>` : ''}`;
   $('#stBody').innerHTML = h;
   const activos = r.por_dia.filter(x => x.desembolsadas > 0);
@@ -3885,6 +3939,98 @@ function graficoLinea(el, data){
   });
   svg += `</svg><div class="tip hidden"></div>`;
   el.innerHTML = svg; tipChart(el, el.querySelectorAll('rect[data-i]'), data);
+}
+// ----- Estadística: qué canal atrae más clientes y más capital -----
+function canalesHTML(d0, d1){
+  const nv = S.sols.filter(s => s.tipo === 'nuevo' && s.id > 0 && !s.importado && diaHN(s.creado_en) >= d0 && diaHN(s.creado_en) <= d1);
+  if (!nv.length) return '';
+  const g = {};
+  for (const s of nv){ const k = s.origen_canal || ''; const o = g[k] = g[k] || { n:0, des:0, cap:0 }; o.n++; if (s.estado === 'desembolsada'){ o.des++; o.cap += capitalColocado(s); } }
+  const rows = Object.entries(g).sort((a, b) => b[1].cap - a[1].cap || b[1].n - a[1].n), tot = rows.reduce((a, [, o]) => a + o.cap, 0);
+  const nom = k => k ? CANAL[k] || k : 'Sin dato';
+  return `<h4 class="sec">Canales de captación · clientes nuevos</h4>
+  <div class="card">${barras(rows.filter(([, o]) => o.cap > 0).map(([k, o]) => [nom(k), o.cap, L(Math.round(o.cap))]))}
+    <div style="overflow-x:auto;margin-top:8px"><table class="t"><thead><tr><th>Canal</th><th class="num">Solicitudes</th><th class="num">Desemb.</th><th class="num">Conversión</th><th class="num">Capital colocado</th><th class="num">% capital</th><th class="num">Prom. por cliente</th></tr></thead><tbody>
+    ${rows.map(([k, o]) => `<tr><td>${nom(k)}</td><td class="num">${o.n}</td><td class="num">${o.des}</td><td class="num">${Math.round(o.des / o.n * 100)}%</td><td class="num">${L(Math.round(o.cap))}</td><td class="num">${tot ? Math.round(o.cap / tot * 100) : 0}%</td><td class="num">${o.des ? L(Math.round(o.cap / o.des)) : '—'}</td></tr>`).join('')}</tbody></table></div>
+    <div class="small muted" style="margin-top:6px">Clientes nuevos creados en el período, según cómo llegaron. Conversión = desembolsadas ÷ solicitudes.</div></div>`;
+}
+// ================== Referidos: sorteo y bono por referido ==================
+function pintarReferidos(){
+  if (!S.ref) S.ref = { per:'todo', tipo:'', q:'', vista:'ref' };
+  const f = S.ref;
+  const d = new Date(hoyHN() + 'T12:00'), dc = new Date(d); dc.setDate(dc.getDate() - 8);
+  const meses = [5,4,3,2,1,0].map(i => { const x = new Date(dc.getFullYear(), dc.getMonth() - i, 1, 12); return [`m:${x.getFullYear()}-${String(x.getMonth()+1).padStart(2,'0')}`, `9 ${MESES_C[x.getMonth()]}–8 ${MESES_C[(x.getMonth()+1)%12]}`]; });
+  const [d0, d1] = f.per === 'todo' ? ['0000-00-00', '9999-12-31'] : rango(f.per);
+  const q = norm(f.q);
+  const lista = S.sols.filter(s => s.id > 0 && esReferido(s.origen_canal) && (!f.tipo || s.origen_canal === f.tipo))
+    .filter(s => { const x = diaHN(s.creado_en); return x >= d0 && x <= d1; })
+    .filter(s => !q || norm(referidor(s) + ' ' + s.nombre_cliente).includes(q))
+    .sort((a, b) => new Date(b.creado_en) - new Date(a.creado_en));
+  // Agrupado por quien refiere (empleado por usuario; cliente por nombre)
+  const grupos = {};
+  for (const s of lista){
+    const k = s.origen_canal === 'referido_empleado' && s.referido_empleado ? 'e:' + s.referido_empleado : s.origen_canal[9] + ':' + norm(s.referido_nombre);
+    const o = grupos[k] = grupos[k] || { nombre:referidor(s), tipo:s.origen_canal, tel:'', n:0, des:0, cap:0, pend:0, pag:0, pagN:0, sols:[] };
+    o.n++; o.sols.push(s); if (s.referido_telefono && !o.tel) o.tel = s.referido_telefono;
+    if (s.estado === 'desembolsada'){ o.des++; o.cap += capitalColocado(s); if (s.bono_pagado_en){ o.pagN++; o.pag += +s.bono_monto || 0; } else o.pend++; }
+  }
+  const gl = Object.values(grupos).sort((a, b) => b.des - a.des || b.n - a.n || a.nombre.localeCompare(b.nombre));
+  const tot = gl.reduce((a, o) => ({ n:a.n + o.n, des:a.des + o.des, pend:a.pend + o.pend, pag:a.pag + o.pag, pagN:a.pagN + o.pagN }), { n:0, des:0, pend:0, pag:0, pagN:0 });
+  const tipoTxt = t => t === 'referido_empleado' ? 'Empleado' : 'Cliente';
+  const bonoCel = s => s.estado !== 'desembolsada' ? '<span class="muted small">Aún no desembolsado</span>'
+    : s.bono_pagado_en ? `<span class="chip c-green" title="${esc(s.bono_nota || '')}">Pagado${s.bono_monto ? ' ' + L(s.bono_monto) : ''} · ${fDate(s.bono_pagado_en)}</span> <a href="#" data-bono-des="${s.id}" class="small">Deshacer</a>`
+    : `<span class="chip c-amber">Pendiente</span> <button class="btn sm ghost" data-bono="${s.id}">Marcar pagado</button>`;
+  $('#main').innerHTML = `<div class="row" style="flex-wrap:wrap;margin-bottom:10px"><div style="flex:1;min-width:200px"><div style="font:700 17px Poppins,Inter,sans-serif">Clientes referidos</div>
+      <div class="small muted">Quién nos está refiriendo clientes nuevos: para el sorteo y el control del bono por referido.</div></div>
+      <button class="btn sm ghost" id="refExp">⬇ Exportar Excel</button></div>
+    <div class="filters"><button data-p="todo" class="${f.per === 'todo' ? 'on' : ''}">Todo</button>${meses.map(([k, t]) => `<button data-p="${k}" class="${f.per === k ? 'on' : ''}" style="white-space:nowrap">${t}</button>`).join('')}</div>
+    <div class="kpis">
+      <div class="kpi"><div class="l">Clientes referidos</div><div class="v">${tot.n}</div><div class="s">${gl.length} persona(s) refiriendo</div></div>
+      <div class="kpi"><div class="l">Desembolsados</div><div class="v">${tot.des}</div><div class="s">${tot.n ? Math.round(tot.des / tot.n * 100) : 0}% de los referidos</div></div>
+      <div class="kpi" style="border-top:3px solid var(--amber)"><div class="l" style="color:var(--amber)">Bonos pendientes</div><div class="v">${tot.pend}</div><div class="s">referidos ya desembolsados sin bono</div></div>
+      <div class="kpi" style="border-top:3px solid var(--green)"><div class="l" style="color:var(--green)">Bonos pagados</div><div class="v" style="font-size:21px">${L(tot.pag)}</div><div class="s">${tot.pagN} bono(s)</div></div></div>
+    <div class="row" style="flex-wrap:wrap;gap:8px;margin:12px 0 10px">
+      <div class="seg" id="refVista" style="flex:none">${[['ref','Por referidor'],['det','Detalle']].map(([k, t]) => `<button data-v="${k}" class="${f.vista === k ? 'on' : ''}" style="white-space:nowrap;padding:8px 12px">${t}</button>`).join('')}</div>
+      <select id="refTipo" style="width:auto;flex:none"><option value="">Clientes y empleados</option><option value="referido_cliente" ${f.tipo === 'referido_cliente' ? 'selected' : ''}>Solo clientes</option><option value="referido_empleado" ${f.tipo === 'referido_empleado' ? 'selected' : ''}>Solo empleados</option></select>
+      <input id="refQ" type="search" placeholder="Buscar nombre…" value="${esc(f.q)}" style="flex:1;min-width:160px"></div>
+    <div class="card" style="overflow-x:auto">${!lista.length ? '<div class="empty">Todavía no hay clientes referidos en este período.</div>' : f.vista === 'ref'
+      ? `<table class="t"><thead><tr><th>Referido por</th><th>Tipo</th><th>Teléfono</th><th class="num">Referidos</th><th class="num">Desemb.</th><th class="num">Capital colocado</th><th class="num">Bonos pend.</th><th class="num">Bonos pagados</th></tr></thead><tbody>
+        ${gl.map(o => `<tr><td><b>${esc(o.nombre)}</b><div class="small muted" style="white-space:normal">${o.sols.map(s => esc(s.nombre_cliente)).join(', ')}</div></td><td>${tipoTxt(o.tipo)}</td><td>${o.tel ? `<a href="tel:${esc(o.tel)}">${esc(o.tel)}</a>` : '—'}</td><td class="num">${o.n}</td><td class="num">${o.des}</td><td class="num">${L(Math.round(o.cap))}</td><td class="num">${o.pend || '—'}</td><td class="num">${o.pagN ? L(o.pag) : '—'}</td></tr>`).join('')}</tbody></table>`
+      : `<table class="t"><thead><tr><th>Fecha</th><th>Cliente referido</th><th>Estado</th><th>Referido por</th><th>Tipo</th><th class="num">Capital</th><th>Bono</th></tr></thead><tbody>
+        ${lista.map(s => `<tr data-id="${s.id}" style="cursor:pointer"><td>${fDate(s.creado_en)}</td><td>${esc(s.nombre_cliente)}</td><td>${chip(s.estado)}</td><td>${esc(referidor(s))}</td><td>${tipoTxt(s.origen_canal)}</td><td class="num">${s.estado === 'desembolsada' ? L(Math.round(capitalColocado(s))) : '—'}</td><td>${bonoCel(s)}</td></tr>`).join('')}</tbody></table>`}</div>`;
+  const M = $('#main');
+  M.querySelectorAll('[data-p]').forEach(b => b.onclick = () => { f.per = b.dataset.p; pintarReferidos(); });
+  M.querySelectorAll('#refVista button').forEach(b => b.onclick = () => { f.vista = b.dataset.v; pintarReferidos(); });
+  $('#refTipo').onchange = e => { f.tipo = e.target.value; pintarReferidos(); };
+  let tq; $('#refQ').oninput = e => { clearTimeout(tq); tq = setTimeout(() => { f.q = e.target.value; pintarReferidos(); const i = $('#refQ'); i.focus(); i.setSelectionRange(i.value.length, i.value.length); }, 250); };
+  M.querySelectorAll('tr[data-id]').forEach(tr => tr.onclick = e => { if (!e.target.closest('button,a')) abrirDetalle(+tr.dataset.id); });
+  M.querySelectorAll('[data-bono]').forEach(b => b.onclick = () => {
+    const so = S.sols.find(x => x.id === +b.dataset.bono);
+    if (!es('analista')) return toast('Solo el administrador o el analista registran bonos', true);
+    const w = dialogo(`<h3>Bono por referido</h3><div class="small muted">${esc(referidor(so))} refirió a <b>${esc(so.nombre_cliente)}</b>.</div>
+      <label class="f">Monto pagado (L)</label><input id="bMon" type="number" inputmode="decimal" min="0" step="50" value="${S.params.bono_referido || ''}">
+      <label class="f">Nota (opcional)</label><input id="bNota" placeholder="Ej.: transferencia, efectivo, recibo #…">
+      <div class="btns"><button class="btn ghost" data-close>Cancelar</button><button class="btn pri" id="bOk">Registrar pago</button></div>`);
+    w.querySelector('#bOk').onclick = e => run(e.target, async () => {
+      const m = w.querySelector('#bMon').value.trim();
+      await rpc('marcar_bono_referido', { p_id:so.id, p_pagado:true, p_monto:m === '' ? null : num(m), p_nota:w.querySelector('#bNota').value });
+      await cerrarDialogo(w); await cargarSolicitudes(); pintarReferidos(); toast('Bono registrado como pagado'); });
+  });
+  M.querySelectorAll('[data-bono-des]').forEach(a => a.onclick = e => { e.preventDefault(); run(a, async () => {
+    if (!confirm('¿Marcar este bono como pendiente otra vez?')) return;
+    await rpc('marcar_bono_referido', { p_id:+a.dataset.bonoDes, p_pagado:false }); await cargarSolicitudes(); pintarReferidos(); }); });
+  $('#refExp').onclick = e => run(e.target, async () => {
+    const X = await rfXlsx(), wb = X.utils.book_new();
+    const h1 = X.utils.json_to_sheet(gl.map(o => ({ 'Referido por':o.nombre, 'Tipo':tipoTxt(o.tipo), 'Teléfono':o.tel, 'Clientes referidos':o.n, 'Desembolsados':o.des, 'Capital colocado':Math.round(o.cap), 'Bonos pendientes':o.pend, 'Bonos pagados (L)':o.pag, 'Clientes':o.sols.map(s => s.nombre_cliente).join(', ') })));
+    h1['!cols'] = [30,10,14,10,10,14,10,12,60].map(wch => ({ wch }));
+    const h2 = X.utils.json_to_sheet(lista.map(s => ({ 'Fecha':diaHN(s.creado_en), 'Código':s.codigo, 'Cliente referido':s.nombre_cliente, 'Estado':EST[s.estado]?.t || s.estado, 'Referido por':referidor(s), 'Tipo':tipoTxt(s.origen_canal), 'Teléfono referidor':s.referido_telefono || '',
+      'Capital colocado':s.estado === 'desembolsada' ? Math.round(capitalColocado(s)) : '', 'Bono':s.estado !== 'desembolsada' ? '' : s.bono_pagado_en ? 'PAGADO' : 'PENDIENTE', 'Monto bono':s.bono_monto ?? '', 'Fecha pago bono':s.bono_pagado_en ? diaHN(s.bono_pagado_en) : '', 'Nota bono':s.bono_nota || '' })));
+    h2['!cols'] = [11,12,30,16,30,10,14,12,10,10,12,30].map(wch => ({ wch }));
+    X.utils.book_append_sheet(wb, h1, 'Referidores'); X.utils.book_append_sheet(wb, h2, 'Referidos');
+    const blob = new Blob([X.write(wb, { type:'array', bookType:'xlsx' })], { type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `referidos_${hoyHN()}.xlsx`;
+    document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 2000);
+  });
 }
 function barras(rows){
   const max = Math.max(1, ...rows.map(r => r[1]));
