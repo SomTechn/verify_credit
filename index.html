@@ -496,7 +496,7 @@ table.ht td.nota{max-width:220px;overflow:hidden;text-overflow:ellipsis;color:va
 // App disponible sin señal (sw.js debe estar junto a index.html). Va primero para registrarse aunque falle otra cosa.
 if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) navigator.serviceWorker.register('sw.js').catch(() => {});
 // Versión de esta copia de la app: cambia en cada entrega. La app la compara con la publicada y se actualiza sola.
-const APP_VER = '2026-10-22.2100';
+const APP_VER = '2026-10-23.0900';
 // ================== Configuración ==================
 const SB_URL = 'https://edmvfqelxsxevpmxgbav.supabase.co';
 const SB_KEY = 'sb_publishable_lgTmmLtUESDDyX2sff6ArQ_z65Ti9d6';
@@ -583,12 +583,12 @@ const lsSet = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } ca
 const outbox = () => lsGet(OB_KEY(), []), fallidos = () => lsGet(OBF_KEY(), []);
 // Acciones que se pueden hacer sin señal (las de administración requieren conexión)
 const COLA = new Set(['crear_solicitud','enviar_analisis','dictaminar','completar_solicitud','guardar_item','finalizar_verificacion','marcar_desembolsada','desistir',
-  'poner_en_espera','reanudar','guardar_ubicacion','asignar_verificador','actualizar_datos_refi','actualizar_datos_analisis','registrar_reconocimiento','regresar_a_revisadas','guardar_origen']);
+  'poner_en_espera','reanudar','guardar_ubicacion','asignar_verificador','actualizar_datos_refi','actualizar_datos_analisis','registrar_reconocimiento','regresar_a_revisadas','guardar_origen','guardar_origen_cliente']);
 const OB_DESC = { crear_solicitud:'Crear solicitud', enviar_analisis:'Enviar a análisis', dictaminar:'Dictamen', completar_solicitud:'Completar con el cliente',
   guardar_item:'Verificación', finalizar_verificacion:'Cerrar verificación', marcar_desembolsada:'Marcar desembolsada', desistir:'Cerrar (desistió)',
   poner_en_espera:'Poner en espera', reanudar:'Reanudar', guardar_ubicacion:'Ubicación', asignar_verificador:'Asignar verificador',
   actualizar_datos_refi:'Datos del préstamo', actualizar_datos_analisis:'Datos de análisis', registrar_reconocimiento:'Contrato de línea de crédito',
-  regresar_a_revisadas:'Regresar a revisadas', guardar_origen:'Cómo llegó el cliente', 'ins:ingresos':'Agregar ingreso', 'upd:ingresos':'Editar ingreso', 'del:ingresos':'Borrar ingreso', 'ins:comentarios':'Comentario' };
+  regresar_a_revisadas:'Regresar a revisadas', guardar_origen:'Cómo llegó el cliente', guardar_origen_cliente:'Cómo llegó el cliente', 'ins:ingresos':'Agregar ingreso', 'upd:ingresos':'Editar ingreso', 'del:ingresos':'Borrar ingreso', 'ins:comentarios':'Comentario' };
 const opSid = op => op.t === 'rpc' ? (op.args.p_id ?? op.tmpId) : (op.row?.solicitud_id ?? op.sid);
 function opDesc(op){ const sid = opSid(op), so = S.sols.find(x => x.id === sid);
   return `${OB_DESC[op.t === 'rpc' ? op.fn : op.t + ':' + op.tabla] || op.fn || op.tabla}${so ? ' · ' + so.nombre_cliente : op.args?.p_nombre ? ' · ' + op.args.p_nombre : ''}`; }
@@ -633,9 +633,11 @@ function aplicarOp(op, nuevo){
       if (!sol(op.tmpId)) S.sols.unshift({ id:op.tmpId, codigo:'Pendiente de enviar', tipo:a.p_tipo, nombre_cliente:a.p_nombre, telefono:a.p_telefono, dni:a.p_dni, estado:a.p_enviar ? 'en_analisis' : 'borrador',
         tipo_pago:'Quincenal', rubro_especial:false, datos_cliente:{}, asesor_id:a.p_asesor || S.me.id, creado_en:op.ts, actualizado_en:op.ts, estado_desde:op.ts, fecha_ingreso:a.p_fecha_ingreso, pagos_historial:[], plan_pago:'nivelado', _pend:true, _tmp:true });
       evento(op.tmpId, 'creada', null, 'borrador'); return op.tmpId; }
-    case 'guardar_origen':
-      if (s) Object.assign(s, { origen_canal:a.p_canal, origen_asumido:false, referido_nombre:a.p_referido_nombre, referido_telefono:a.p_referido_telefono, referido_empleado:a.p_referido_empleado, _pend:true });
-      return;
+    case 'guardar_origen': case 'guardar_origen_cliente': {
+      const emp = (S.empleados || []).find(e => e.id === a.p_referido_empleado_id);
+      if (s) Object.assign(s, { origen_canal:a.p_canal, origen_asumido:false, referido_nombre:emp ? emp.nombre : a.p_referido_nombre, referido_telefono:a.p_referido_telefono,
+        referido_empleado:emp ? emp.perfil_id : a.p_referido_empleado ?? null, referido_empleado_id:emp ? emp.id : null, _pend:true });
+      return; }
     case 'enviar_analisis':
       if (nuevo && s?.tipo === 'nuevo' && !det(s.id).ing.some(i => i.categoria === 'salario')) throw new Error('Agregue al menos un ingreso (salario) antes de enviar a análisis');
       evento(a.p_id, 'enviada_analisis', s?.estado, 'en_analisis'); est(s, 'en_analisis'); return;
@@ -1018,6 +1020,12 @@ async function cargarPerfiles(){
   const { data, error } = S.offline && !navigator.onLine ? { error:{ message:'Failed to fetch' } } : await sb.from('perfiles').select('*').order('nombre');
   if (error){ S.perfiles = (await KV.get(ck('perfiles'))) || S.perfiles || {}; return; }
   S.perfiles = Object.fromEntries((data||[]).map(p => [p.id, p])); KV.set(ck('perfiles'), S.perfiles);
+  cargarEmpleados();
+}
+// Empleados de Más Pisto (usen o no la app): para "Referido por empleado"
+async function cargarEmpleados(){
+  try { const { data, error } = await sb.from('empleados').select('*').order('nombre'); if (error) throw error; S.empleados = data || []; KV.set(ck('empleados'), S.empleados); }
+  catch(e){ S.empleados = (await KV.get(ck('empleados'))) || S.empleados || []; }
 }
 async function cargarParams(){
   const r1 = S.offline && !navigator.onLine ? { error:{ message:'Failed to fetch' } } : await sb.from('parametros').select('*');
@@ -1745,32 +1753,30 @@ const CANAL = { facebook:'Facebook', instagram:'Instagram', tiktok:'TikTok', wha
   referido_empleado:'Referido por empleado', oficina:'Visitó la oficina', volante:'Volante / publicidad', otro:'Otro' };
 const esReferido = c => c === 'referido_cliente' || c === 'referido_empleado';
 function origenCampos(s = {}){
-  const emp = Object.values(S.perfiles).filter(p => p.activo).sort((a, b) => a.nombre.localeCompare(b.nombre));
+  const emp = (S.empleados || []).filter(e => e.activo || e.id === s.referido_empleado_id).sort((a, b) => a.nombre.localeCompare(b.nombre, 'es'));
   return `<label class="f">¿Cómo llegó a nosotros?</label>
     <select id="oCanal"><option value="">— Seleccione —</option>${Object.entries(CANAL).map(([k, t]) => `<option value="${k}" ${s.origen_canal === k ? 'selected' : ''}>${t}</option>`).join('')}</select>
     <div id="oRefC" class="hidden"><div class="grid2">
       <div><label class="f">Nombre del cliente que lo refirió</label><input id="oRefN" autocomplete="off" value="${esc(s.origen_canal === 'referido_cliente' ? s.referido_nombre || '' : '')}"></div>
       <div><label class="f">Teléfono de quien refirió (opcional)</label><input id="oRefT" inputmode="tel" autocomplete="off" value="${esc(s.referido_telefono || '')}"></div></div></div>
     <div id="oRefE" class="hidden"><label class="f">Empleado que lo refirió</label>
-      <select id="oEmp"><option value="">— Seleccione —</option>${emp.map(p => `<option value="${p.id}" ${s.referido_empleado === p.id ? 'selected' : ''}>${esc(p.nombre)}</option>`).join('')}<option value="otro" ${s.origen_canal === 'referido_empleado' && !s.referido_empleado && s.referido_nombre ? 'selected' : ''}>Otro (escribir nombre)</option></select>
-      <input id="oEmpN" class="hidden" style="margin-top:6px" placeholder="Nombre del empleado" autocomplete="off" value="${esc(s.origen_canal === 'referido_empleado' && !s.referido_empleado ? s.referido_nombre || '' : '')}"></div>
+      <select id="oEmp"><option value="">— Seleccione —</option>${emp.map(e => `<option value="${e.id}" ${s.referido_empleado_id === e.id ? 'selected' : ''}>${esc(e.nombre)}${e.cargo ? ' · ' + esc(e.cargo) : ''}</option>`).join('')}</select>
+      <div class="small muted" style="margin-top:4px">¿No aparece? ${rol() === 'admin' ? 'Agréguelo en <b>Usuarios → Empleados de Más Pisto</b>.' : 'Pida al administrador que lo agregue a la lista de empleados.'}</div></div>
     <div id="oOtro" class="hidden"><label class="f">Especifique (opcional)</label><input id="oOtroN" autocomplete="off" value="${esc(s.origen_canal === 'otro' ? s.referido_nombre || '' : '')}"></div>`;
 }
 function origenEnlazar(w){
   const q = x => w.querySelector(x), ver = () => { const c = q('#oCanal').value;
     q('#oRefC').classList.toggle('hidden', c !== 'referido_cliente'); q('#oRefE').classList.toggle('hidden', c !== 'referido_empleado');
-    q('#oOtro').classList.toggle('hidden', c !== 'otro'); q('#oEmpN').classList.toggle('hidden', q('#oEmp').value !== 'otro'); };
+    q('#oOtro').classList.toggle('hidden', c !== 'otro'); };
   q('#oCanal').onchange = ver; q('#oEmp').onchange = ver; ver();
 }
 function origenLeer(w, obligatorio){
   const q = x => w.querySelector(x), c = q('#oCanal').value;
   if (!c){ if (obligatorio) throw new Error('Indique cómo llegó el cliente'); return null; }
-  const a = { p_canal:c, p_referido_nombre:null, p_referido_telefono:null, p_referido_empleado:null };
+  const a = { p_canal:c, p_referido_nombre:null, p_referido_telefono:null, p_referido_empleado_id:null };
   if (c === 'referido_cliente'){ a.p_referido_nombre = q('#oRefN').value.trim(); a.p_referido_telefono = q('#oRefT').value.trim() || null;
     if (!a.p_referido_nombre) throw new Error('Escriba el nombre del cliente que lo refirió'); }
-  if (c === 'referido_empleado'){ const e = q('#oEmp').value;
-    if (e === 'otro'){ a.p_referido_nombre = q('#oEmpN').value.trim(); if (!a.p_referido_nombre) throw new Error('Escriba el nombre del empleado que lo refirió'); }
-    else if (e) a.p_referido_empleado = e; else throw new Error('Seleccione el empleado que lo refirió'); }
+  if (c === 'referido_empleado'){ const e = +q('#oEmp').value; if (!e) throw new Error('Seleccione el empleado que lo refirió'); a.p_referido_empleado_id = e; }
   if (c === 'otro') a.p_referido_nombre = q('#oOtroN').value.trim() || null;
   return a;
 }
@@ -1782,9 +1788,10 @@ function abrirOrigen(s, despues){
     ${origenCampos(s)}<div class="btns"><button class="btn ghost" data-close>Cancelar</button><button class="btn pri" id="oOk">${s.origen_asumido ? 'Confirmar' : 'Guardar'}</button></div>`);
   origenEnlazar(w);
   w.querySelector('#oOk').onclick = e => run(e.target, async () => { const o = origenLeer(w, true);
-    await rpc('guardar_origen', { p_id:s.id, ...o }); await cerrarDialogo(w); toast('Origen del cliente guardado'); await cargarSolicitudes(); despues?.(); });
+    await rpc('guardar_origen_cliente', { p_id:s.id, ...o }); await cerrarDialogo(w); toast('Origen del cliente guardado'); await cargarSolicitudes(); despues?.(); });
 }
-const referidor = s => s.origen_canal === 'referido_empleado' ? (s.referido_empleado ? nombre(s.referido_empleado) : s.referido_nombre || '—') : s.referido_nombre || '—';
+const referidor = s => s.origen_canal === 'referido_empleado'
+  ? ((S.empleados || []).find(e => e.id === s.referido_empleado_id)?.nombre || (s.referido_empleado ? nombre(s.referido_empleado) : s.referido_nombre) || '—') : s.referido_nombre || '—';
 const origenTxt = s => !s.origen_canal ? null : CANAL[s.origen_canal] + (esReferido(s.origen_canal) ? ': ' + referidor(s) : s.referido_nombre ? ': ' + s.referido_nombre : '') + (s.origen_asumido ? ' (asumido)' : '');
 $('#fab').onclick = () => {
   const w = dialogo(`
@@ -1818,7 +1825,7 @@ $('#fab').onclick = () => {
     if ($('#nDni').value.replace(/\D/g,'').length !== 13) throw new Error('Ingrese el número de identidad (13 dígitos)');
     const origen = tipo === 'nuevo' ? origenLeer(w, true) : null;
     const id = await rpc('crear_solicitud', { p_dni: $('#nDni').value, p_nombre: $('#nNombre').value, p_tipo: tipo, p_telefono: $('#nTel').value || null, p_enviar: false, p_fecha_ingreso: tipo !== 'nuevo' ? ($('#nIng').value || null) : null, p_asesor: $('#nAsesor')?.value || null });
-    if (origen) await rpc('guardar_origen', { p_id:id, ...origen });
+    if (origen) await rpc('guardar_origen_cliente', { p_id:id, ...origen });
     await cerrarDialogo(w); await cargarSolicitudes(); pintarTabs(); pintar();
     toast('Solicitud creada. Agregue los ingresos.');
     abrirDetalle(id);
@@ -4215,7 +4222,7 @@ function pintarReferidos(){
   // Agrupado por quien refiere (empleado por usuario; cliente por nombre)
   const grupos = {};
   for (const s of lista){
-    const k = s.origen_canal === 'referido_empleado' && s.referido_empleado ? 'e:' + s.referido_empleado : s.origen_canal[9] + ':' + norm(s.referido_nombre);
+    const k = s.origen_canal === 'referido_empleado' && s.referido_empleado_id ? 'e:' + s.referido_empleado_id : s.origen_canal[9] + ':' + norm(s.referido_nombre);
     const o = grupos[k] = grupos[k] || { nombre:referidor(s), tipo:s.origen_canal, tel:'', n:0, des:0, cap:0, pend:0, pag:0, pagN:0, sols:[] };
     o.n++; o.sols.push(s); if (s.referido_telefono && !o.tel) o.tel = s.referido_telefono;
     if (s.estado === 'desembolsada'){ o.des++; o.cap += capitalColocado(s); if (s.bono_pagado_en){ o.pagN++; o.pag += +s.bono_monto || 0; } else o.pend++; }
@@ -4313,10 +4320,36 @@ function graficoDias(el, data){
 }
 
 // ================== Admin: usuarios y parámetros ==================
+// Lista de empleados de Más Pisto (para referidos); se pueden ligar a un usuario de la app
+async function pintarEmpleados(){
+  await cargarEmpleados();
+  const cont = $('#empAdmin'); if (!cont) return;
+  const ligados = new Set(S.empleados.map(e => e.perfil_id).filter(Boolean));
+  const opcUsuario = sel => `<option value="">— No usa la app —</option>${Object.values(S.perfiles).filter(p => p.id === sel || !ligados.has(p.id)).map(p => `<option value="${p.id}" ${p.id === sel ? 'selected' : ''}>${esc(p.nombre)}</option>`).join('')}`;
+  cont.innerHTML = `<div class="small muted" style="margin-bottom:8px">Todas las personas que trabajan en Más Pisto, usen o no la app. Aparecen en "Referido por empleado" al crear un cliente nuevo.</div>
+    <div style="overflow-x:auto"><table class="t"><thead><tr><th>Nombre</th><th>Cargo</th><th>Usuario de la app</th><th>Estado</th><th></th></tr></thead><tbody>
+    ${S.empleados.map(e => `<tr data-emp="${e.id}" style="${e.activo ? '' : 'opacity:.55'}"><td><input data-k="nombre" value="${esc(e.nombre)}" style="min-width:170px"></td><td><input data-k="cargo" value="${esc(e.cargo || '')}" placeholder="Cargo" style="min-width:110px"></td>
+      <td><select data-k="perfil_id" style="min-width:150px">${opcUsuario(e.perfil_id)}</select></td>
+      <td><label class="small" style="display:flex;gap:4px;align-items:center"><input data-k="activo" type="checkbox" ${e.activo ? 'checked' : ''} style="width:auto"> Activo</label></td>
+      <td><button class="btn sm pri" data-save>Guardar</button></td></tr>`).join('')}</tbody></table></div>
+    <div class="addrow" style="grid-template-columns:1.4fr 1fr auto;margin-top:10px"><input id="empN" placeholder="Nombre completo del empleado"><input id="empC" placeholder="Cargo (opcional)"><button class="btn pri" id="empAdd">Agregar</button></div>`;
+  cont.querySelectorAll('[data-emp]').forEach(tr => tr.querySelector('[data-save]').onclick = e => run(e.target, async () => {
+    const q = k => tr.querySelector(`[data-k="${k}"]`), row = { nombre:q('nombre').value.trim(), cargo:q('cargo').value.trim() || null, perfil_id:q('perfil_id').value || null, activo:q('activo').checked };
+    if (!row.nombre) throw new Error('Escriba el nombre');
+    const { error } = await sb.from('empleados').update(row).eq('id', +tr.dataset.emp); if (error) throw error;
+    toast('Empleado guardado'); pintarEmpleados(); }));
+  $('#empAdd').onclick = e => run(e.target, async () => {
+    const n = $('#empN').value.trim(); if (!n) throw new Error('Escriba el nombre del empleado');
+    if (S.empleados.some(x => norm(x.nombre) === norm(n))) throw new Error('Ese empleado ya está en la lista');
+    const { error } = await sb.from('empleados').insert({ nombre:n, cargo:$('#empC').value.trim() || null }); if (error) throw error;
+    toast('Empleado agregado'); pintarEmpleados(); });
+}
 function pintarUsuarios(){
   const us = Object.values(S.perfiles);
   $('#main').innerHTML = `<div class="btns" style="margin:0 0 10px"><button class="btn pri" id="uNuevo">＋ Nuevo usuario</button></div>
     ${us.map(u => `<div class="card row">${av(u.id)}<div style="flex:1;min-width:0"><b>${esc(u.nombre)}</b> ${u.activo ? '' : '<span class="chip c-red">Inactivo</span>'}<div class="small muted">${esc(u.email||'')} · ${ROL[u.rol]}</div></div><button class="btn sm ghost" data-u="${u.id}">Editar</button></div>`).join('')}`;
+  $('#main').insertAdjacentHTML('beforeend', `<h4 class="sec">👥 Empleados de Más Pisto (para referidos)</h4><div class="card" id="empAdmin"><div class="muted small">Cargando…</div></div>`);
+  pintarEmpleados();
   $('#uNuevo').onclick = () => {
     const w = dialogo(`<h3>Nuevo usuario</h3>
       <label class="f">Nombre</label><input id="uN"><label class="f">Correo</label><input id="uE" type="email">
