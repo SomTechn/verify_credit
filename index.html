@@ -79,7 +79,10 @@ input:focus,select:focus,textarea:focus{border-color:var(--brand)}
 label.f{display:block;font-size:12px;color:var(--ink2);margin:10px 0 4px;font-weight:600}
 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:0 10px}
 @media (max-width:420px){.grid2{grid-template-columns:1fr}}
-.card{background:var(--card);border-radius:14px;box-shadow:var(--shadow);padding:12px 14px;margin-bottom:10px;border:1px solid var(--line)}
+.card{background:var(--card);border-radius:14px;box-shadow:var(--shadow);padding:14px 16px;margin-bottom:12px;border:1px solid var(--line)}
+/* Listas: dos columnas en pantallas anchas */
+.sol-grid{display:block}
+@media (min-width:1100px){ main{max-width:1240px} .sol-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;align-items:start} .sol-grid > .card{margin-bottom:0} }
 .sol{display:flex;gap:12px;align-items:flex-start;cursor:pointer}
 .sol:active{transform:scale(.995)}
 .sol .main{flex:1;min-width:0}
@@ -119,17 +122,66 @@ label.f{display:block;font-size:12px;color:var(--ink2);margin:10px 0 4px;font-we
 /* Modal / hoja */
 .sheet{position:fixed;inset:0;z-index:40;background:var(--bg);overflow-y:auto;-webkit-overflow-scrolling:touch}
 .sheet .bar{position:sticky;top:0;z-index:2;background:var(--card);border-bottom:1px solid var(--line);display:flex;align-items:center;gap:10px;padding:10px 12px}
-.sheet .bar h2{flex:1;font-size:24px;line-height:1.2;margin:0;text-align:center;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.sheet .bar h2{flex:1;font-size:20px;line-height:1.2;margin:0;text-align:center;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
 .sheet .bar #sheetBack{flex:0 0 96px;text-align:left}
 .sheet .bar #sheetChip{flex:0 0 96px;text-align:right}
 @media (max-width:600px){.sheet .bar h2{font-size:19px}.sheet .bar #sheetBack,.sheet .bar #sheetChip{flex-basis:64px}}
 .sheet .body{padding:12px 16px 60px;max-width:760px;margin:0 auto}
+/* Detalle: una columna en el teléfono (orden original); en pantallas anchas, análisis a la izquierda y gestión a la derecha */
+.det-cols{display:flex;flex-direction:column}
+.det-col{display:contents}
+@media (min-width:1100px){
+  .sheet .body{max-width:1380px;padding:16px 24px 60px}
+  .det-cols{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(360px,1fr);gap:16px;align-items:start}
+  .det-col{display:flex;flex-direction:column}
+  .det-side{position:sticky;top:64px;max-height:calc(100vh - 76px);overflow-y:auto;padding-right:2px;scrollbar-width:thin}
+}
+/* Tarjeta de resumen (para captura de pantalla): ingresos y comportamiento de pago lado a lado */
+@media (min-width:1100px){ .det-main .res{grid-template-columns:repeat(auto-fill,minmax(190px,1fr))} }
+.sum-cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:10px;margin-top:10px}
+.sum-box{border:1px solid var(--line);border-radius:12px;padding:10px 12px;background:var(--card)}
+.sum-box .hd{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:11.5px;font-weight:700;color:var(--ink2);text-transform:uppercase;letter-spacing:.35px;margin-bottom:6px}
+.sum-box table.t{font-size:12.5px}
+.sum-box table.t td,.sum-box table.t th{padding:4px 5px}
+.sum-prom{display:flex;align-items:baseline;justify-content:space-between;gap:8px;margin-top:8px;padding:8px 10px;border-radius:10px;background:var(--green-bg)}
+.sum-prom span{font-size:12px;font-weight:700;color:var(--green)}
+.sum-prom b{font:800 20px/1.1 Poppins,Inter,sans-serif;color:var(--green);font-variant-numeric:tabular-nums}
+.pg-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(112px,1fr));gap:4px}
+.pg{display:flex;justify-content:space-between;gap:6px;font-size:12px;padding:3px 7px;border-radius:7px;background:var(--gray-bg);font-variant-numeric:tabular-nums}
+.pg b{font-weight:700}.pg.ok{background:var(--green-bg)}.pg.ok b{color:var(--green)}.pg.w{background:var(--amber-bg)}.pg.w b{color:var(--amber)}.pg.b{background:var(--red-bg)}.pg.b b{color:var(--red)}
+/* Documentos para imprimir */
+.doc-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:10px 0;border-top:1px solid var(--line)}
+.doc-row:first-of-type{border-top:0;padding-top:2px}
+.doc-row .ic{width:38px;height:38px;border-radius:10px;display:flex;align-items:center;justify-content:center;background:var(--brand2);font-size:19px;flex:none}
+.doc-row .tx{flex:1;min-width:170px}
+/* Formato de verificación de domicilio (hoja carta) */
+.ct-page.fv{font-family:Calibri,Carlito,Arial,Helvetica,sans-serif;font-size:10.5pt;line-height:1.25}
+.ct-page.fv .in{position:absolute;top:.45in;left:.8in;right:.8in;bottom:.55in}
+.ct-page.fv .logo{display:block;height:.62in;margin:0 auto 4pt}
+.ct-page.fv h1{font-size:14pt;margin:0 0 9pt;text-align:center}
+.ct-page.fv .cab{display:grid;grid-template-columns:1.25in 1fr .55in 1.15in;border:.8pt solid #000;margin-bottom:9pt}
+.ct-page.fv .cab div{padding:3pt 5pt;border-left:.8pt solid #000;min-height:18pt}
+.ct-page.fv .cab div:first-child{border-left:0}
+.ct-page.fv .cab .lb{background:#d9d9d9}
+.ct-page.fv .cab .vl{font-weight:700;font-size:11pt}
+.ct-page.fv ol{margin:0;padding-left:.3in}
+.ct-page.fv li{margin:0 0 7pt;padding-left:3pt}
+.ct-page.fv .ln{border-bottom:.8pt solid #000;height:17pt}
+.ct-page.fv .ops{display:inline-grid;grid-auto-flow:column;border:.8pt solid #000;margin-top:4pt}
+.ct-page.fv .ops span{padding:1pt 5pt;min-width:.42in;border-left:.8pt solid #000}
+.ct-page.fv .ops span:nth-child(odd){background:#d9d9d9}
+.ct-page.fv .ops span:first-child{border-left:0}
+.ct-page.fv .ops span:nth-child(even){min-width:.32in}
+.ct-page.fv .fir{display:grid;grid-template-columns:auto 1fr;gap:16pt 6pt;align-items:end;margin-top:14pt}
+.ct-page.fv .fir .ln{height:14pt}
+.ct-page.fv .pie{position:absolute;bottom:.3in;right:.6in;font-size:8pt;color:#777;text-transform:uppercase}
 .back{background:none;border:0;font-size:22px;padding:2px 8px;color:var(--ink)}
 .dlg-wrap{position:fixed;inset:0;z-index:60;background:rgba(0,0,0,.45);display:flex;align-items:flex-end;justify-content:center}
 .dlg{background:var(--card);width:100%;max-width:520px;border-radius:18px 18px 0 0;padding:16px 16px calc(16px + env(safe-area-inset-bottom));max-height:92vh;overflow:auto}
 @media (min-width:600px){.dlg-wrap{align-items:center}.dlg{border-radius:18px}}
 .dlg h3{margin:0 0 6px}
-h4.sec{margin:18px 0 8px;font-size:13px;letter-spacing:.4px;text-transform:uppercase;color:var(--ink2)}
+h4.sec{margin:18px 0 10px;font:700 12.5px/1.3 Inter,sans-serif;letter-spacing:.5px;text-transform:uppercase;color:var(--ink2);display:flex;align-items:center;gap:8px}
+h4.sec::before{content:'';width:4px;height:14px;border-radius:2px;background:var(--brand);flex:none}
 .kv{display:grid;grid-template-columns:auto 1fr;gap:5px 12px;font-size:14px}
 .kv dt{color:var(--ink2)} .kv dd{margin:0;font-weight:550;word-break:break-word}
 .alert{border-radius:10px;padding:9px 12px;font-size:13.5px;margin:8px 0}
@@ -444,7 +496,7 @@ table.ht td.nota{max-width:220px;overflow:hidden;text-overflow:ellipsis;color:va
 // App disponible sin señal (sw.js debe estar junto a index.html). Va primero para registrarse aunque falle otra cosa.
 if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) navigator.serviceWorker.register('sw.js').catch(() => {});
 // Versión de esta copia de la app: cambia en cada entrega. La app la compara con la publicada y se actualiza sola.
-const APP_VER = '2026-10-22.1500';
+const APP_VER = '2026-10-22.1800';
 // ================== Configuración ==================
 const SB_URL = 'https://edmvfqelxsxevpmxgbav.supabase.co';
 const SB_KEY = 'sb_publishable_lgTmmLtUESDDyX2sff6ArQ_z65Ti9d6';
@@ -1102,7 +1154,7 @@ function rfCalcular(){
   const hoyD = new Date(hoyHN() + 'T12:00'), mesesAum = P.refi_meses_aumento ?? 3;
   const antig = f => { if (!f) return null; const d0 = new Date(String(f).slice(0, 10) + 'T12:00'); if (isNaN(d0)) return null;
     const lim = new Date(d0); lim.setMonth(lim.getMonth() + mesesAum);
-    const dias = Math.max(0, Math.round((hoyD - d0) / 864e5)); return { dias, meses:Math.floor(dias / 30.44), cumple:lim <= hoyD }; };
+    const dias = Math.max(0, Math.round((hoyD - d0) / 864e5)); return { dias, meses:Math.floor(dias / 30.44), txt:aniosMeses(String(f).slice(0, 10)), cumple:lim <= hoyD }; };
   const rows = [];
   for (const k in loans){
     const ls = loans[k].slice().sort((a, b) => String(b.f || '').localeCompare(String(a.f || '')) || (b.cap - a.cap));
@@ -1249,7 +1301,7 @@ function rfPintarLista(rows){
     rfAbrir(el.dataset.rk);
   });
 }
-const rfAntTxt = a => a.dias < 60 ? `${a.dias} días` : `${a.meses} meses`;
+const rfAntTxt = a => a.txt;
 async function rfGuardar(k, patch, msg){
   const r = rfCalcular().rows.find(x => x.k === k);
   const row = { clave:k, nombre:r?.nombre || RF.gest[k]?.nombre || k, ...patch };
@@ -1271,7 +1323,7 @@ function rfAbrir(k){
     ${r.atraso ? `<div class="alert err small">En atraso: ${L(r.pd.monto)} pendiente en ${r.pd.n} cuota(s), hasta ${r.pd.max} días. No se cuenta en la oportunidad.</div>` : ''}
     <dl class="kv" style="margin-top:10px">
       <dt>Último préstamo</dt><dd>${rfL0(r.capital)} · ${rfFd(r.fecha)}</dd>
-      <dt>Antigüedad</dt><dd>${r.an ? `${r.an.dias} días (${r.an.meses} meses)${r.aumento ? ' · <span style="color:var(--teal)">puede subir límite</span>' : g.nivel === 100 ? ' · en su límite máximo' : r.an.cumple ? '' : ` · aún no cumple ${S.params.refi_meses_aumento ?? 3} meses`}` : '—'}</dd>
+      <dt>Antigüedad</dt><dd>${r.an ? `${r.an.txt} (${r.an.dias} días)${r.aumento ? ' · <span style="color:var(--teal)">puede subir límite</span>' : g.nivel === 100 ? ' · en su límite máximo' : r.an.cumple ? '' : ` · aún no cumple ${S.params.refi_meses_aumento ?? 3} meses`}` : '—'}</dd>
       ${r.nv ? `<dt>Cliente nuevo</dt><dd><a href="#" id="rfVerNuevo">${esc(r.nv.codigo || 'Solicitud')}</a> · desembolsado ${rfFd(r.nv.fecha)}${r.nv.monto ? ` por ${rfL0(r.nv.monto)}` : ''} · ${r.nv.refis ? `${r.nv.refis} refinanciamiento(s) después` : 'aún no ha refinanciado'}${r.nvAum ? ' · <span style="color:var(--teal)">propenso a aumento de límite</span>' : ''}</dd>` : ''}
       <dt>Balance total</dt><dd>${L(r.balance)}${r.nPrest > 1 ? ` (${r.nPrest} préstamos)` : ''}</dd>
       <dt>Base del cálculo</dt><dd>${r.limG == null ? `Sugerido ${rfL0(r.sugerido)} (último préstamo)` : `Límite ${rfL0(r.limG)}`}</dd>
@@ -1500,7 +1552,7 @@ function pintar(){
     <div class="search"><input id="q" placeholder="Buscar por nombre, código, DNI o teléfono" value="${esc(S.q)}">
       ${['solicitudes','revisadas','proceso'].includes(S.tab) ? `<div class="seg" style="flex:none;min-width:160px"><button data-sm="0" class="${S.soloMias?'':'on'}">Todas</button><button data-sm="1" class="${S.soloMias?'on':''}">Solo mías</button></div>` : ''}</div>
     ${extra}
-    ${lista.length ? lista.map(cardSol).join('') : `<div class="empty">No hay solicitudes aquí.</div>`}`;
+    ${lista.length ? `<div class="sol-grid">${lista.map(cardSol).join('')}</div>` : `<div class="empty">No hay solicitudes aquí.</div>`}`;
   const qi = $('#q'); qi.oninput = () => { S.q = qi.value; const p = qi.selectionStart; pintar(); const n = $('#q'); n.focus(); n.setSelectionRange(p,p); };
   $('#main').querySelectorAll('[data-f]').forEach(b => b.onclick = () => { S.filtroTodas = b.dataset.f; pintar(); });
   $('#main').querySelectorAll('[data-sm]').forEach(b => b.onclick = () => { S.soloMias = b.dataset.sm === '1'; pintarTabs(); pintar(); });
@@ -1785,7 +1837,9 @@ function renderDetalle(){
   const c = calcular(ing, s.tipo_pago, s.rubro_especial);
   const d = s.datos_cliente || {};
   const ed = edad(d.fecha_nacimiento);
-  let h = '';
+  // Cada sección va marcada con su columna: m = análisis (izquierda), s = gestión (derecha). En el teléfono conservan este orden.
+  const mk = col => '\u0001' + col;
+  let h = mk('s');
 
   // Encabezado
   h += `<div class="card">
@@ -1805,11 +1859,13 @@ function renderDetalle(){
     ${ed != null && ed < S.params.edad_minima ? `<div class="alert err small">⚠ Cliente de ${ed} años (mínimo ${S.params.edad_minima}).</div>` : ''}
   </div>`;
 
+  h += mk('m');
   const verArriba = rol() === 'verificador' && items.some(i => itemAplica(s, i.item));
   if (verArriba) h += verificacionHTML(s, items);
   if (s._pend) h += `<div class="alert warn small">⟳ Esta solicitud tiene cambios hechos sin señal que todavía no llegan al servidor. Se enviarán solos al volver la conexión.</div>`;
   if (S.offline) h += `<div class="alert info small">📴 Sin señal: mostrando la última copia guardada en el teléfono${S.detCache[s.id] ? '' : ' (el detalle de esta solicitud no se alcanzó a guardar)'}.</div>`;
   // En espera
+  h += mk('s');
   if (s.en_espera){
     h += `<div class="card" style="border:1.5px solid var(--gray);background:var(--gray-bg)">
       <div class="row" style="gap:8px;align-items:flex-start"><div style="font-size:22px">⏸</div><div style="flex:1">
@@ -1841,10 +1897,16 @@ function renderDetalle(){
   // Documentos: reconocimiento de deuda (habilitado desde que se aprueba)
   if (reconocimientoHabilitado(s)){
     const gen = [...evs].reverse().find(e => e.accion === 'reconocimiento_deuda');
-    h += `<div class="card row" style="gap:12px;flex-wrap:wrap"><div style="flex:1;min-width:180px"><b>📄 Contrato de apertura de línea de crédito</b>
-      <div class="small muted">${gen ? `Último: ${esc(nombre(gen.usuario_id))} · ${fDT(gen.creado_en)}` : 'Documento que firma el cliente: vista previa, imprimir o descargar en PDF.'}</div></div>
-      <button class="btn pri" id="rdAbrir">Ver contrato</button>
-      <div style="flex-basis:100%;border-top:1px solid var(--line);padding-top:10px;display:flex;gap:12px;align-items:center;flex-wrap:wrap">
+    h += `<div class="card"><h4 class="sec" style="margin-top:0">Documentos para imprimir</h4>
+      <div class="doc-row"><div class="ic">📄</div><div class="tx"><b>Contrato de apertura de línea de crédito</b>
+        <div class="small muted">${gen ? `Último: ${esc(nombre(gen.usuario_id))} · ${fDT(gen.creado_en)}` : 'Documento que firma el cliente: vista previa, imprimir o descargar en PDF.'}</div></div>
+        <button class="btn pri sm" id="rdAbrir">Ver contrato</button></div>
+      <div class="doc-row"><div class="ic">🏠</div><div class="tx"><b>Formato de verificación de domicilio</b>
+        <div class="small muted">Sale con el nombre del cliente y la fecha; el verificador llena el resto a mano.</div></div>
+        <button class="btn ghost sm" id="fvAbrir">Ver formato</button></div>
+      <div class="doc-row"><div class="ic">🖨</div><div class="tx"><b>Imprimir ambos</b><div class="small muted">Contrato y formato de verificación en una sola impresión.</div></div>
+        <button class="btn ok sm" id="docAmbos">🖨 Imprimir ambos</button></div>
+      <div style="border-top:1px solid var(--line);padding-top:10px;margin-top:2px;display:flex;gap:12px;align-items:center;flex-wrap:wrap">
         ${s.contrato_firmado_path ? `<img id="cfThumb" data-cf="${esc(s.contrato_firmado_path)}" alt="Contrato firmado" style="width:72px;height:72px;object-fit:cover;border-radius:8px;border:1px solid var(--line);cursor:pointer;background:var(--gray-bg)">` : ''}
         <div style="flex:1;min-width:180px"><b>📸 Contrato firmado</b>
           <div class="small muted">${s.contrato_firmado_path ? `Subido por ${esc(nombre(s.contrato_firmado_por))} · ${fDT(s.contrato_firmado_en)}` : 'Tome o suba las fotos de las hojas firmadas: se unen en una sola imagen para descargar y subir al sistema oficial.'}</div></div>
@@ -1853,6 +1915,7 @@ function renderDetalle(){
       </div></div>`;
   }
   // Análisis de ingresos
+  h += mk('m');
   const mostrarIng = s.tipo === 'nuevo' || ing.length || editIng;
   if (mostrarIng){
     h += `<div class="card"><h4 class="sec" style="margin-top:0">Análisis de ingresos</h4>
@@ -1873,9 +1936,8 @@ function renderDetalle(){
       ${s.tipo !== 'nuevo' ? `<div class="res"><div class="box full"><div class="l">Promedio mensual</div><div class="v">${L(c.promedio)}</div>
         <div class="small muted">Promedio por pago ${L(c.promPago.toFixed(2))} × ${c.factor} ${c.nCom ? '+ promedio comisiones' : ''} → redondeado a ${S.params.redondeo}</div></div></div></div>` : `
       <div class="btns" style="margin-top:12px"><button class="btn sm ghost" id="nvCopiar">📋 Copiar resumen para WhatsApp</button></div>
-      <div style="margin-top:8px">${encabezadoCliente(s)}${ingresosResumenHTML(ing)}</div>
-      <div class="res" style="margin-top:0">
-        <div class="box"><div class="l">Promedio mensual</div><div class="v">${L(c.promedio)}</div></div>
+      <div style="margin-top:8px">${encabezadoCliente(s)}${resumenColsHTML(s, ing, c.promedio, null)}</div>
+      <div class="res">
         ${s.dictamen_en && s.monto_aprobado ? `<div class="box"><div class="l">Límite aprobado</div><div class="v">${L(s.monto_aprobado)}</div>
           <div class="small" style="font-weight:600;color:var(--brand)">${autorizadoPor(s, 'ajuste_monto')}</div>${c.limite !== +s.monto_aprobado ? `<div class="small muted">Calculado: ${c.limite == null ? 'Insuficiente' : L(c.limite)}</div>` : ''}</div>`
         : `<div class="box" style="${c.insuficiente && !s.politica_b ?'background:var(--red-bg)':''}"><div class="l">Límite aprobado${s.politica_b || c.tipoB ? ' · tipo B' : ''}</div><div class="v">${s.politica_b || c.tipoB ? L(limNuevo(s, c)) : c.limite == null ? 'Insuficiente' : L(c.limite)}</div></div>`}
@@ -1900,31 +1962,34 @@ function renderDetalle(){
   if (!['borrador','en_analisis'].includes(s.estado) || s.dom_lat != null || s.dom_sector) h += ubicacionHTML(s);
 
   // Acciones según estado y rol
-  h += accionesHTML(s, c);
+  h += mk('s') + accionesHTML(s, c);
 
   // Verificación
+  h += mk('m');
   if (items.length && !verArriba) h += verificacionHTML(s, items);
 
   // Comentarios
-  h += `<div class="card"><h4 class="sec" style="margin-top:0">Comentarios</h4><div id="cmList"><div class="muted small">Cargando…</div></div>
+  h += mk('s') + `<div class="card"><h4 class="sec" style="margin-top:0">Comentarios</h4><div id="cmList"><div class="muted small">Cargando…</div></div>
     <div class="composer">${av(S.me.id)}<textarea id="cmTxt" rows="1" placeholder="Escribe un comentario…"></textarea><button class="send" id="cmSend">➤</button></div></div>`;
 
   // Tiempos por paso + historial de gestiones
   h += tiemposHTML(s, evs);
 
   $('#sheetTitle').textContent = s.nombre_cliente; $('#sheetChip').innerHTML = chip(s.estado);
-  $('#sheetBody').innerHTML = h;
+  let n = 0; const col = { m:'', s:'' };
+  h.split('\u0001').forEach(p => { const html = p.slice(1).trim(); if (html) col[p[0]] += `<div class="det-it" style="order:${++n}">${html}</div>`; });
+  $('#sheetBody').innerHTML = `<div class="det-cols"><div class="det-col det-main">${col.m}</div><div class="det-col det-side">${col.s}</div></div>`;
   plegarSecciones();
   enlazarDetalle(s, c);
 }
 // Cada sección del detalle se puede contraer. Asesor/analista/admin: todo abierto; verificador: solo Verificación abierta
 function plegarSecciones(){
   S.pleg = S.pleg || {};
-  $('#sheetBody').querySelectorAll(':scope > .card').forEach(card => {
+  $('#sheetBody').querySelectorAll('.det-it > .card').forEach(card => {
     const h = card.firstElementChild; if (!h || !h.matches('h4.sec')) return;
     const key = h.textContent.replace(/\(.*?\)|·.*$/g, '').trim();
     card.classList.add('plegable');
-    const def = rol() === 'verificador' ? !/^Verificación/.test(key) : false;
+    const def = rol() === 'verificador' ? !/^(Verificación|Documentos)/.test(key) : false;
     card.classList.toggle('plegada', S.pleg[key] ?? def);
     h.onclick = () => { const v = !card.classList.contains('plegada'); card.classList.toggle('plegada', v); S.pleg[key] = v; };
   });
@@ -2259,6 +2324,8 @@ function enlazarDetalle(s, c){
     catch(e){ const w = dialogo(`<h3>Resumen</h3><textarea rows="10" readonly>${esc(txt)}</textarea><div class="btns"><button class="btn pri" data-close>Cerrar</button></div>`); w.querySelector('textarea').select(); }
   };
   if ($('#rdAbrir')) $('#rdAbrir').onclick = () => abrirContrato(S.detData.s);
+  if ($('#fvAbrir')) $('#fvAbrir').onclick = () => abrirFormatoVerif(S.detData.s);
+  if ($('#docAmbos')) $('#docAmbos').onclick = e => run(e.target, async () => imprimirAmbos(S.detData.s));
   if ($('#cfSubir')) $('#cfSubir').onclick = () => abrirContratoFirmado(S.detData.s);
   if ($('#cfThumb') || $('#cfDescargar')) (async () => {
     const cs = S.detData.s, path = cs.contrato_firmado_path; let url = null;
@@ -2734,7 +2801,7 @@ const fFechaHora = d => d ? new Date(d).toLocaleString('es-HN', { timeZone: TZ, 
 function resumenWhatsApp(s, r){
   const pct = x => (x * 100).toFixed(1).replace('.0','') + '%';
   return [`*${s.nombre_cliente}*`, `${s.codigo} · ${TIPO[s.tipo]}`, `Solicitud: ${fFechaHora(s.creado_en)}`, `Asesor: ${nombre(s.asesor_id)}`, '',
-    `Antigüedad: ${r.antig == null ? '—' : r.antig + ' días'}`, `Límite sugerido: ${L(r.sugerido)}`,
+    `Ingreso promedio mensual: ${L(r.prom)}`, `Antigüedad: ${r.antig == null ? '—' : aniosMeses(s.fecha_ingreso)}`, `Límite sugerido: ${L(r.sugerido)}`,
     `*Límite aprobado: ${L(r.limAprob)}*${r.autorizado && r.limCalc !== r.limAprob ? ` (calculado ${L(r.limCalc)})` : ''}`,
     `Disponible: ${L(r.disponible)}`, `Pagos tardíos >3/≥7: ${r.tard3}/${r.tard7} de ${r.total}`,
     `Tasa: ${pct(r.tasaNueva)} ${r.politicaB ? 'política tipo B (nivelado, ' + r.B.plazo + ' meses)' : r.pref ? 'preferencial' : 'normal'}`, `Dictamen: ${s.dictamen_en ? (s.estado === 'denegada' ? 'DENEGADA' : 'APROBADA') + ' por ' + nombre(s.analista_id) : r.dictamen}`].join('\n');
@@ -2762,6 +2829,30 @@ function cuotasPlazoHTML(monto, pref, tipoPago, prom, plan, B){
     </tbody></table></div>
     <div class="small muted" style="margin-top:4px">Pago ${lblF}${tipoPago !== 'Mensual' ? ` = cuota mensual ÷ ${f}` : ''}. Viable si la cuota mensual es ≤ 25% del ingreso.</div>`;
 }
+// Antigüedad legible: "9 meses", "1 año y 6 meses", "2 años" (menos de un mes: en días)
+function aniosMeses(desde, hasta = hoyHN()){
+  if (!desde) return null;
+  const [y1, m1, d1] = String(desde).slice(0, 10).split('-').map(Number), [y2, m2, d2] = String(hasta).slice(0, 10).split('-').map(Number);
+  const m = Math.max(0, (y2 - y1) * 12 + (m2 - m1) - (d2 < d1 ? 1 : 0)), a = Math.floor(m / 12), r = m % 12;
+  if (!m){ const d = Math.max(0, diasEntre(desde, hasta)); return `${d} día${d === 1 ? '' : 's'}`; }
+  return [a ? `${a} año${a > 1 ? 's' : ''}` : '', r ? `${r} mes${r > 1 ? 'es' : ''}` : ''].filter(Boolean).join(' y ');
+}
+// Resumen para captura: ingresos (con promedio) y comportamiento de pago lado a lado
+function resumenColsHTML(s, ing, prom, r){
+  const fs = [...(ing || [])].sort((a, b) => a.fecha < b.fecha ? -1 : 1);
+  const izq = `<div class="sum-box"><div class="hd"><span>Ingresos (${fs.length})</span><span>${esc(s.tipo_pago || '')}</span></div>
+    ${fs.length ? `<table class="t"><thead><tr><th>Fecha</th><th>Tipo</th><th class="num">Monto</th></tr></thead><tbody>
+      ${fs.map(i => `<tr><td>${i.fecha.split('-').reverse().join('/')}</td><td>${i.categoria === 'comision' ? 'Comisión' : 'Planilla'}</td><td class="num">${L(i.monto)}</td></tr>`).join('')}</tbody></table>`
+      : '<div class="small muted">Sin ingresos registrados.</div>'}
+    <div class="sum-prom"><span>Ingreso promedio mensual</span><b>${L(prom || 0)}</b></div></div>`;
+  if (!r) return `<div class="sum-cols" style="grid-template-columns:1fr">${izq}</div>`;
+  const pg = r.pagos.filter(p => p.fecha).sort((a, b) => a.fecha < b.fecha ? -1 : 1);
+  const der = `<div class="sum-box"><div class="hd"><span>Comportamiento de pago (${pg.length})</span><span>${r.tard3 ? r.tard3 + ' tardío' + (r.tard3 > 1 ? 's' : '') : 'Sin atrasos'}</span></div>
+    ${pg.length ? `<div class="pg-grid">${pg.map(p => `<div class="pg ${p.dif >= 7 ? 'b' : p.dif > 3 ? 'w' : 'ok'}" title="Pagó ${p.fecha.split('-').reverse().join('/')}${p.cuota ? ' · cuota ' + p.cuota.split('-').reverse().join('/') : ''}"><span>${p.fecha.split('-').reverse().slice(0, 2).join('/')}${p.fecha.slice(2, 4) !== hoyHN().slice(2, 4) ? '/' + p.fecha.slice(2, 4) : ''}</span><b>${p.dif > 0 ? '+' : ''}${p.dif} d</b></div>`).join('')}</div>
+      <div class="small muted" style="margin-top:6px">Días de diferencia entre el pago y la cuota. <b style="color:var(--green)">Al día</b> ${pg.filter(p => p.dif <= 3).length} · <b style="color:var(--amber)">&gt;3 días</b> ${r.tard3 - r.tard7} · <b style="color:var(--red)">≥7 días</b> ${r.tard7}</div>`
+      : '<div class="small muted">Sin historial de pagos.</div>'}</div>`;
+  return `<div class="sum-cols">${izq}${der}</div>`;
+}
 function encabezadoCliente(s){
   return `<div class="rf-head">
       <div class="rf-nm">${esc(s.nombre_cliente)}</div>
@@ -2777,9 +2868,9 @@ function resumenNuevoWA(s, c){
     `Dictamen: ${s.dictamen_en ? (s.estado === 'denegada' ? 'DENEGADA' : 'APROBADA') + ' por ' + nombre(s.analista_id) : 'en proceso'}`].filter(x => x != null).join('\n');
 }
 function refiResHTML(s, r){
-  const antTxt = r.antig == null ? '—' : `${r.antig} días (${(r.antig / 30.4).toFixed(1)} meses)`;
+  const antTxt = r.antig == null ? '—' : aniosMeses(s.fecha_ingreso);
   return `${encabezadoCliente(s)}
-    ${ingresosResumenHTML(S.detData && S.detData.s.id === s.id ? S.detData.ing : [])}
+    ${resumenColsHTML(s, S.detData && S.detData.s.id === s.id ? S.detData.ing : [], r.prom, r)}
     ${r.sinFecha ? '<div class="alert warn small">Ingrese la fecha de ingreso del cliente para calcular la antigüedad.</div>' : ''}
     <div class="res">
       <div class="box"><div class="l">Antigüedad</div><div class="v" style="font-size:16px">${antTxt}</div></div>
@@ -2980,6 +3071,77 @@ const CT = (() => {
   }
   return { paginar };
 })();
+// ================== Formato de verificación de domicilio (lo llena a mano el verificador) ==================
+const FV = (() => {
+  const ln = (n = 1) => '<div class="ln"></div>'.repeat(n);
+  const ops = (...o) => `<div class="ops">${o.map(t => `<span>${t}</span><span></span>`).join('')}</div>`;
+  const pagina = d => `<div class="ct-page fv"><div class="in">
+    <img class="logo" src="${LOGO_MP}" alt="Más Pisto"><h1>Verificación de Domicilio</h1>
+    <div class="cab"><div class="lb">Nombre del cliente:</div><div class="vl">${esc(d.nombre || '')}</div><div class="lb">Fecha:</div><div class="vl">${d.fecha ? d.fecha.split('-').reverse().join('/') : ''}</div></div>
+    <ol>
+      <li>Dirección de domicilio (solo en caso se necesite modificación)${ln()}</li>
+      <li>¿Quién atendió el domicilio?${ln()}</li>
+      <li>¿Hace cuanto vive en el domicilio?${ln()}</li>
+      <li>¿Tiene algún ingreso adicional?<br>${ops('Si', 'No')}${ln()}</li>
+      <li>Referencia de los vecinos${ln(2)}</li>
+      <li>¿Es zona de riesgo alto?<br>${ops('Si', 'No')}</li>
+      <li>¿Dónde reside es casa:<br>${ops('Propia', 'Rentada', 'Familiar')}</li>
+      <li>¿La zona es de fácil acceso?<br>${ops('Si', 'No')}<div style="margin-top:4pt">Si la respuesta es no, especifique:</div>${ln()}</li>
+      <li>Observaciones adicionales:${ln(2)}</li>
+      <li>¿El cliente aprueba para el crédito según su criterio?<br>${ops('Si', 'No')}</li>
+    </ol>
+    <div class="fir"><span>Nombre del Verificador:</span><div class="ln"></div><span>Firma del Verificador:</span><div class="ln"></div></div>
+  </div><div class="pie">| Formato de verificación de domicilio – v1.0-20260615</div></div>`;
+  return { pagina };
+})();
+const nombreArchivo = t => t.normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^\w]+/g, '_').replace(/^_|_$/g, '');
+// Imprime hojas carta (.ct-page) en un marco oculto
+function imprimirHojas(html, titulo){
+  const css = [...document.styleSheets].map(ss => { try { return [...ss.cssRules].map(r => r.cssText).filter(t => t.includes('.ct-page')).join('\n'); } catch(e){ return ''; } }).join('\n');
+  const fr = document.createElement('iframe'); fr.style.cssText = 'position:fixed;right:0;bottom:0;width:0;height:0;border:0';
+  document.body.appendChild(fr);
+  const dd = fr.contentDocument;
+  dd.open(); dd.write(`<!doctype html><html><head><meta charset="utf-8"><title>${esc(titulo)}</title><style>${css}
+    @page{size:letter;margin:0} html,body{margin:0;background:#fff} .ct-pages{gap:0} .ct-page{box-shadow:none;page-break-after:always;height:10.98in}</style></head>
+    <body><div class="ct-pages">${html}</div></body></html>`); dd.close();
+  setTimeout(() => { fr.contentWindow.focus(); fr.contentWindow.print(); setTimeout(() => fr.remove(), 2000); }, 500);
+}
+// Hojas del contrato armadas fuera de pantalla (para imprimir junto con el formato)
+function contratoPaginas(s){
+  const st = { nombre: s.nombre_cliente, id: RD.fmtId(s.dni || s.datos_cliente?.dni || ''), codigo: s.codigo,
+    minimo: +(S.params.linea_minimo || 3000), limite: +(s.monto_aprobado || s.monto_solicitado || 0), maximo: +(S.params.techo_refi || 30000), fecha: hoyHN() };
+  if (st.id.replace(/\D/g, '').length !== 13 || !(st.limite > 0)) throw new Error('Al contrato le falta la identidad o el límite aprobado: ábralo con "Ver contrato" para completarlo.');
+  const holder = document.createElement('div'); holder.style.cssText = 'position:fixed;left:-10000px;top:0';
+  const cont = document.createElement('div'); cont.className = 'ct-pages'; holder.appendChild(cont); document.body.appendChild(holder);
+  try { CT.paginar(cont, st); return { html: cont.innerHTML, st }; } finally { holder.remove(); }
+}
+function imprimirAmbos(s, fv){
+  const c = contratoPaginas(s);
+  imprimirHojas(c.html + FV.pagina(fv || { nombre: s.nombre_cliente, fecha: hoyHN() }), 'Contrato_y_Verificacion_' + nombreArchivo(s.nombre_cliente));
+  rpc('registrar_reconocimiento', { p_id: s.id, p_dni: c.st.id, p_monto: c.st.limite, p_accion: 'impreso' }).catch(e => console.warn(e));
+}
+function abrirFormatoVerif(s){
+  const st = { nombre: s.nombre_cliente, fecha: hoyHN() };
+  const w = document.createElement('div'); w.className = 'rd-wrap';
+  w.innerHTML = `<div class="rd-bar">
+      <div class="t"><button class="back" data-x>←</button><span>Formato de verificación de domicilio · ${esc(s.codigo)}</span></div>
+      <div class="fld" style="flex:2"><label>Nombre del cliente</label><input data-f="nombre" value="${esc(st.nombre)}"></div>
+      <div class="fld"><label>Fecha</label><input data-f="fecha" type="date" value="${st.fecha}"></div>
+      <div class="acc"><button class="btn pri" data-a="print">🖨 Imprimir formato</button>${reconocimientoHabilitado(s) ? '<button class="btn" data-a="ambos">🖨 Imprimir con el contrato</button>' : ''}</div>
+      <div class="small muted" style="flex:1 1 100%">Solo se llenan el nombre y la fecha; el resto lo completa el verificador a mano.</div>
+    </div>
+    <div class="rd-stage"><div class="rd-scaler"><div class="ct-pages"></div></div></div>`;
+  document.body.appendChild(w); history.pushState({ rd:1 }, ''); S.dlgs = (S.dlgs || []).concat(w);
+  const cont = w.querySelector('.ct-pages'), scaler = w.querySelector('.rd-scaler'), stage = w.querySelector('.rd-stage');
+  const render = () => { cont.innerHTML = FV.pagina(st); scaler.style.transform = ''; scaler.style.width = ''; scaler.style.height = '';
+    const sc = Math.min(1, (stage.clientWidth - 32) / cont.offsetWidth);
+    if (sc < 1){ scaler.style.transform = `scale(${sc})`; scaler.style.transformOrigin = 'top left'; scaler.style.width = cont.offsetWidth * sc + 'px'; scaler.style.height = cont.offsetHeight * sc + 'px'; } };
+  w.querySelectorAll('[data-f]').forEach(i => i.oninput = () => { st[i.dataset.f] = i.value.trim(); render(); });
+  w.querySelector('[data-x]').onclick = () => cerrarDialogo(w);
+  w.querySelector('[data-a="print"]').onclick = () => imprimirHojas(FV.pagina(st), 'Verificacion_Domicilio_' + nombreArchivo(st.nombre || s.nombre_cliente));
+  const amb = w.querySelector('[data-a="ambos"]'); if (amb) amb.onclick = e => run(e.target, async () => imprimirAmbos(s, st));
+  render(); addEventListener('resize', render, { once:true });
+}
 function abrirContrato(s){
   const d0 = s.datos_cliente || {};
   const st = { nombre: s.nombre_cliente, id: RD.fmtId(s.dni || d0.dni || ''), codigo: s.codigo,
