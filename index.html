@@ -86,6 +86,11 @@ label.f{display:block;font-size:12px;color:var(--ink2);margin:10px 0 4px;font-we
 .sol{display:flex;gap:12px;align-items:flex-start;cursor:pointer}
 .sol:active{transform:scale(.995)}
 .sol .main{flex:1;min-width:0}
+.name-row{display:flex;align-items:center;gap:4px;min-width:0}
+.name-row .name{min-width:0}
+.cpy{flex:none;border:1px solid var(--line);background:var(--card);border-radius:7px;padding:1px 5px;font-size:12px;line-height:1.4;opacity:.75}
+.cpy:hover{opacity:1;border-color:var(--brand)}
+.sheet .bar .cpy{font-size:14px;padding:3px 7px}
 .sol .name{font-weight:650;font-size:15.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .sol .sub{font-size:12.5px;color:var(--ink2);margin-top:3px;display:flex;flex-wrap:wrap;gap:4px 10px}
 .sol .right{text-align:right;flex:none}
@@ -488,7 +493,7 @@ table.ht td.nota{max-width:220px;overflow:hidden;text-overflow:ellipsis;color:va
 </div>
 
 <div id="sheet" class="sheet hidden">
-  <div class="bar"><button class="back" id="sheetBack">←</button><h2 id="sheetTitle"></h2><span id="sheetChip"></span></div>
+  <div class="bar"><button class="back" id="sheetBack">←</button><h2 id="sheetTitle"></h2><button class="cpy" id="sheetCopy" title="Copiar nombre del cliente" aria-label="Copiar nombre del cliente">📋</button><span id="sheetChip"></span></div>
   <div class="body" id="sheetBody"></div>
 </div>
 
@@ -496,7 +501,7 @@ table.ht td.nota{max-width:220px;overflow:hidden;text-overflow:ellipsis;color:va
 // App disponible sin señal (sw.js debe estar junto a index.html). Va primero para registrarse aunque falle otra cosa.
 if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) navigator.serviceWorker.register('sw.js').catch(() => {});
 // Versión de esta copia de la app: cambia en cada entrega. La app la compara con la publicada y se actualiza sola.
-const APP_VER = '2026-10-23.0900';
+const APP_VER = '2026-10-23.1000';
 // ================== Configuración ==================
 const SB_URL = 'https://edmvfqelxsxevpmxgbav.supabase.co';
 const SB_KEY = 'sb_publishable_lgTmmLtUESDDyX2sff6ArQ_z65Ti9d6';
@@ -556,6 +561,12 @@ const rol = () => S.me?.rol;
 const es = (...r) => r.includes(rol()) || rol() === 'admin';
 function edad(fn){ if(!fn) return null; const b = new Date(fn), h = new Date(); let a = h.getFullYear()-b.getFullYear();
   if (h.getMonth()<b.getMonth() || (h.getMonth()===b.getMonth() && h.getDate()<b.getDate())) a--; return a; }
+async function copiarTexto(t){
+  try { await navigator.clipboard.writeText(t); }
+  catch(e){ const a = document.createElement('textarea'); a.value = t; a.style.cssText = 'position:fixed;opacity:0'; document.body.appendChild(a); a.select(); document.execCommand('copy'); a.remove(); }
+  toast('📋 Copiado: ' + t);
+}
+document.addEventListener('click', e => { const b = e.target.closest('[data-cpy]'); if (!b) return; e.stopPropagation(); e.preventDefault(); copiarTexto(b.dataset.cpy); }, true);
 function toast(msg, err){ const t = document.createElement('div'); t.className = 'toast' + (err?' err':''); t.textContent = msg;
   document.body.appendChild(t); setTimeout(() => t.remove(), err ? 5000 : 2800); }
 function errMsg(e){ return (e?.message || e?.error_description || String(e)).replace(/^.*?ERROR:\s*/,''); }
@@ -1735,7 +1746,7 @@ function cardSol(s, ctx){
   return `<div class="card sol${s.en_espera ? ' espera' : ''}" data-id="${s.id}" style="${rcVars(colorDe(s.estado))}">
     <div class="main">
       <div style="margin-bottom:4px">${rolPill(s)}</div>
-      <div class="name">${esc(s.nombre_cliente)}</div>
+      <div class="name-row"><div class="name">${esc(s.nombre_cliente)}</div><button class="cpy" data-cpy="${esc(s.nombre_cliente)}" title="Copiar nombre" aria-label="Copiar nombre">📋</button></div>
       <div class="sub"><span>${esc(s.codigo)}</span>${tipoChip(s.tipo)}${pendChip(s)}<span>👤 ${esc(nombre(s.asesor_id))}</span>${extra}${c}</div>
       ${entregaHTML(s)}
       ${s.en_espera && s.espera_motivo ? `<div class="small" style="color:var(--gray);margin-top:3px">⏸ ${esc(s.espera_motivo)}</div>` : ''}
@@ -1873,7 +1884,7 @@ async function abrirDetalle(id, keepScroll){
   const s = S.sols.find(x => x.id === id); if (!s) return;
   S.det = id; S.replyTo = null; S.dirty = false;
   if ($('#sheet').classList.contains('hidden')){ $('#sheet').classList.remove('hidden'); history.pushState({ sheet:1 }, ''); document.body.style.overflow = 'hidden'; }
-  $('#sheetTitle').textContent = s.nombre_cliente; $('#sheetChip').innerHTML = chip(s.estado);
+  $('#sheetTitle').textContent = s.nombre_cliente; $('#sheetCopy').dataset.cpy = s.nombre_cliente; $('#sheetChip').innerHTML = chip(s.estado);
   if (!keepScroll){ $('#sheetBody').innerHTML = '<div class="empty">Cargando…</div>'; $('#sheet').scrollTop = 0; }
   let ing = { error:{ message:'Failed to fetch' } }, items = ing, evs = ing;
   if (id > 0 && navigator.onLine) [ing, items, evs] = await Promise.all([
@@ -2049,7 +2060,7 @@ function renderDetalle(){
   // Tiempos por paso + historial de gestiones
   h += tiemposHTML(s, evs);
 
-  $('#sheetTitle').textContent = s.nombre_cliente; $('#sheetChip').innerHTML = chip(s.estado);
+  $('#sheetTitle').textContent = s.nombre_cliente; $('#sheetCopy').dataset.cpy = s.nombre_cliente; $('#sheetChip').innerHTML = chip(s.estado);
   let n = 0; const col = { m:'', s:'' };
   h.split('\u0001').forEach(p => { const html = p.slice(1).trim(); if (html) col[p[0]] += `<div class="det-it" style="order:${++n}">${html}</div>`; });
   $('#sheetBody').innerHTML = `<div class="det-cols"><div class="det-col det-main">${col.m}</div><div class="det-col det-side">${col.s}</div></div>`;
