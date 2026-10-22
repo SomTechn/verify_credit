@@ -1,10 +1,10 @@
 // VerifiCrédito · service worker: permite abrir la app sin señal.
 // Los datos (Supabase) NO pasan por aquí: la app los guarda en el teléfono y envía los cambios al volver la conexión.
-const V = 'verificredito-v3';
+const V = 'verificredito-v4';
 const CDN = /^(cdn\.jsdelivr\.net|cdnjs\.cloudflare\.com|fonts\.googleapis\.com|fonts\.gstatic\.com|unpkg\.com)$/;
 
 self.addEventListener('install', e => {
-  e.waitUntil(caches.open(V).then(c => c.addAll(['./', './index.html', './manifest.json', './icon-192.png', './icon-512.png', 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2']).catch(() => {})));
+  e.waitUntil(caches.open(V).then(c => c.addAll(['./', './index.html', './manifest.json', './icon-192.png', './icon-512.png', './badge-96.png', 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2']).catch(() => {})));
   self.skipWaiting();
 });
 self.addEventListener('activate', e => {
@@ -45,8 +45,10 @@ self.addEventListener('fetch', e => {
 // Notificaciones push: llegan aunque la app esté cerrada
 self.addEventListener('push', e => {
   let d = {}; try { d = e.data ? e.data.json() : {}; } catch(_) { d = { body: e.data ? e.data.text() : '' }; }
+  // icon = logo a color; badge = silueta blanca para la barra de estado de Android
+  const url = f => new URL(f, self.registration.scope).href;
   e.waitUntil(self.registration.showNotification(d.title || 'VerifyCredit', {
-    body: d.body || '', tag: d.tag || 'vc', renotify: true, icon: 'icon-192.png', badge: 'icon-192.png', data: { id: d.id || null } }));
+    body: d.body || '', tag: d.tag || 'vc', renotify: true, icon: url('icon-192.png'), badge: url('badge-96.png'), data: { id: d.id || null } }));
 });
 self.addEventListener('notificationclick', e => {
   e.notification.close();

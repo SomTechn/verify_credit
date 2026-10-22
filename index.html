@@ -504,7 +504,7 @@ table.ht td.nota{max-width:220px;overflow:hidden;text-overflow:ellipsis;color:va
 // App disponible sin señal (sw.js debe estar junto a index.html). Va primero para registrarse aunque falle otra cosa.
 if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) navigator.serviceWorker.register('sw.js').catch(() => {});
 // Versión de esta copia de la app: cambia en cada entrega. La app la compara con la publicada y se actualiza sola.
-const APP_VER = '2026-10-23.1100';
+const APP_VER = '2026-10-23.1200';
 // ================== Configuración ==================
 const SB_URL = 'https://edmvfqelxsxevpmxgbav.supabase.co';
 const SB_KEY = 'sb_publishable_lgTmmLtUESDDyX2sff6ArQ_z65Ti9d6';
@@ -1023,7 +1023,7 @@ $('#btnBell').onclick = () => {
   // Muestra un aviso sin pasar por el servidor: si este no aparece, el bloqueo está en el sistema (Windows/Android), no en la app
   w.querySelector('#pbLocal')?.addEventListener('click', e => run(e.target, async () => {
     const reg = await navigator.serviceWorker.ready;
-    await reg.showNotification('🔔 Prueba en este dispositivo', { body:'Si ve este aviso, el dispositivo puede mostrar notificaciones.', tag:'vc-local', icon:'icon-192.png' });
+    await reg.showNotification('🔔 Prueba en este dispositivo', { body:'Si ve este aviso, el dispositivo puede mostrar notificaciones.', tag:'vc-local', icon:'icon-192.png', badge:'badge-96.png' });
     toast('Aviso local enviado. Si no lo ve, revise los permisos del sistema (Windows: Configuración → Notificaciones → Chrome; Android: Ajustes → Apps → Chrome → Notificaciones).');
   }));
   w.querySelector('#pbTest')?.addEventListener('click', e => run(e.target, async () => {
@@ -4611,7 +4611,7 @@ function notificar(t, b, id){
   toast(`${t}: ${b}`);
   // Con push activo el aviso de escritorio lo envía el servidor (evita duplicados)
   try { if (!PUSH.on && 'Notification' in window && Notification.permission === 'granted' && document.hidden){
-    const nt = new Notification(t, { body: b, tag: 'vc-' + id }); nt.onclick = () => { window.focus(); abrirDetalle(id); };
+    const nt = new Notification(t, { body: b, tag: 'vc-' + id, icon: 'icon-192.png', badge: 'badge-96.png' }); nt.onclick = () => { window.focus(); abrirDetalle(id); };
   } } catch(e){}
 }
 // ================== Celebraciones y motivación ==================
