@@ -496,7 +496,7 @@ table.ht td.nota{max-width:220px;overflow:hidden;text-overflow:ellipsis;color:va
 // App disponible sin señal (sw.js debe estar junto a index.html). Va primero para registrarse aunque falle otra cosa.
 if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) navigator.serviceWorker.register('sw.js').catch(() => {});
 // Versión de esta copia de la app: cambia en cada entrega. La app la compara con la publicada y se actualiza sola.
-const APP_VER = '2026-10-22.1800';
+const APP_VER = '2026-10-22.2100';
 // ================== Configuración ==================
 const SB_URL = 'https://edmvfqelxsxevpmxgbav.supabase.co';
 const SB_KEY = 'sb_publishable_lgTmmLtUESDDyX2sff6ArQ_z65Ti9d6';
@@ -1570,6 +1570,71 @@ function asignarHTML(s){
   if (rol() === 'verificador' && !s.verificador_id) return `<div class="asig" data-stop><button class="btn sm pri" data-tomar="${s.id}">Tomar esta visita</button></div>`;
   return '';
 }
+// ================== WhatsApp al cliente con plantillas (editables por el admin) ==================
+const WA_VARS = [['cliente','Primer nombre del cliente'],['cliente_completo','Nombre completo del cliente'],['verificador','Primer nombre del verificador'],
+  ['asesor','Primer nombre del asesor'],['codigo','Código de la solicitud'],['monto','Monto aprobado']];
+const capital1 = t => (t || '').toLowerCase().replace(/(^|\s)\S/g, x => x.toUpperCase());
+const primerNombre = t => capital1(String(t || '').trim().split(/\s+/)[0]);
+async function cargarPlantillas(forzar){
+  if (S.plantillas && !forzar) return S.plantillas;
+  try { const { data, error } = await sb.from('plantillas_wa').select('*').order('orden').order('id'); if (error) throw error; S.plantillas = data || []; KV.set(ck('plantillas'), S.plantillas); }
+  catch(e){ S.plantillas = (await KV.get(ck('plantillas'))) || []; }
+  return S.plantillas;
+}
+function llenarPlantilla(t, s){
+  const ver = s.verificador_id ? nombre(s.verificador_id) : S.me.nombre;
+  const v = { cliente:primerNombre(s.nombre_cliente), cliente_completo:capital1(s.nombre_cliente), verificador:primerNombre(ver), asesor:primerNombre(nombre(s.asesor_id)),
+    codigo:s.codigo || '', monto:s.monto_aprobado ? L(s.monto_solicitado || s.monto_aprobado) : '' };
+  return String(t || '').replace(/\{(\w+)\}/g, (m, k) => k in v ? v[k] : m);
+}
+const telWA = t => { const d = String(t || '').replace(/\D/g, ''); return d.length === 8 ? '504' + d : d.length === 11 && d.startsWith('504') ? d : d; };
+async function abrirWhatsApp(s){
+  const ps = (await cargarPlantillas()).filter(p => p.activo);
+  const tel = s.telefono || s.datos_cliente?.telefono || '';
+  const w = dialogo(`<h3>💬 WhatsApp a ${esc(primerNombre(s.nombre_cliente))}</h3>
+    <div class="small muted">${esc(s.nombre_cliente)} · ${esc(s.codigo)}</div>
+    <label class="f">Plantilla</label>
+    ${ps.length ? `<div class="filters" id="waPl">${ps.map((p, i) => `<button data-i="${i}" class="${i ? '' : 'on'}">${esc(p.titulo)}</button>`).join('')}</div>` : '<div class="small muted">No hay plantillas activas. El administrador las agrega en Parámetros.</div>'}
+    <label class="f">Mensaje (puede modificarlo antes de enviar)</label><textarea id="waTxt" rows="6"></textarea>
+    <label class="f">Teléfono del cliente</label><input id="waTel" inputmode="tel" value="${esc(tel)}" placeholder="9999-9999">
+    <div class="btns"><button class="btn ghost" data-close>Cancelar</button><a class="btn ok" id="waIr" target="_blank" rel="noopener" style="text-align:center;text-decoration:none">Abrir WhatsApp</a></div>`);
+  const txt = w.querySelector('#waTxt'), telI = w.querySelector('#waTel'), ir = w.querySelector('#waIr');
+  const act = () => { const n = telWA(telI.value); ir.href = `https://wa.me/${n}?text=${encodeURIComponent(txt.value)}`; ir.style.opacity = n.length >= 8 ? '' : '.5'; };
+  const usar = i => { txt.value = ps[i] ? llenarPlantilla(ps[i].texto, s) : ''; w.querySelectorAll('#waPl button').forEach(b => b.classList.toggle('on', +b.dataset.i === i)); act(); };
+  w.querySelectorAll('#waPl button').forEach(b => b.onclick = () => usar(+b.dataset.i));
+  txt.oninput = act; telI.oninput = act;
+  ir.onclick = e => { if (telWA(telI.value).length < 8){ e.preventDefault(); toast('Escriba el teléfono del cliente', true); } else setTimeout(() => cerrarDialogo(w), 300); };
+  usar(0);
+}
+// Administración de plantillas (Parámetros)
+async function pintarPlantillasAdmin(){
+  const ps = await cargarPlantillas(true), cont = $('#plAdmin'); if (!cont) return;
+  const ej = { nombre_cliente:'MARÍA JOSÉ LÓPEZ PAZ', codigo:'S-2610-0001', asesor_id:S.me.id, monto_aprobado:15000 };
+  cont.innerHTML = `<div class="small muted" style="margin-bottom:8px">Variables: ${WA_VARS.map(([k, t]) => `<code title="${t}">{${k}}</code>`).join(' ')} — se reemplazan solas al escribirle al cliente.</div>
+    ${ps.map(p => `<div class="card" data-pl="${p.id}" style="box-shadow:none">
+      <div class="row" style="gap:8px;flex-wrap:wrap"><input data-k="titulo" value="${esc(p.titulo)}" style="flex:2;min-width:160px;font-weight:600">
+        <input data-k="orden" type="number" value="${p.orden}" style="width:80px;flex:none" title="Orden">
+        <label class="small" style="display:flex;align-items:center;gap:4px;flex:none"><input data-k="activo" type="checkbox" ${p.activo ? 'checked' : ''} style="width:auto"> Activa</label></div>
+      <textarea data-k="texto" rows="3" style="margin-top:6px">${esc(p.texto)}</textarea>
+      <div class="small muted" data-prev style="margin-top:4px">Vista previa: ${esc(llenarPlantilla(p.texto, ej))}</div>
+      <div class="btns" style="margin-top:6px"><button class="btn sm ghost" data-del>Eliminar</button><button class="btn sm pri" data-save>Guardar</button></div></div>`).join('')}
+    <button class="btn ghost" id="plNueva" style="width:100%">＋ Nueva plantilla</button>`;
+  cont.querySelectorAll('[data-pl]').forEach(c => {
+    const id = +c.dataset.pl, q = k => c.querySelector(`[data-k="${k}"]`);
+    q('texto').oninput = () => { c.querySelector('[data-prev]').textContent = 'Vista previa: ' + llenarPlantilla(q('texto').value, ej); };
+    c.querySelector('[data-save]').onclick = e => run(e.target, async () => {
+      const row = { titulo:q('titulo').value.trim(), texto:q('texto').value.trim(), orden:+q('orden').value || 0, activo:q('activo').checked, actualizado_en:new Date().toISOString() };
+      if (!row.titulo || !row.texto) throw new Error('Escriba el título y el mensaje');
+      const { error } = await sb.from('plantillas_wa').update(row).eq('id', id); if (error) throw error;
+      await cargarPlantillas(true); toast('Plantilla guardada'); });
+    c.querySelector('[data-del]').onclick = e => run(e.target, async () => {
+      if (!confirm('¿Eliminar esta plantilla?')) return;
+      const { error } = await sb.from('plantillas_wa').delete().eq('id', id); if (error) throw error; pintarPlantillasAdmin(); });
+  });
+  $('#plNueva').onclick = e => run(e.target, async () => {
+    const { error } = await sb.from('plantillas_wa').insert({ titulo:'Nueva plantilla', texto:'Hola {cliente}, le saluda {verificador} de Más Pisto. ', orden:(ps.at(-1)?.orden || 0) + 1 });
+    if (error) throw error; pintarPlantillasAdmin(); });
+}
 function pintarVerificar(lista, extra){
   S.vOrden = S.vOrden || 'antig'; S.vVista = S.vVista || 'lista'; if (S.vVerif == null) S.vVerif = '';
   const vs = Object.values(S.perfiles).filter(p => p.rol === 'verificador' && p.activo);
@@ -1613,6 +1678,7 @@ function pintarVerificar(lista, extra){
   $('#vYo').onclick = e => run(e.target, async () => { await miUbicacion(); pintar(); });
   if ($('#vVerif')) $('#vVerif').onchange = e => { S.vVerif = e.target.value; pintar(); };
   $('#main').querySelectorAll('[data-stop]').forEach(el => el.addEventListener('click', e => e.stopPropagation()));
+  $('#main').querySelectorAll('[data-wa]').forEach(b => b.onclick = () => abrirWhatsApp(S.sols.find(x => x.id === +b.dataset.wa)));
   $('#main').querySelectorAll('[data-asig]').forEach(sel => sel.onchange = e => run(e.target, async () => {
     await rpc('asignar_verificador', { p_id: +sel.dataset.asig, p_verificador: sel.value || null }); toast('Verificador asignado'); await cargarSolicitudes(); pintarTabs(); pintar(); }));
   const irc = $('#irCtrlVis'); if (irc) irc.onclick = async () => { S.tab = 'stats'; pintarTabs(); await pintar(); const h = $('#ctrlVisitas'); if (h) h.scrollIntoView({ behavior: 'smooth', block: 'start' }); };
@@ -1665,6 +1731,7 @@ function cardSol(s, ctx){
       <div class="sub"><span>${esc(s.codigo)}</span>${tipoChip(s.tipo)}${pendChip(s)}<span>👤 ${esc(nombre(s.asesor_id))}</span>${extra}${c}</div>
       ${entregaHTML(s)}
       ${s.en_espera && s.espera_motivo ? `<div class="small" style="color:var(--gray);margin-top:3px">⏸ ${esc(s.espera_motivo)}</div>` : ''}
+      ${ctx && ctx.asignar && s.estado === 'por_verificar' ? `<button class="btn sm ok" data-wa="${s.id}" data-stop style="margin-top:6px">💬 WhatsApp al cliente</button>` : ''}
       ${ctx ? locHTML(s, ctx.parada ? `<span class="parada">${ctx.parada}</span>${ctx.d != null ? `<span class="km">${fKm(ctx.d)}</span>` : ''}` : ctx.d != null ? `<span class="km">a ${fKm(ctx.d)}</span>` : '') + (ctx.asignar ? asignarHTML(s) : '') : ''}
     </div>
     <div class="right">${chip(s.estado)}${s.en_espera ? '<div style="margin-top:4px">' + esperaChip(s) + '</div>' : ''}<div class="amt" style="margin-top:6px">${monto}</div><div class="small muted">${fecha}</div></div>
@@ -1846,7 +1913,7 @@ function renderDetalle(){
     <div class="row" style="flex-wrap:wrap;gap:6px">${tipoChip(s.tipo)} ${chip(s.estado)} ${esperaChip(s)} <span class="spacer"></span><span class="small muted">${esc(s.codigo)}</span></div>
     <dl class="kv" style="margin-top:10px">
       <dt>Asesor</dt><dd>${rol() === 'admin' && !CERRADAS.includes(s.estado) ? `<select id="dAsesor" style="padding:4px 8px">${Object.values(S.perfiles).filter(p => p.activo && ['asesor','admin'].includes(p.rol)).map(p => `<option value="${p.id}" ${p.id === s.asesor_id ? 'selected' : ''}>${esc(p.nombre)}</option>`).join('')}</select>` : esc(nombre(s.asesor_id))}</dd>
-      ${s.telefono ? `<dt>Teléfono</dt><dd><a href="tel:${esc(s.telefono)}">${esc(s.telefono)}</a> · <a href="https://wa.me/504${esc(s.telefono.replace(/\D/g,'').slice(-8))}" target="_blank">WhatsApp</a></dd>` : ''}
+      ${s.telefono ? `<dt>Teléfono</dt><dd><a href="tel:${esc(s.telefono)}">${esc(s.telefono)}</a> · <a href="https://wa.me/504${esc(s.telefono.replace(/\D/g,'').slice(-8))}" target="_blank">WhatsApp</a>${s.estado === 'por_verificar' ? ' · <a href="#" id="dWaPl">💬 Plantillas</a>' : ''}</dd>` : ''}
       ${s.dni ? `<dt>DNI</dt><dd>${esc(s.dni)}</dd>` : ''}
       ${s.tipo === 'nuevo' ? `<dt>Cómo llegó</dt><dd>${s.origen_canal ? esc(origenTxt(s)) + (s.referido_telefono ? ` · <a href="tel:${esc(s.referido_telefono)}">${esc(s.referido_telefono)}</a>` : '') : '<span class="muted">Sin dato</span>'}${puedeOrigen(s) ? ' · <a href="#" id="dOrigen">' + (s.origen_asumido ? 'Revisar' : s.origen_canal ? 'Cambiar' : 'Agregar') + '</a>' : ''}
         ${esReferido(s.origen_canal) && s.estado === 'desembolsada' ? `<br>${s.bono_pagado_en ? `<span class="chip c-green">Bono pagado${s.bono_monto ? ' ' + L(s.bono_monto) : ''} · ${fDate(s.bono_pagado_en)}</span>` : '<span class="chip c-amber">Bono por referido pendiente</span>'}` : ''}</dd>` : ''}
@@ -2337,6 +2404,7 @@ function enlazarDetalle(s, c){
       const b = await (await fetch(url)).blob(); descargarBlob(b, nombreContratoFirmado(cs));
     });
   })();
+  if ($('#dWaPl')) $('#dWaPl').onclick = ev => { ev.preventDefault(); abrirWhatsApp(s); };
   if ($('#dOrigen')) $('#dOrigen').onclick = ev => { ev.preventDefault(); abrirOrigen(s, () => abrirDetalle(s.id, true)); };
   if ($('#dAsesor')) $('#dAsesor').onchange = e => run(e.target, async () => { await rpc('reasignar_asesor', { p_id: s.id, p_asesor: e.target.value }); toast('Asesor reasignado'); await refrescar(); });
   // Asesor: enviar
@@ -4407,7 +4475,9 @@ function pintarParams(){
       <div class="row"><input data-p="${esc(p.clave)}" value="${p.valor}" inputmode="decimal"><button class="btn sm pri" data-ps="${esc(p.clave)}">Guardar</button></div></div>`).join('')}`;
   $('#main').insertAdjacentHTML('beforeend', `<h4 class="sec">Feriados (no cuentan como tiempo hábil)</h4>
     <div class="card"><table class="t"><tbody>${S.feriadosRows.map(f => `<tr><td>${fDate(f.fecha+'T12:00')}</td><td>${esc(f.descripcion)}</td><td style="width:30px"><button class="x" data-fd="${f.fecha}">×</button></td></tr>`).join('') || '<tr><td class="muted">Sin feriados</td></tr>'}</tbody></table>
-    <div class="addrow" style="grid-template-columns:1fr 1.4fr auto"><input type="date" id="fFecha"><input id="fDesc" placeholder="Descripción"><button class="btn pri" id="fAdd">Agregar</button></div></div>`);
+    <div class="addrow" style="grid-template-columns:1fr 1.4fr auto"><input type="date" id="fFecha"><input id="fDesc" placeholder="Descripción"><button class="btn pri" id="fAdd">Agregar</button></div></div>
+    <h4 class="sec">💬 Plantillas de WhatsApp (Por verificar)</h4><div class="card" id="plAdmin"><div class="muted small">Cargando…</div></div>`);
+  pintarPlantillasAdmin();
   $('#main').querySelectorAll('[data-ps]').forEach(b => b.onclick = () => run(b, async () => {
     const v = num(document.querySelector(`[data-p="${b.dataset.ps}"]`).value); if (v == null) throw new Error('Valor inválido');
     await rpc('actualizar_parametro', { p_clave: b.dataset.ps, p_valor: v }); await cargarParams(); toast('Parámetro actualizado');
