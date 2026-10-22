@@ -88,9 +88,12 @@ label.f{display:block;font-size:12px;color:var(--ink2);margin:10px 0 4px;font-we
 .sol .main{flex:1;min-width:0}
 .name-row{display:flex;align-items:center;gap:4px;min-width:0}
 .name-row .name{min-width:0}
-.cpy{flex:none;border:1px solid var(--line);background:var(--card);border-radius:7px;padding:1px 5px;font-size:12px;line-height:1.4;opacity:.75}
-.cpy:hover{opacity:1;border-color:var(--brand)}
-.sheet .bar .cpy{font-size:14px;padding:3px 7px}
+.cpy{flex:none;display:inline-flex;align-items:center;justify-content:center;vertical-align:middle;border:0;background:transparent;color:var(--muted);border-radius:6px;padding:3px;margin-left:3px;line-height:0;cursor:pointer}
+.cpy:hover{background:var(--brand2);color:var(--brand)}
+.cpy.ok{color:var(--green)}
+.cpy.lt{color:rgba(255,255,255,.85)}.cpy.lt:hover{background:rgba(255,255,255,.18);color:#fff}
+.cpy-wrap{display:inline-flex;align-items:center;gap:1px;max-width:100%}
+.sheet .bar .cpy{padding:5px}.sheet .bar .cpy svg{width:18px;height:18px}
 .sol .name{font-weight:650;font-size:15.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .sol .sub{font-size:12.5px;color:var(--ink2);margin-top:3px;display:flex;flex-wrap:wrap;gap:4px 10px}
 .sol .right{text-align:right;flex:none}
@@ -493,7 +496,7 @@ table.ht td.nota{max-width:220px;overflow:hidden;text-overflow:ellipsis;color:va
 </div>
 
 <div id="sheet" class="sheet hidden">
-  <div class="bar"><button class="back" id="sheetBack">←</button><h2 id="sheetTitle"></h2><button class="cpy" id="sheetCopy" title="Copiar nombre del cliente" aria-label="Copiar nombre del cliente">📋</button><span id="sheetChip"></span></div>
+  <div class="bar"><button class="back" id="sheetBack">←</button><h2 id="sheetTitle"></h2><button type="button" class="cpy" id="sheetCopy" title="Copiar nombre del cliente" aria-label="Copiar nombre del cliente"></button><span id="sheetChip"></span></div>
   <div class="body" id="sheetBody"></div>
 </div>
 
@@ -501,7 +504,7 @@ table.ht td.nota{max-width:220px;overflow:hidden;text-overflow:ellipsis;color:va
 // App disponible sin señal (sw.js debe estar junto a index.html). Va primero para registrarse aunque falle otra cosa.
 if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) navigator.serviceWorker.register('sw.js').catch(() => {});
 // Versión de esta copia de la app: cambia en cada entrega. La app la compara con la publicada y se actualiza sola.
-const APP_VER = '2026-10-23.1000';
+const APP_VER = '2026-10-23.1100';
 // ================== Configuración ==================
 const SB_URL = 'https://edmvfqelxsxevpmxgbav.supabase.co';
 const SB_KEY = 'sb_publishable_lgTmmLtUESDDyX2sff6ArQ_z65Ti9d6';
@@ -561,12 +564,18 @@ const rol = () => S.me?.rol;
 const es = (...r) => r.includes(rol()) || rol() === 'admin';
 function edad(fn){ if(!fn) return null; const b = new Date(fn), h = new Date(); let a = h.getFullYear()-b.getFullYear();
   if (h.getMonth()<b.getMonth() || (h.getMonth()===b.getMonth() && h.getDate()<b.getDate())) a--; return a; }
+// Botón para copiar (ícono SVG); [data-cpy] lo maneja el listener global sin abrir la tarjeta o fila
+const ICO_COPIAR = '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V6a2 2 0 0 1 2-2h9"/></svg>';
+const ICO_OK = '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>';
+const cpyBtn = (t, cls = '') => t ? `<button type="button" class="cpy ${cls}" data-cpy="${esc(t)}" title="Copiar nombre" aria-label="Copiar ${esc(t)}">${ICO_COPIAR}</button>` : '';
+const conCopiar = (t, html) => `<span class="cpy-wrap">${html ?? esc(t)}${cpyBtn(t)}</span>`;
 async function copiarTexto(t){
   try { await navigator.clipboard.writeText(t); }
   catch(e){ const a = document.createElement('textarea'); a.value = t; a.style.cssText = 'position:fixed;opacity:0'; document.body.appendChild(a); a.select(); document.execCommand('copy'); a.remove(); }
   toast('📋 Copiado: ' + t);
 }
-document.addEventListener('click', e => { const b = e.target.closest('[data-cpy]'); if (!b) return; e.stopPropagation(); e.preventDefault(); copiarTexto(b.dataset.cpy); }, true);
+document.addEventListener('click', e => { const b = e.target.closest('[data-cpy]'); if (!b) return; e.stopPropagation(); e.preventDefault(); copiarTexto(b.dataset.cpy);
+  b.innerHTML = ICO_OK; b.classList.add('ok'); clearTimeout(b._t); b._t = setTimeout(() => { b.innerHTML = ICO_COPIAR; b.classList.remove('ok'); }, 1400); }, true);
 function toast(msg, err){ const t = document.createElement('div'); t.className = 'toast' + (err?' err':''); t.textContent = msg;
   document.body.appendChild(t); setTimeout(() => t.remove(), err ? 5000 : 2800); }
 function errMsg(e){ return (e?.message || e?.error_description || String(e)).replace(/^.*?ERROR:\s*/,''); }
@@ -1306,7 +1315,7 @@ function rfPintarLista(rows){
     if (r.sol) ch.push(`<span class="chip c-gray" style="border:1px solid var(--line)">${esc(r.sol.codigo || 'Solicitud')} · ${esc(EST[r.sol.estado]?.t || r.sol.estado)}</span>`);
     const dCls = r.disp > 0 && (r.atraso || r.noAplica || r.bloq) ? 'text-decoration:line-through;color:var(--muted);font-weight:500' : r.disp > 0 ? '' : 'color:var(--muted);font-weight:500';
     return `<div class="card sol" data-rk="${r.k}">
-      <div class="main"><div class="name">${esc(r.nombre)}</div>
+      <div class="main"><div class="name-row"><div class="name">${esc(r.nombre)}</div>${cpyBtn(r.nombre)}</div>
         <div class="sub"><span>${esc(r.tipo)}${r.nPrest > 1 ? ` · ${r.nPrest} préstamos` : ''}</span><span>Último ${rfL0(r.capital)} · ${rfFd(r.fecha)}</span><span>Balance ${L(r.balance)}</span></div>
         <div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:6px">${ch.join('')}</div>
         ${g.comentario ? `<div class="small muted" style="margin-top:5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">💬 ${esc(g.comentario)}</div>` : ''}</div>
@@ -1336,7 +1345,7 @@ function rfAbrir(k){
   const g = r.g, ed = rfEdita(), gs = rfGestiona();
   const loans = r.prest.map(p => `<tr><td>${rfFd(p.f)}</td><td>${esc(p.t)}</td><td style="text-align:right">${rfL0(p.cap)}</td><td style="text-align:right">${L(p.bal)}</td></tr>`).join('');
   const cuotas = r.pd.list.length ? r.pd.list.slice().sort((a, b) => String(a.f).localeCompare(String(b.f))).map(q => `<tr><td>${rfFd(q.f)}</td><td style="text-align:right">${L(q.bal)}</td><td style="text-align:right">${L(q.pend)}</td><td style="text-align:right">${q.atr} d</td></tr>`).join('') : '<tr><td colspan="4" class="muted">Sin cuotas pendientes en el reporte.</td></tr>';
-  const w = dialogo(`<h3>${esc(r.nombre)}</h3>
+  const w = dialogo(`<h3>${conCopiar(r.nombre)}</h3>
     <div class="small muted">${esc(r.tipo)} · ${esc(r.dia || '')}${g.actualizado_en ? ` · actualizado ${hace(g.actualizado_en)}${g.actualizado_por ? ' por ' + esc(nombre(g.actualizado_por)) : ''}` : ''}</div>
     ${r.bloq ? `<div class="alert err small">🔒 <b>Cliente bloqueado</b>${g.bloqueado_en ? ` el ${rfFd(g.bloqueado_en)}` : ''}${g.bloqueado_por ? ' por ' + esc(nombre(g.bloqueado_por)) : ''}: no se le ofrece refinanciamiento aunque tenga disponible.${g.motivo_bloqueo ? `<br>Motivo: ${esc(g.motivo_bloqueo)}` : ''}</div>` : ''}
     ${r.atraso ? `<div class="alert err small">En atraso: ${L(r.pd.monto)} pendiente en ${r.pd.n} cuota(s), hasta ${r.pd.max} días. No se cuenta en la oportunidad.</div>` : ''}
@@ -1596,13 +1605,17 @@ const capital1 = t => (t || '').toLowerCase().replace(/(^|\s)\S/g, x => x.toUppe
 const primerNombre = t => capital1(String(t || '').trim().split(/\s+/)[0]);
 async function cargarPlantillas(forzar){
   if (S.plantillas && !forzar) return S.plantillas;
-  try { const { data, error } = await sb.from('plantillas_wa').select('*').order('orden').order('id'); if (error) throw error; S.plantillas = data || []; KV.set(ck('plantillas'), S.plantillas); }
-  catch(e){ S.plantillas = (await KV.get(ck('plantillas'))) || []; }
+  try {
+    const [r, c] = await Promise.all([sb.from('plantillas_wa').select('*').order('orden').order('id'), sb.from('config_app').select('valor').eq('clave', 'wa_nombre_verificador').maybeSingle()]);
+    if (r.error) throw r.error; S.plantillas = r.data || []; S.waNombreVerif = c.data?.valor || '';
+    KV.set(ck('plantillas'), { p:S.plantillas, v:S.waNombreVerif });
+  } catch(e){ const k = (await KV.get(ck('plantillas'))) || {}; S.plantillas = k.p || []; S.waNombreVerif = k.v || ''; }
   return S.plantillas;
 }
 function llenarPlantilla(t, s){
-  const ver = s.verificador_id ? nombre(s.verificador_id) : S.me.nombre;
-  const v = { cliente:primerNombre(s.nombre_cliente), cliente_completo:capital1(s.nombre_cliente), verificador:primerNombre(ver), asesor:primerNombre(nombre(s.asesor_id)),
+  // Nombre del verificador: el que definió el admin; si no hay, el primer nombre del verificador asignado (o de quien escribe)
+  const ver = (S.waNombreVerif || '').trim() || primerNombre(s.verificador_id ? nombre(s.verificador_id) : S.me.nombre);
+  const v = { cliente:primerNombre(s.nombre_cliente), cliente_completo:capital1(s.nombre_cliente), verificador:ver, asesor:primerNombre(nombre(s.asesor_id)),
     codigo:s.codigo || '', monto:s.monto_aprobado ? L(s.monto_solicitado || s.monto_aprobado) : '' };
   return String(t || '').replace(/\{(\w+)\}/g, (m, k) => k in v ? v[k] : m);
 }
@@ -1611,7 +1624,7 @@ async function abrirWhatsApp(s){
   const ps = (await cargarPlantillas()).filter(p => p.activo);
   const tel = s.telefono || s.datos_cliente?.telefono || '';
   const w = dialogo(`<h3>💬 WhatsApp a ${esc(primerNombre(s.nombre_cliente))}</h3>
-    <div class="small muted">${esc(s.nombre_cliente)} · ${esc(s.codigo)}</div>
+    <div class="small muted">${conCopiar(s.nombre_cliente)} · ${esc(s.codigo)}</div>
     <label class="f">Plantilla</label>
     ${ps.length ? `<div class="filters" id="waPl">${ps.map((p, i) => `<button data-i="${i}" class="${i ? '' : 'on'}">${esc(p.titulo)}</button>`).join('')}</div>` : '<div class="small muted">No hay plantillas activas. El administrador las agrega en Parámetros.</div>'}
     <label class="f">Mensaje (puede modificarlo antes de enviar)</label><textarea id="waTxt" rows="6"></textarea>
@@ -1629,7 +1642,10 @@ async function abrirWhatsApp(s){
 async function pintarPlantillasAdmin(){
   const ps = await cargarPlantillas(true), cont = $('#plAdmin'); if (!cont) return;
   const ej = { nombre_cliente:'MARÍA JOSÉ LÓPEZ PAZ', codigo:'S-2610-0001', asesor_id:S.me.id, monto_aprobado:15000 };
-  cont.innerHTML = `<div class="small muted" style="margin-bottom:8px">Variables: ${WA_VARS.map(([k, t]) => `<code title="${t}">{${k}}</code>`).join(' ')} — se reemplazan solas al escribirle al cliente.</div>
+  cont.innerHTML = `<label class="f" style="margin-top:0">Nombre con el que se identifica el verificador en los mensajes <code>{verificador}</code></label>
+    <div class="row" style="gap:8px"><input id="plVer" value="${esc(S.waNombreVerif || '')}" placeholder="Vacío = primer nombre de cada verificador"><button class="btn sm pri" id="plVerOk" style="flex:none">Guardar</button></div>
+    <div class="small muted" style="margin:4px 0 12px">Ej.: "Carlos" o "el equipo de verificación". Si lo deja vacío, cada verificador sale con su primer nombre.</div>
+    <div class="small muted" style="margin-bottom:8px">Variables: ${WA_VARS.map(([k, t]) => `<code title="${t}">{${k}}</code>`).join(' ')} — se reemplazan solas al escribirle al cliente.</div>
     ${ps.map(p => `<div class="card" data-pl="${p.id}" style="box-shadow:none">
       <div class="row" style="gap:8px;flex-wrap:wrap"><input data-k="titulo" value="${esc(p.titulo)}" style="flex:2;min-width:160px;font-weight:600">
         <input data-k="orden" type="number" value="${p.orden}" style="width:80px;flex:none" title="Orden">
@@ -1650,6 +1666,10 @@ async function pintarPlantillasAdmin(){
       if (!confirm('¿Eliminar esta plantilla?')) return;
       const { error } = await sb.from('plantillas_wa').delete().eq('id', id); if (error) throw error; pintarPlantillasAdmin(); });
   });
+  $('#plVerOk').onclick = e => run(e.target, async () => {
+    const v = $('#plVer').value.trim() || null;
+    const { error } = await sb.from('config_app').upsert({ clave:'wa_nombre_verificador', valor:v, actualizado_en:new Date().toISOString() }); if (error) throw error;
+    S.waNombreVerif = v || ''; toast(v ? `Los mensajes dirán "${v}"` : 'Cada verificador saldrá con su primer nombre'); pintarPlantillasAdmin(); });
   $('#plNueva').onclick = e => run(e.target, async () => {
     const { error } = await sb.from('plantillas_wa').insert({ titulo:'Nueva plantilla', texto:'Hola {cliente}, le saluda {verificador} de Más Pisto. ', orden:(ps.at(-1)?.orden || 0) + 1 });
     if (error) throw error; pintarPlantillasAdmin(); });
@@ -1724,7 +1744,7 @@ async function mapaVerificar(pts){
   pts.forEach(s => { const p = puntoVerif(s); b.push([p.lat, p.lng]);
     const col = s.verificador_id ? avColor(s.verificador_id) : '#6b7280';
     LF.circleMarker([p.lat, p.lng], { radius:10, color:'#fff', weight:2, fillColor:col, fillOpacity:.95 }).addTo(map)
-      .bindPopup(`<b>${esc(s.nombre_cliente)}</b><br>${esc(s.codigo)} · ${esc([sectorDe(s), ciudadDe(s)].filter(Boolean).join(', '))}<br>Verificador: ${esc(s.verificador_id ? nombre(s.verificador_id) : 'Sin asignar')}${s.forma_desembolso === 'efectivo' ? `<br>💵 Entregar ${L(montoLibre(s))}` : ''}<br><a href="#" data-open="${s.id}">Abrir solicitud</a> · <a href="${linkRuta(p.lat, p.lng)}" target="_blank">Cómo llegar</a>`); });
+      .bindPopup(`<b>${conCopiar(s.nombre_cliente)}</b><br>${esc(s.codigo)} · ${esc([sectorDe(s), ciudadDe(s)].filter(Boolean).join(', '))}<br>Verificador: ${esc(s.verificador_id ? nombre(s.verificador_id) : 'Sin asignar')}${s.forma_desembolso === 'efectivo' ? `<br>💵 Entregar ${L(montoLibre(s))}` : ''}<br><a href="#" data-open="${s.id}">Abrir solicitud</a> · <a href="${linkRuta(p.lat, p.lng)}" target="_blank">Cómo llegar</a>`); });
   if (S.miPos){ b.push([S.miPos.lat, S.miPos.lng]); LF.circleMarker([S.miPos.lat, S.miPos.lng], { radius:8, color:'#0A2A66', weight:3, fillColor:'#FFD400', fillOpacity:1 }).addTo(map).bindPopup('Usted está aquí'); }
   if (S.vOrden === 'cerca' && pts.length > 1){ const r = rutaCercana(S.miPos || null, pts);
     LF.polyline((S.miPos ? [[S.miPos.lat, S.miPos.lng]] : []).concat(r.out.map(x => { const p = puntoVerif(x.s); return [p.lat, p.lng]; })), { color:'#1877F2', weight:3, opacity:.6, dashArray:'6 6' }).addTo(map); }
@@ -1746,7 +1766,7 @@ function cardSol(s, ctx){
   return `<div class="card sol${s.en_espera ? ' espera' : ''}" data-id="${s.id}" style="${rcVars(colorDe(s.estado))}">
     <div class="main">
       <div style="margin-bottom:4px">${rolPill(s)}</div>
-      <div class="name-row"><div class="name">${esc(s.nombre_cliente)}</div><button class="cpy" data-cpy="${esc(s.nombre_cliente)}" title="Copiar nombre" aria-label="Copiar nombre">📋</button></div>
+      <div class="name-row"><div class="name">${esc(s.nombre_cliente)}</div>${cpyBtn(s.nombre_cliente)}</div>
       <div class="sub"><span>${esc(s.codigo)}</span>${tipoChip(s.tipo)}${pendChip(s)}<span>👤 ${esc(nombre(s.asesor_id))}</span>${extra}${c}</div>
       ${entregaHTML(s)}
       ${s.en_espera && s.espera_motivo ? `<div class="small" style="color:var(--gray);margin-top:3px">⏸ ${esc(s.espera_motivo)}</div>` : ''}
@@ -1794,7 +1814,7 @@ function origenLeer(w, obligatorio){
 // Dialogo para agregar / revisar cómo llegó el cliente (detalle e historial)
 const puedeOrigen = s => s.tipo === 'nuevo' && s.id > 0 && (es('analista') || s.asesor_id === S.me.id);
 function abrirOrigen(s, despues){
-  const w = dialogo(`<h3>¿Cómo llegó ${esc(s.nombre_cliente)}?</h3>
+  const w = dialogo(`<h3>¿Cómo llegó ${conCopiar(s.nombre_cliente)}?</h3>
     ${s.origen_asumido ? '<div class="alert info small">Se asumió <b>Facebook</b> porque no estaba registrado. Confírmelo o cambie al canal real.</div>' : ''}
     ${origenCampos(s)}<div class="btns"><button class="btn ghost" data-close>Cancelar</button><button class="btn pri" id="oOk">${s.origen_asumido ? 'Confirmar' : 'Guardar'}</button></div>`);
   origenEnlazar(w);
@@ -1884,7 +1904,7 @@ async function abrirDetalle(id, keepScroll){
   const s = S.sols.find(x => x.id === id); if (!s) return;
   S.det = id; S.replyTo = null; S.dirty = false;
   if ($('#sheet').classList.contains('hidden')){ $('#sheet').classList.remove('hidden'); history.pushState({ sheet:1 }, ''); document.body.style.overflow = 'hidden'; }
-  $('#sheetTitle').textContent = s.nombre_cliente; $('#sheetCopy').dataset.cpy = s.nombre_cliente; $('#sheetChip').innerHTML = chip(s.estado);
+  $('#sheetTitle').textContent = s.nombre_cliente; $('#sheetCopy').dataset.cpy = s.nombre_cliente; $('#sheetCopy').innerHTML = ICO_COPIAR; $('#sheetChip').innerHTML = chip(s.estado);
   if (!keepScroll){ $('#sheetBody').innerHTML = '<div class="empty">Cargando…</div>'; $('#sheet').scrollTop = 0; }
   let ing = { error:{ message:'Failed to fetch' } }, items = ing, evs = ing;
   if (id > 0 && navigator.onLine) [ing, items, evs] = await Promise.all([
@@ -2060,7 +2080,7 @@ function renderDetalle(){
   // Tiempos por paso + historial de gestiones
   h += tiemposHTML(s, evs);
 
-  $('#sheetTitle').textContent = s.nombre_cliente; $('#sheetCopy').dataset.cpy = s.nombre_cliente; $('#sheetChip').innerHTML = chip(s.estado);
+  $('#sheetTitle').textContent = s.nombre_cliente; $('#sheetCopy').dataset.cpy = s.nombre_cliente; $('#sheetCopy').innerHTML = ICO_COPIAR; $('#sheetChip').innerHTML = chip(s.estado);
   let n = 0; const col = { m:'', s:'' };
   h.split('\u0001').forEach(p => { const html = p.slice(1).trim(); if (html) col[p[0]] += `<div class="det-it" style="order:${++n}">${html}</div>`; });
   $('#sheetBody').innerHTML = `<div class="det-cols"><div class="det-col det-main">${col.m}</div><div class="det-col det-side">${col.s}</div></div>`;
@@ -2941,7 +2961,7 @@ function resumenColsHTML(s, ing, prom, r){
 }
 function encabezadoCliente(s){
   return `<div class="rf-head">
-      <div class="rf-nm">${esc(s.nombre_cliente)}</div>
+      <div class="rf-nm">${esc(s.nombre_cliente)}${cpyBtn(s.nombre_cliente, 'lt')}</div>
       <div class="rf-sub">${esc(s.codigo)} · ${TIPO[s.tipo]} · Solicitud: ${fFechaHora(s.creado_en)}${s.dni ? ' · ID ' + esc(s.dni) : ''}</div>
       <div class="rf-sub">Asesor: ${esc(nombre(s.asesor_id))}${s.analista_id ? ' · Analista: ' + esc(nombre(s.analista_id)) : ''}</div>
     </div>`;
@@ -3464,7 +3484,7 @@ function unirFotos(fotos, modo, maxLado = 1800){
 const canvasBlob = (cv, q = 0.85) => new Promise((ok, fail) => cv.toBlob(b => b ? ok(b) : fail(new Error('No se pudo crear la imagen')), 'image/jpeg', q));
 function abrirContratoFirmado(s){
   const st = { fotos: [], modo: 'lado', blob: null };
-  const w = dialogo(`<h3>📸 Contrato firmado · ${esc(s.nombre_cliente)}</h3>
+  const w = dialogo(`<h3>📸 Contrato firmado · ${conCopiar(s.nombre_cliente)}</h3>
     <div class="small muted">Tome una foto de cada hoja firmada (o elíjalas de la galería), en orden: hoja 1, hoja 2… Cada hoja se escanea (recorte, enderezado y fondo blanco) y se unen en una sola imagen.</div>
     <div class="btns" style="margin-top:10px">
       <label class="btn pri" style="cursor:pointer">📷 Tomar foto<input type="file" accept="image/*" capture="environment" id="cfCam" hidden></label>
@@ -3777,10 +3797,10 @@ function pintarTablero(){
   if ($('#kProc')) $('#kProc').onclick = () => {
     const w = dialogo(`<h3>En proceso de colocación</h3><div class="small muted">Solicitudes aprobadas que aún no se desembolsan (completar datos, verificación o transferencia pendiente). Capital nuevo = monto que toma el cliente − saldo de capital anterior.</div>
       ${enColoc.length ? `<table class="t" style="margin-top:8px"><thead><tr><th>Cliente</th><th>Paso</th><th class="num">Monto</th><th class="num">Capital nuevo</th></tr></thead><tbody>
-      ${enColoc.map(s => `<tr data-id="${s.id}" style="cursor:pointer"><td><b>${esc(s.nombre_cliente)}</b><div class="small muted">${esc(s.codigo)} · ${TIPO[s.tipo] || s.tipo}${s.en_espera ? ' · ⏸ en espera' : ''}</div></td><td>${PASO[s.estado]?.t || EST[s.estado].t}</td>
+      ${enColoc.map(s => `<tr data-id="${s.id}" style="cursor:pointer"><td><b>${conCopiar(s.nombre_cliente)}</b><div class="small muted">${esc(s.codigo)} · ${TIPO[s.tipo] || s.tipo}${s.en_espera ? ' · ⏸ en espera' : ''}</div></td><td>${PASO[s.estado]?.t || EST[s.estado].t}</td>
         <td class="num">${L(s.monto_solicitado || s.monto_aprobado)}${s.tipo !== 'nuevo' && +s.saldo_capital ? `<div class="small muted">saldo ${L(s.saldo_capital)}</div>` : ''}</td><td class="num"><b>${L(capitalColocado(s))}</b></td></tr>`).join('')}
       </tbody></table>` : '<div class="empty">No hay solicitudes en proceso.</div>'}
-      ${enEsperaColoc.length ? `<h4 class="sec">⏸ En espera (no suman)</h4><table class="t"><tbody>${enEsperaColoc.map(s => `<tr data-id="${s.id}" style="cursor:pointer;color:var(--gray)"><td><b>${esc(s.nombre_cliente)}</b><div class="small">${esc(s.codigo)} · ${esc(s.espera_motivo || '')}</div></td><td class="num">${L(capitalColocado(s))}</td></tr>`).join('')}</tbody></table>` : ''}
+      ${enEsperaColoc.length ? `<h4 class="sec">⏸ En espera (no suman)</h4><table class="t"><tbody>${enEsperaColoc.map(s => `<tr data-id="${s.id}" style="cursor:pointer;color:var(--gray)"><td><b>${conCopiar(s.nombre_cliente)}</b><div class="small">${esc(s.codigo)} · ${esc(s.espera_motivo || '')}</div></td><td class="num">${L(capitalColocado(s))}</td></tr>`).join('')}</tbody></table>` : ''}
       <div class="btns"><button class="btn ghost" data-close>Cerrar</button></div>`);
     w.querySelectorAll('tr[data-id]').forEach(tr => tr.onclick = () => { cerrarDialogo(w); abrirDetalle(+tr.dataset.id); });
   };
@@ -3803,7 +3823,7 @@ function cardK(s, dia){
   const previo = ab && diaHN(s.creado_en) < dia ? `<span class="chip c-gray">desde ${fDate(s.creado_en).replace(/ de \d{4}$/,'')}</span>` : '';
   return `<div class="kc${s.en_espera ? ' espera' : ''}" data-id="${s.id}" style="${rcVars(colorDe(s.estado))}">
     <div class="rolbar">${rolPill(s)}${previo}</div>
-    <div class="nm">${esc(s.nombre_cliente)}</div>
+    <div class="nm">${conCopiar(s.nombre_cliente)}</div>
     <div class="ln">${chip(s.estado)}${tipoChip(s.tipo)}${esperaChip(s)}${pendChip(s)}</div>
     ${s.en_espera ? `<div class="ln" style="color:var(--gray)">⏸ ${esc(s.espera_motivo||'')} · ${hace(s.espera_desde)}</div>` : ''}
     <div class="ln"><span>${esc(s.codigo)}</span><span>👤 ${esc(nombre(s.asesor_id).split(' ')[0])}</span>${ab && !s.en_espera ? `<span>Espera: <b>${esc(responsable(s) || ESPERA[s.estado])}</b></span>` : ''}${monto ? `<b style="color:var(--ink)">${monto}</b>` : ''}${S.com[s.id] ? `<span>💬 ${S.com[s.id]}</span>` : ''}</div>
@@ -3837,7 +3857,7 @@ setInterval(() => {
 const H_COLS = [
   { k:'fecha', t:'Fecha', v:s => hFecha(s), h:s => { const f = hFecha(s); return f ? `${fDate(f)}<div class="small muted">${new Date(f).toLocaleTimeString('es-HN',{timeZone:TZ,hour:'numeric',minute:'2-digit'})}</div>` : '—'; }, csv:s => hFecha(s) ? new Date(hFecha(s)).toLocaleString('es-HN',{timeZone:TZ}) : '' },
   { k:'codigo', t:'Código', v:s => s.codigo },
-  { k:'cliente', t:'Cliente', v:s => s.nombre_cliente, h:s => `<b>${esc(s.nombre_cliente)}</b>${s.dni ? `<div class="small muted">${esc(s.dni)}</div>` : ''}${puedeRepetir(s) ? `<button class="btn sm ghost" data-rep="${s.id}" title="Crear una nueva solicitud con los mismos datos e ingresos" style="margin-top:4px;padding:2px 8px;font-size:11px">↻ Nueva a partir de esta</button>` : ''}`, cls:'cli' },
+  { k:'cliente', t:'Cliente', v:s => s.nombre_cliente, h:s => `<b>${conCopiar(s.nombre_cliente)}</b>${s.dni ? `<div class="small muted">${esc(s.dni)}</div>` : ''}${puedeRepetir(s) ? `<button class="btn sm ghost" data-rep="${s.id}" title="Crear una nueva solicitud con los mismos datos e ingresos" style="margin-top:4px;padding:2px 8px;font-size:11px">↻ Nueva a partir de esta</button>` : ''}`, cls:'cli' },
   { k:'dni', t:'Identidad', v:s => s.dni || '', oculta:true },
   { k:'tipo', t:'Tipo', v:s => TIPO[s.tipo] || s.tipo, h:s => tipoChip(s.tipo) },
   { k:'canal', t:'Cómo llegó', v:s => s.tipo === 'nuevo' ? origenTxt(s) || '' : '', h:s => {
@@ -4259,9 +4279,9 @@ function pintarReferidos(){
       <input id="refQ" type="search" placeholder="Buscar nombre…" value="${esc(f.q)}" style="flex:1;min-width:160px"></div>
     <div class="card" style="overflow-x:auto">${!lista.length ? '<div class="empty">Todavía no hay clientes referidos en este período.</div>' : f.vista === 'ref'
       ? `<table class="t"><thead><tr><th>Referido por</th><th>Tipo</th><th>Teléfono</th><th class="num">Referidos</th><th class="num">Desemb.</th><th class="num">Capital colocado</th><th class="num">Bonos pend.</th><th class="num">Bonos pagados</th></tr></thead><tbody>
-        ${gl.map(o => `<tr><td><b>${esc(o.nombre)}</b><div class="small muted" style="white-space:normal">${o.sols.map(s => esc(s.nombre_cliente)).join(', ')}</div></td><td>${tipoTxt(o.tipo)}</td><td>${o.tel ? `<a href="tel:${esc(o.tel)}">${esc(o.tel)}</a>` : '—'}</td><td class="num">${o.n}</td><td class="num">${o.des}</td><td class="num">${L(Math.round(o.cap))}</td><td class="num">${o.pend || '—'}</td><td class="num">${o.pagN ? L(o.pag) : '—'}</td></tr>`).join('')}</tbody></table>`
+        ${gl.map(o => `<tr><td><b>${conCopiar(o.nombre)}</b><div class="small muted" style="white-space:normal">${o.sols.map(s => conCopiar(s.nombre_cliente)).join(', ')}</div></td><td>${tipoTxt(o.tipo)}</td><td>${o.tel ? `<a href="tel:${esc(o.tel)}">${esc(o.tel)}</a>` : '—'}</td><td class="num">${o.n}</td><td class="num">${o.des}</td><td class="num">${L(Math.round(o.cap))}</td><td class="num">${o.pend || '—'}</td><td class="num">${o.pagN ? L(o.pag) : '—'}</td></tr>`).join('')}</tbody></table>`
       : `<table class="t"><thead><tr><th>Fecha</th><th>Cliente referido</th><th>Estado</th><th>Referido por</th><th>Tipo</th><th class="num">Capital</th><th>Bono</th></tr></thead><tbody>
-        ${lista.map(s => `<tr data-id="${s.id}" style="cursor:pointer"><td>${fDate(s.creado_en)}</td><td>${esc(s.nombre_cliente)}</td><td>${chip(s.estado)}</td><td>${esc(referidor(s))}</td><td>${tipoTxt(s.origen_canal)}</td><td class="num">${s.estado === 'desembolsada' ? L(Math.round(capitalColocado(s))) : '—'}</td><td>${bonoCel(s)}</td></tr>`).join('')}</tbody></table>`}</div>`;
+        ${lista.map(s => `<tr data-id="${s.id}" style="cursor:pointer"><td>${fDate(s.creado_en)}</td><td>${conCopiar(s.nombre_cliente)}</td><td>${chip(s.estado)}</td><td>${esc(referidor(s))}</td><td>${tipoTxt(s.origen_canal)}</td><td class="num">${s.estado === 'desembolsada' ? L(Math.round(capitalColocado(s))) : '—'}</td><td>${bonoCel(s)}</td></tr>`).join('')}</tbody></table>`}</div>`;
   const M = $('#main');
   M.querySelectorAll('[data-p]').forEach(b => b.onclick = () => { f.per = b.dataset.p; pintarReferidos(); });
   M.querySelectorAll('#refVista button').forEach(b => b.onclick = () => { f.vista = b.dataset.v; pintarReferidos(); });
@@ -4271,7 +4291,7 @@ function pintarReferidos(){
   M.querySelectorAll('[data-bono]').forEach(b => b.onclick = () => {
     const so = S.sols.find(x => x.id === +b.dataset.bono);
     if (!es('analista')) return toast('Solo el administrador o el analista registran bonos', true);
-    const w = dialogo(`<h3>Bono por referido</h3><div class="small muted">${esc(referidor(so))} refirió a <b>${esc(so.nombre_cliente)}</b>.</div>
+    const w = dialogo(`<h3>Bono por referido</h3><div class="small muted">${esc(referidor(so))} refirió a <b>${conCopiar(so.nombre_cliente)}</b>.</div>
       <label class="f">Monto pagado (L)</label><input id="bMon" type="number" inputmode="decimal" min="0" step="50" value="${S.params.bono_referido || ''}">
       <label class="f">Nota (opcional)</label><input id="bNota" placeholder="Ej.: transferencia, efectivo, recibo #…">
       <div class="btns"><button class="btn ghost" data-close>Cancelar</button><button class="btn pri" id="bOk">Registrar pago</button></div>`);
