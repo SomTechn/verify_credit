@@ -509,7 +509,7 @@ table.ht td.nota{max-width:220px;overflow:hidden;text-overflow:ellipsis;color:va
 // App disponible sin señal (sw.js debe estar junto a index.html). Va primero para registrarse aunque falle otra cosa.
 if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) navigator.serviceWorker.register('sw.js').catch(() => {});
 // Versión de esta copia de la app: cambia en cada entrega. La app la compara con la publicada y se actualiza sola.
-const APP_VER = '2026-10-23.1008';
+const APP_VER = '2026-10-23.1146';
 // ================== Configuración ==================
 const SB_URL = 'https://edmvfqelxsxevpmxgbav.supabase.co';
 const SB_KEY = 'sb_publishable_lgTmmLtUESDDyX2sff6ArQ_z65Ti9d6';
@@ -2101,6 +2101,7 @@ function renderDetalle(){
         <div class="box"><div class="l">Próximo aumento</div><div class="v" style="font-size:15px">${c.aumento || 'N/A'}</div></div>
         <div class="box full"><div class="l">Techo aplicado</div><div style="font-weight:600">${c.motivo}</div>
           <div class="small muted">Promedio por pago ${L(c.promPago.toFixed(2))} × ${c.factor} ${c.nCom ? '+ promedio comisiones' : ''} → redondeado a ${S.params.redondeo}</div></div>
+        ${dictamenBoxHTML(s, true)}
       </div>
       ${s.dictamen_en && s.monto_solicitado && +s.monto_solicitado !== +s.monto_aprobado ? `<div class="alert info small" style="margin-top:10px">El cliente toma <b>${L(s.monto_solicitado)}</b> de ${L(s.monto_aprobado)} aprobados.</div>` : ''}
       ${cuotasPlazoHTML(s.dictamen_en && s.monto_aprobado ? +(s.monto_solicitado || s.monto_aprobado) : (limNuevo(s, c) || 0), s.dictamen_en && s.tasa_preferencial != null ? !!s.tasa_preferencial : c.tasaPref, s.tipo_pago, c.promedio, null, c.tipoB || s.politica_b ? { tasa: S.params.tipob_tasa ?? 0.2, plazo: S.params.tipob_plazo ?? 3 } : null)}
@@ -2941,7 +2942,24 @@ function calcRefi(s, c){
   return { elegido, limCalc, autorizado, prefCalc, yaPref, prefMotivo, prom, antig, diasAum: diasAum === 99999 ? null : diasAum, limAct, factor, peldano, sugerido, pagos, tard3, tard7, total, manual, pctAprob, penTxt, basePen,
     limAprob, disponible, pref, tasaNueva, cuotas, plazoMin, dictamen, politicaB, ingresoB, sugB, maxDif, B, limB, motivos, proxAum, proxLim, techo, sinFecha: !s.fecha_ingreso };
 }
-function dictamenRefiHTML(r){
+// Recuadro con la decisión del analista y su nota (aprobación o rechazo)
+function dictamenBoxHTML(s, full){
+  if (!s.dictamen_en) return '';
+  const den = s.estado === 'denegada', col = den ? 'var(--red)' : 'var(--green)';
+  return `<div class="box${full ? ' full' : ''}" style="border:1.5px solid ${col};background:${den ? 'var(--red-bg)' : 'var(--green-bg)'}"><div class="l" style="color:${col}">Dictamen del analista</div>
+    <div class="v" style="font-size:16px;color:${col}">${den ? '✖ DENEGADA' : '✔ APROBADA'}</div>
+    <div class="small" style="font-weight:600">${esc(nombre(s.analista_id))} · ${fDT(s.dictamen_en)}</div>
+    ${s.dictamen_nota ? `<div style="margin-top:4px;font-weight:600;color:var(--ink)">📝 ${esc(s.dictamen_nota)}</div>` : '<div class="small muted">Sin nota</div>'}</div>`;
+}
+function dictamenRefiHTML(r, s){
+  // Ya dictaminada: muestra la decisión final y, si fue contra lo sugerido, lo deja claro
+  if (s && s.dictamen_en && ['aprobada','denegada','por_verificar','desembolso_pendiente','desembolsada','rechazada_verificacion','desistida'].includes(s.estado) && s.analista_id){
+    const den = s.estado === 'denegada', sugAprob = r.dictamen.startsWith('APROBADO');
+    const contra = den ? sugAprob : !sugAprob, col = den ? 'cerrada' : 'finalizada';
+    return `<div class="dict" style="background:var(--r-${col}-bg);color:var(--r-${col})">${den ? 'DENEGADA' : 'APROBADA'} por ${esc(nombre(s.analista_id))}${contra ? ' <span style="font-size:12px">(excepción)</span>' : ''}
+      ${s.dictamen_nota ? `<div style="font-family:Inter,sans-serif;font-weight:700;font-size:14px;margin-top:2px">📝 ${esc(s.dictamen_nota)}</div>` : ''}
+      ${contra ? `<div class="small" style="font-family:Inter,sans-serif;font-weight:600;margin-top:4px;color:var(--r-${sugAprob ? 'finalizada' : r.dictamen === 'RECHAZADO' ? 'cerrada' : 'desembolso'})">El análisis automático sugería: ${r.dictamen}${r.motivos.length ? ' · ' + esc(r.motivos.join(' · ')) : ''}</div>` : ''}</div>`;
+  }
   const col = r.dictamen === 'RECHAZADO' ? 'cerrada' : r.dictamen.startsWith('APROBADO') ? 'finalizada' : 'desembolso';
   return `<div class="dict" style="background:var(--r-${col}-bg);color:var(--r-${col})">${r.dictamen}${r.motivos.length ? `<div class="small" style="font-family:Inter,sans-serif;font-weight:600">${esc(r.motivos.join(' · '))}</div>` : ''}${r.plazoMin ? `<div class="small" style="font-family:Inter,sans-serif;font-weight:600">Plazo mínimo viable: ${r.plazoMin}</div>` : ''}</div>`;
 }
@@ -2958,8 +2976,8 @@ function resumenWhatsApp(s, r){
   return [`*${s.nombre_cliente}*`, `${s.codigo} · ${TIPO[s.tipo]}`, `Solicitud: ${fFechaHora(s.creado_en)}`, `Asesor: ${nombre(s.asesor_id)}`, '',
     `Ingreso promedio mensual: ${L(r.prom)}`, `Antigüedad: ${r.antig == null ? '—' : aniosMeses(s.fecha_ingreso)}`, `Límite sugerido: ${L(r.sugerido)}`,
     `*Límite aprobado: ${L(r.limAprob)}*${r.autorizado && r.limCalc !== r.limAprob ? ` (calculado ${L(r.limCalc)})` : ''}`,
-    `Disponible: ${L(r.disponible)}`, `Pagos tardíos >3/≥7: ${r.tard3}/${r.tard7} de ${r.total}`,
-    `Tasa: ${pct(r.tasaNueva)} ${r.politicaB ? 'política tipo B (nivelado, ' + r.B.plazo + ' meses)' : r.pref ? 'preferencial' : 'normal'}`, `Dictamen: ${s.dictamen_en ? (s.estado === 'denegada' ? 'DENEGADA' : 'APROBADA') + ' por ' + nombre(s.analista_id) : r.dictamen}`].join('\n');
+    `Saldo actual: capital ${L(+s.saldo_capital || 0)} · intereses ${L(+s.saldo_intereses || 0)}`, `Disponible: ${L(r.disponible)}`, `Pagos tardíos >3/≥7: ${r.tard3}/${r.tard7} de ${r.total}`,
+    `Tasa: ${pct(r.tasaNueva)} ${r.politicaB ? 'política tipo B (nivelado, ' + r.B.plazo + ' meses)' : r.pref ? 'preferencial' : 'normal'}`, `Dictamen: ${s.dictamen_en ? (s.estado === 'denegada' ? 'DENEGADA' : 'APROBADA') + ' por ' + nombre(s.analista_id) + (s.dictamen_nota ? ' · ' + s.dictamen_nota : '') + (!r.dictamen.startsWith('APROBADO') && s.estado !== 'denegada' ? ` (sugerido: ${r.dictamen})` : '') : r.dictamen}`].join('\n');
 }
 const FREC = { Semanal: 4.33, Quincenal: 2, Mensual: 1 };
 function ingresosResumenHTML(ing){
@@ -3041,9 +3059,12 @@ function refiResHTML(s, r){
         ${s.dictamen_en ? `<div class="small" style="font-weight:600;color:var(--brand)">${autorizadoPor(s, 'ajuste_tasa')}</div>${r.prefCalc !== r.pref ? `<div class="small muted">Calculada: ${r.prefCalc ? 'preferencial' : 'normal'}</div>` : ''}` : ''}</div>
       <div class="box"><div class="l">Próximo aumento</div><div class="v" style="font-size:15px">${r.proxAum}</div></div>
       <div class="box"><div class="l">Próximo límite</div><div class="v">${r.proxLim == null ? 'BLOQUEADO' : L(r.proxLim)}</div></div>
+      <div class="box"><div class="l">Saldo actual del préstamo</div><div class="v">${L((+s.saldo_capital || 0) + (+s.saldo_intereses || 0))}</div>
+        <div class="small">Capital <b>${L(+s.saldo_capital || 0)}</b> · Intereses <b>${L(+s.saldo_intereses || 0)}</b></div></div>
+      ${dictamenBoxHTML(s)}
     </div>
     ${politicaBHTML(s, r)}
-    ${dictamenRefiHTML(r)}
+    ${dictamenRefiHTML(r, s)}
     ${cuotasPlazoHTML(r.elegido ?? r.limAprob, r.pref, s.tipo_pago, r.prom, s.plan_pago, r.politicaB ? { tasa: r.B.tasa, plazo: r.B.plazo } : null)}`;
 }
 // Nuevo: límite con tipo B (automático por ingreso o aplicado por el analista)
