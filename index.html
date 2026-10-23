@@ -504,7 +504,7 @@ table.ht td.nota{max-width:220px;overflow:hidden;text-overflow:ellipsis;color:va
 // App disponible sin señal (sw.js debe estar junto a index.html). Va primero para registrarse aunque falle otra cosa.
 if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) navigator.serviceWorker.register('sw.js').catch(() => {});
 // Versión de esta copia de la app: cambia en cada entrega. La app la compara con la publicada y se actualiza sola.
-const APP_VER = '2026-10-23.1200';
+const APP_VER = '2026-10-23.1300';
 // ================== Configuración ==================
 const SB_URL = 'https://edmvfqelxsxevpmxgbav.supabase.co';
 const SB_KEY = 'sb_publishable_lgTmmLtUESDDyX2sff6ArQ_z65Ti9d6';
@@ -1605,16 +1605,14 @@ const capital1 = t => (t || '').toLowerCase().replace(/(^|\s)\S/g, x => x.toUppe
 const primerNombre = t => capital1(String(t || '').trim().split(/\s+/)[0]);
 async function cargarPlantillas(forzar){
   if (S.plantillas && !forzar) return S.plantillas;
-  try {
-    const [r, c] = await Promise.all([sb.from('plantillas_wa').select('*').order('orden').order('id'), sb.from('config_app').select('valor').eq('clave', 'wa_nombre_verificador').maybeSingle()]);
-    if (r.error) throw r.error; S.plantillas = r.data || []; S.waNombreVerif = c.data?.valor || '';
-    KV.set(ck('plantillas'), { p:S.plantillas, v:S.waNombreVerif });
-  } catch(e){ const k = (await KV.get(ck('plantillas'))) || {}; S.plantillas = k.p || []; S.waNombreVerif = k.v || ''; }
+  try { const { data, error } = await sb.from('plantillas_wa').select('*').order('orden').order('id'); if (error) throw error; S.plantillas = data || []; KV.set(ck('plantillas'), S.plantillas); }
+  catch(e){ const k = await KV.get(ck('plantillas')); S.plantillas = Array.isArray(k) ? k : []; }
   return S.plantillas;
 }
 function llenarPlantilla(t, s){
-  // Nombre del verificador: el que definió el admin; si no hay, el primer nombre del verificador asignado (o de quien escribe)
-  const ver = (S.waNombreVerif || '').trim() || primerNombre(s.verificador_id ? nombre(s.verificador_id) : S.me.nombre);
+  // Verificador asignado (o quien escribe): el nombre que le asignó el admin para WhatsApp; si no tiene, su primer nombre
+  const pv = S.perfiles[s.verificador_id] || S.perfiles[S.me.id] || S.me;
+  const ver = (pv.nombre_wa || '').trim() || primerNombre(pv.nombre);
   const v = { cliente:primerNombre(s.nombre_cliente), cliente_completo:capital1(s.nombre_cliente), verificador:ver, asesor:primerNombre(nombre(s.asesor_id)),
     codigo:s.codigo || '', monto:s.monto_aprobado ? L(s.monto_solicitado || s.monto_aprobado) : '' };
   return String(t || '').replace(/\{(\w+)\}/g, (m, k) => k in v ? v[k] : m);
@@ -1642,9 +1640,11 @@ async function abrirWhatsApp(s){
 async function pintarPlantillasAdmin(){
   const ps = await cargarPlantillas(true), cont = $('#plAdmin'); if (!cont) return;
   const ej = { nombre_cliente:'MARÍA JOSÉ LÓPEZ PAZ', codigo:'S-2610-0001', asesor_id:S.me.id, monto_aprobado:15000 };
-  cont.innerHTML = `<label class="f" style="margin-top:0">Nombre con el que se identifica el verificador en los mensajes <code>{verificador}</code></label>
-    <div class="row" style="gap:8px"><input id="plVer" value="${esc(S.waNombreVerif || '')}" placeholder="Vacío = primer nombre de cada verificador"><button class="btn sm pri" id="plVerOk" style="flex:none">Guardar</button></div>
-    <div class="small muted" style="margin:4px 0 12px">Ej.: "Carlos" o "el equipo de verificación". Si lo deja vacío, cada verificador sale con su primer nombre.</div>
+  const verifs = Object.values(S.perfiles).filter(u => u.activo && u.rol === 'verificador').sort((a, b) => a.nombre.localeCompare(b.nombre, 'es'));
+  cont.innerHTML = `<label class="f" style="margin-top:0">Nombre con el que se presenta cada verificador en los mensajes <code>{verificador}</code></label>
+    ${verifs.length ? `<table class="t" style="margin-bottom:4px"><tbody>${verifs.map(u => `<tr data-vw="${u.id}"><td style="width:40%"><b>${esc(u.nombre)}</b></td>
+      <td><input data-k="nwa" value="${esc(u.nombre_wa || '')}" placeholder="${esc(primerNombre(u.nombre))} (su primer nombre)"></td><td style="width:1%"><button class="btn sm pri" data-vw-ok>Guardar</button></td></tr>`).join('')}</tbody></table>` : '<div class="small muted">No hay verificadores activos.</div>'}
+    <div class="small muted" style="margin:4px 0 12px">Si se deja vacío, el verificador sale con su primer nombre.</div>
     <div class="small muted" style="margin-bottom:8px">Variables: ${WA_VARS.map(([k, t]) => `<code title="${t}">{${k}}</code>`).join(' ')} — se reemplazan solas al escribirle al cliente.</div>
     ${ps.map(p => `<div class="card" data-pl="${p.id}" style="box-shadow:none">
       <div class="row" style="gap:8px;flex-wrap:wrap"><input data-k="titulo" value="${esc(p.titulo)}" style="flex:2;min-width:160px;font-weight:600">
@@ -1666,10 +1666,10 @@ async function pintarPlantillasAdmin(){
       if (!confirm('¿Eliminar esta plantilla?')) return;
       const { error } = await sb.from('plantillas_wa').delete().eq('id', id); if (error) throw error; pintarPlantillasAdmin(); });
   });
-  $('#plVerOk').onclick = e => run(e.target, async () => {
-    const v = $('#plVer').value.trim() || null;
-    const { error } = await sb.from('config_app').upsert({ clave:'wa_nombre_verificador', valor:v, actualizado_en:new Date().toISOString() }); if (error) throw error;
-    S.waNombreVerif = v || ''; toast(v ? `Los mensajes dirán "${v}"` : 'Cada verificador saldrá con su primer nombre'); pintarPlantillasAdmin(); });
+  cont.querySelectorAll('[data-vw]').forEach(tr => tr.querySelector('[data-vw-ok]').onclick = e => run(e.target, async () => {
+    const id = tr.dataset.vw, v = tr.querySelector('[data-k="nwa"]').value.trim();
+    await rpc('guardar_nombre_wa', { p_usuario:id, p_nombre:v || null });
+    S.perfiles[id].nombre_wa = v || null; toast(`${primerNombre(S.perfiles[id].nombre)} se presentará como "${v || primerNombre(S.perfiles[id].nombre)}"`); }));
   $('#plNueva').onclick = e => run(e.target, async () => {
     const { error } = await sb.from('plantillas_wa').insert({ titulo:'Nueva plantilla', texto:'Hola {cliente}, le saluda {verificador} de Más Pisto. ', orden:(ps.at(-1)?.orden || 0) + 1 });
     if (error) throw error; pintarPlantillasAdmin(); });
