@@ -323,6 +323,11 @@ table.ht td.nota{max-width:220px;overflow:hidden;text-overflow:ellipsis;color:va
 .grp span{font:600 11.5px Inter,sans-serif;color:var(--muted)}
 .parada{display:inline-flex;align-items:center;justify-content:center;min-width:22px;height:22px;border-radius:11px;background:var(--brand);color:#fff;font:700 12px Inter,sans-serif;padding:0 6px}
 #vMap{height:62vh;min-height:360px;border-radius:14px;border:1px solid var(--line);overflow:hidden;z-index:0}
+.mkw{background:none;border:0}
+.mk{width:30px;height:30px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);background:var(--c);border:2px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.35);display:flex;align-items:center;justify-content:center}
+.mk span{transform:rotate(45deg);font-size:15px;line-height:1}
+.mk-lb{position:absolute;left:32px;top:2px;white-space:nowrap;background:rgba(255,255,255,.95);color:#0A2A66;font:700 11px Inter,sans-serif;padding:1px 6px;border-radius:6px;box-shadow:0 1px 3px rgba(0,0,0,.25);pointer-events:none}
+#vMap.sin-nombres .mk-lb{display:none}
 .asig{display:flex;flex-direction:column;align-items:flex-start;gap:4px;margin-top:6px;font-size:12.5px}
 .asig select{max-width:100%}
 .asig select{width:auto;padding:4px 8px;font-size:12.5px}
@@ -504,7 +509,7 @@ table.ht td.nota{max-width:220px;overflow:hidden;text-overflow:ellipsis;color:va
 // App disponible sin señal (sw.js debe estar junto a index.html). Va primero para registrarse aunque falle otra cosa.
 if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) navigator.serviceWorker.register('sw.js').catch(() => {});
 // Versión de esta copia de la app: cambia en cada entrega. La app la compara con la publicada y se actualiza sola.
-const APP_VER = '2026-10-23.1300';
+const APP_VER = '2026-10-23.1008';
 // ================== Configuración ==================
 const SB_URL = 'https://edmvfqelxsxevpmxgbav.supabase.co';
 const SB_KEY = 'sb_publishable_lgTmmLtUESDDyX2sff6ArQ_z65Ti9d6';
@@ -1677,11 +1682,11 @@ async function pintarPlantillasAdmin(){
 function pintarVerificar(lista, extra){
   S.vOrden = S.vOrden || 'antig'; S.vVista = S.vVista || 'lista'; if (S.vVerif == null) S.vVerif = '';
   const vs = Object.values(S.perfiles).filter(p => p.rol === 'verificador' && p.activo);
-  if (es('analista') && S.vVerif) lista = lista.filter(s => S.vVerif === 'sin' ? !s.verificador_id : s.verificador_id === S.vVerif);
+  if (es('analista') && S.vVerif) lista = lista.filter(s => S.vVerif === 'sin' ? !s.verificador_id : (s.verificador_id === S.vVerif || s.verificador_trabajo_id === S.vVerif));
   const conPt = lista.filter(s => puntoVerif(s) && !s.en_espera), sinPt = lista.filter(s => !puntoVerif(s) || s.en_espera);
   let cuerpo = '', nota = '';
   if (S.vVista === 'mapa'){
-    cuerpo = `<div id="vMap"></div><div class="small muted" style="margin-top:6px">${conPt.length} con coordenadas${sinPt.length ? ` · ${sinPt.length} sin coordenadas o en espera (no aparecen en el mapa)` : ''}. Toque un punto para ver la solicitud.</div>`;
+    cuerpo = `<div id="vMap"></div><div class="small muted" style="margin-top:6px">${conPt.length} con coordenadas${sinPt.length ? ` · ${sinPt.length} sin coordenadas o en espera (no aparecen en el mapa)` : ''}. 🏠 domicilio · 🏢 trabajo, con el color del verificador asignado. Toque un punto para asignar o ver la solicitud.</div>`;
   } else if (S.vOrden === 'cerca'){
     const r = rutaCercana(S.miPos || null, conPt);
     nota = `<div class="alert info small">${S.miPos ? `🧭 Ruta sugerida desde su ubicación · <b>${fKm(r.total)}</b> en total (línea recta)` : '📍 Sin su ubicación: la ruta empieza en la solicitud más cercana a las demás. Toque "Mi ubicación" para empezar desde donde está.'}</div>`;
@@ -1728,6 +1733,15 @@ function pintarVerificar(lista, extra){
   $('#main').querySelectorAll('.sol').forEach(c => c.onclick = () => abrirDetalle(+c.dataset.id));
   if (S.vVista === 'mapa') mapaVerificar(conPt);
 }
+// Lugares a visitar de una solicitud (domicilio y/o trabajo con coordenadas) y quién está asignado a cada uno
+function lugaresMapa(s){
+  const out = [], tieneT = s.trab_lat != null && itemAplica(s, 'trabajo'), tieneD = s.dom_lat != null && (itemAplica(s, 'domicilio') || !tieneT);
+  if (tieneD) out.push({ s, lugar:'domicilio', lat:+s.dom_lat, lng:+s.dom_lng, ver: s.verificador_id || null });
+  if (tieneT) out.push({ s, lugar:'trabajo', lat:+s.trab_lat, lng:+s.trab_lng, ver: s.verificador_trabajo_id || s.verificador_id || null });
+  if (!out.length){ const p = puntoVerif(s); if (p) out.push({ s, lugar:p.lugar, lat:p.lat, lng:p.lng, ver: p.lugar === 'trabajo' ? (s.verificador_trabajo_id || s.verificador_id || null) : (s.verificador_id || null) }); }
+  return out;
+}
+const nombreCorto = n => { const w = String(n || '').trim().split(/\s+/); return w.length > 2 ? w[0] + ' ' + w[w.length - 2] : w.join(' '); };
 async function mapaVerificar(pts){
   const el = $('#vMap'); if (!el) return;
   try {
@@ -1740,21 +1754,56 @@ async function mapaVerificar(pts){
   const LF = window.L; // Leaflet (L ya se usa para formatear lempiras)
   const map = LF.map(el, { zoomControl:true }).setView([15.5, -88.03], 12);
   LF.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom:19, attribution:'© OpenStreetMap' }).addTo(map);
+  if (S.vNombres === false) el.classList.add('sin-nombres');
+  const puede = es('analista', 'asesor');
+  let lugares = pts.flatMap(lugaresMapa);
+  if (rol() === 'verificador') lugares = lugares.filter(x => !x.ver || x.ver === S.me.id);
+  const verifs = Object.values(S.perfiles).filter(p => p.rol === 'verificador' && p.activo);
   const b = [];
-  pts.forEach(s => { const p = puntoVerif(s); b.push([p.lat, p.lng]);
-    const col = s.verificador_id ? avColor(s.verificador_id) : '#6b7280';
-    LF.circleMarker([p.lat, p.lng], { radius:10, color:'#fff', weight:2, fillColor:col, fillOpacity:.95 }).addTo(map)
-      .bindPopup(`<b>${conCopiar(s.nombre_cliente)}</b><br>${esc(s.codigo)} · ${esc([sectorDe(s), ciudadDe(s)].filter(Boolean).join(', '))}<br>Verificador: ${esc(s.verificador_id ? nombre(s.verificador_id) : 'Sin asignar')}${s.forma_desembolso === 'efectivo' ? `<br>💵 Entregar ${L(montoLibre(s))}` : ''}<br><a href="#" data-open="${s.id}">Abrir solicitud</a> · <a href="${linkRuta(p.lat, p.lng)}" target="_blank">Cómo llegar</a>`); });
+  lugares.forEach((x, i) => {
+    const s = x.s, col = x.ver ? avColor(x.ver) : '#6b7280', ico = x.lugar === 'trabajo' ? '🏢' : '🏠';
+    b.push([x.lat, x.lng]);
+    const icon = LF.divIcon({ className:'mkw', iconSize:[30,30], iconAnchor:[15,30], popupAnchor:[0,-28],
+      html:`<div class="mk" style="--c:${col}"><span>${ico}</span></div><div class="mk-lb">${esc(nombreCorto(s.nombre_cliente))}</div>` });
+    // Sugerencia por cercanía: el verificador con otra visita asignada más cerca de este lugar
+    const cerca = {};
+    lugares.forEach(o => { if (o === x || !o.ver) return; const d = distKm({ lat:x.lat, lng:x.lng }, { lat:o.lat, lng:o.lng }); if (cerca[o.ver] == null || d < cerca[o.ver].d) cerca[o.ver] = { d, o }; });
+    const sug = Object.entries(cerca).sort((a, c) => a[1].d - c[1].d).slice(0, 2);
+    const fnAsig = x.lugar === 'trabajo' && itemAplica(s, 'domicilio') ? 't' : 'd';
+    const pop = `<div style="min-width:220px"><b>${conCopiar(s.nombre_cliente)}</b><br>${ico} <b>${x.lugar === 'trabajo' ? 'Trabajo' : 'Domicilio'}</b> · ${esc(s.codigo)}<br>
+      <span class="small">${esc([x.lugar === 'trabajo' ? s.trab_sector : s.dom_sector, x.lugar === 'trabajo' ? s.trab_ciudad : s.dom_ciudad].filter(Boolean).join(', ') || 'Sin sector')}</span>
+      ${s.forma_desembolso === 'efectivo' && montoLibre(s) != null ? `<br>💵 Entregar <b>${L(montoLibre(s))}</b>` : ''}
+      ${puede ? `<div style="margin-top:6px"><label class="small">Verificador ${x.lugar === 'trabajo' && fnAsig === 't' ? 'del trabajo' : ''}</label><br>
+        <select data-mapasig="${s.id}" data-fn="${fnAsig}" style="width:100%;padding:4px"><option value="">${fnAsig === 't' ? 'El mismo del domicilio' : '— Sin asignar —'}</option>${verifs.map(p => `<option value="${p.id}" ${p.id === (fnAsig === 't' ? s.verificador_trabajo_id : s.verificador_id) ? 'selected' : ''}>${esc(p.nombre)}</option>`).join('')}</select>
+        ${sug.length ? `<div class="small" style="margin-top:4px">📍 Más cerca: ${sug.map(([v, c]) => `<a href="#" data-mapsug="${v}" style="color:${avColor(v)};font-weight:700">${esc(nombre(v))}</a> (${fKm(c.d)} de ${esc(nombreCorto(c.o.s.nombre_cliente))})`).join(' · ')}</div>` : ''}</div>`
+        : `<br>Verificador: ${esc(x.ver ? nombre(x.ver) : 'Sin asignar')}`}
+      <div style="margin-top:6px"><a href="#" data-open="${s.id}">Abrir solicitud</a> · <a href="${linkRuta(x.lat, x.lng)}" target="_blank" rel="noopener">🧭 Cómo llegar</a></div></div>`;
+    LF.marker([x.lat, x.lng], { icon, riseOnHover:true }).addTo(map).bindPopup(pop);
+  });
   if (S.miPos){ b.push([S.miPos.lat, S.miPos.lng]); LF.circleMarker([S.miPos.lat, S.miPos.lng], { radius:8, color:'#0A2A66', weight:3, fillColor:'#FFD400', fillOpacity:1 }).addTo(map).bindPopup('Usted está aquí'); }
   if (S.vOrden === 'cerca' && pts.length > 1){ const r = rutaCercana(S.miPos || null, pts);
     LF.polyline((S.miPos ? [[S.miPos.lat, S.miPos.lng]] : []).concat(r.out.map(x => { const p = puntoVerif(x.s); return [p.lat, p.lng]; })), { color:'#1877F2', weight:3, opacity:.6, dashArray:'6 6' }).addTo(map); }
-  if (b.length) map.fitBounds(b, { padding:[30,30], maxZoom:15 });
+  if (S.vMapView) map.setView(S.vMapView.c, S.vMapView.z); else if (b.length) map.fitBounds(b, { padding:[30,30], maxZoom:15 });
+  map.on('moveend', () => { S.vMapView = { c: map.getCenter(), z: map.getZoom() }; });
   el.addEventListener('click', e => { const a = e.target.closest('[data-open]'); if (a){ e.preventDefault(); abrirDetalle(+a.dataset.open); } });
-  // Leyenda de verificadores
-  const vs = [...new Set(pts.map(s => s.verificador_id || ''))];
+  map.on('popupopen', e => {
+    const box = e.popup.getElement(); if (!box) return;
+    const sel = box.querySelector('[data-mapasig]'); if (!sel) return;
+    const asignar = v => run(sel, async () => {
+      await rpc(sel.dataset.fn === 't' ? 'asignar_verificador_trabajo' : 'asignar_verificador', { p_id: +sel.dataset.mapasig, p_verificador: v || null });
+      toast(v ? `Asignado a ${nombre(v)}` : 'Asignación quitada'); await cargarSolicitudes(); pintarTabs(); pintar(); });
+    sel.onchange = () => asignar(sel.value);
+    box.querySelectorAll('[data-mapsug]').forEach(a => a.onclick = ev => { ev.preventDefault(); sel.value = a.dataset.mapsug; asignar(a.dataset.mapsug); });
+  });
+  // Leyenda: verificadores, tipo de lugar y mostrar/ocultar nombres
+  const vs = [...new Set(lugares.map(x => x.ver || ''))];
   const leg = LF.control({ position:'bottomleft' });
   leg.onAdd = () => { const d = LF.DomUtil.create('div'); d.style.cssText = 'background:#fff;padding:6px 8px;border-radius:8px;font:12px Inter,sans-serif;box-shadow:0 1px 4px rgba(0,0,0,.2)';
-    d.innerHTML = vs.map(v => `<div><span style="display:inline-block;width:10px;height:10px;border-radius:5px;background:${v ? avColor(v) : '#6b7280'};margin-right:5px"></span>${esc(v ? nombre(v) : 'Sin asignar')}</div>`).join(''); return d; };
+    d.innerHTML = vs.map(v => `<div><span style="display:inline-block;width:10px;height:10px;border-radius:5px;background:${v ? avColor(v) : '#6b7280'};margin-right:5px"></span>${esc(v ? nombre(v) : 'Sin asignar')}</div>`).join('')
+      + `<div style="margin-top:4px;border-top:1px solid #eee;padding-top:4px">🏠 Domicilio · 🏢 Trabajo</div><label style="display:flex;gap:4px;align-items:center;margin-top:4px;cursor:pointer"><input type="checkbox" id="mkNom" ${S.vNombres === false ? '' : 'checked'}> Nombres</label>`;
+    LF.DomEvent.disableClickPropagation(d);
+    d.querySelector('#mkNom').onchange = ev => { S.vNombres = ev.target.checked; el.classList.toggle('sin-nombres', !S.vNombres); };
+    return d; };
   leg.addTo(map);
 }
 function cardSol(s, ctx){
