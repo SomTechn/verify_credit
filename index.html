@@ -162,6 +162,7 @@ label.f{display:block;font-size:12px;color:var(--ink2);margin:10px 0 4px;font-we
 .doc-row:first-of-type{border-top:0;padding-top:2px}
 .doc-row .ic{width:38px;height:38px;border-radius:10px;display:flex;align-items:center;justify-content:center;background:var(--brand2);font-size:19px;flex:none}
 .doc-row .tx{flex:1;min-width:170px}
+.doc-row .doc-chk{width:20px;height:20px;flex:none;accent-color:var(--brand);margin:0;cursor:pointer}
 /* Documentos de media página (2 por hoja carta) */
 .ct-page.mp{font-family:Calibri,Carlito,Arial,Helvetica,sans-serif;font-size:9.6pt;line-height:1.3;color:#000}
 .ct-page.mp .mp-wrap{position:absolute;inset:0}
@@ -534,7 +535,7 @@ table.ht td.nota{max-width:220px;overflow:hidden;text-overflow:ellipsis;color:va
 // App disponible sin señal (sw.js debe estar junto a index.html). Va primero para registrarse aunque falle otra cosa.
 if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) navigator.serviceWorker.register('sw.js').catch(() => {});
 // Versión de esta copia de la app: cambia en cada entrega. La app la compara con la publicada y se actualiza sola.
-const APP_VER = '2026-10-26.1158';
+const APP_VER = '2026-10-26.1203';
 // ================== Configuración ==================
 const SB_URL = 'https://edmvfqelxsxevpmxgbav.supabase.co';
 const SB_KEY = 'sb_publishable_lgTmmLtUESDDyX2sff6ArQ_z65Ti9d6';
@@ -2076,21 +2077,24 @@ function renderDetalle(){
   // Documentos: reconocimiento de deuda (habilitado desde que se aprueba)
   if (reconocimientoHabilitado(s)){
     const gen = [...evs].reverse().find(e => e.accion === 'reconocimiento_deuda');
+    const sel = docsSel(s);
+    const docChk = k => `<input type="checkbox" class="doc-chk" data-doc="${k}" ${sel.includes(k) ? 'checked' : ''} aria-label="Imprimir este documento">`;
     h += `<div class="card"><h4 class="sec" style="margin-top:0">Documentos para imprimir</h4>
-      <div class="doc-row"><div class="ic">📄</div><div class="tx"><b>Contrato de apertura de línea de crédito</b>
+      <div class="small muted" style="margin:-4px 0 4px">Marque los documentos que va a imprimir y use el botón de abajo para sacarlos juntos.</div>
+      <div class="doc-row">${docChk('ct')}<div class="ic">📄</div><div class="tx"><b>Contrato de apertura de línea de crédito</b>
         <div class="small muted">${gen ? `Último: ${esc(nombre(gen.usuario_id))} · ${fDT(gen.creado_en)}` : 'Documento que firma el cliente: vista previa, imprimir o descargar en PDF.'}</div></div>
         <button class="btn pri sm" id="rdAbrir">Ver contrato</button></div>
-      <div class="doc-row"><div class="ic">🏠</div><div class="tx"><b>Formato de verificación de domicilio</b>
+      <div class="doc-row">${docChk('fv')}<div class="ic">🏠</div><div class="tx"><b>Formato de verificación de domicilio</b>
         <div class="small muted">Sale con el nombre del cliente y la fecha; el verificador llena el resto a mano.</div></div>
         <button class="btn ghost sm" id="fvAbrir">Ver formato</button></div>
-      <div class="doc-row"><div class="ic">🏦</div><div class="tx"><b>Autorización de desembolso a cuenta de tercero</b>
+      <div class="doc-row">${docChk('aut')}<div class="ic">🏦</div><div class="tx"><b>Autorización de desembolso a cuenta de tercero</b>
         <div class="small muted">Media página: el cliente autoriza depositar en la cuenta de otra persona, por tiempo indefinido. Firma, huella y DNI.</div></div>
         <button class="btn ghost sm" id="mpAut">Ver autorización</button></div>
-      ${s.forma_desembolso === 'efectivo' ? `<div class="doc-row"><div class="ic">💵</div><div class="tx"><b>Constancia de recepción de efectivo</b>
+      ${s.forma_desembolso === 'efectivo' ? `<div class="doc-row">${docChk('ef')}<div class="ic">💵</div><div class="tx"><b>Constancia de recepción de efectivo</b>
         <div class="small muted">Media página: el cliente firma que recibió ${montoLibre(s) != null ? L(montoLibre(s)) : 'el efectivo'} en efectivo.</div></div>
         <button class="btn ghost sm" id="mpEf">Ver constancia</button></div>` : ''}
-      <div class="doc-row"><div class="ic">🖨</div><div class="tx"><b>Imprimir ambos</b><div class="small muted">Contrato y formato de verificación en una sola impresión.</div></div>
-        <button class="btn ok sm" id="docAmbos">🖨 Imprimir ambos</button></div>
+      <div class="doc-row" style="background:var(--gray-bg);border-radius:10px;padding:10px;margin-top:4px"><div class="ic">🖨</div><div class="tx"><b>Imprimir seleccionados</b><div class="small muted" id="docSelTxt"></div></div>
+        <button class="btn ok sm" id="docImp">🖨 Imprimir</button><button class="btn ghost sm" id="docPdf">⬇ PDF</button></div>
       <div style="border-top:1px solid var(--line);padding-top:10px;margin-top:2px;display:flex;gap:12px;align-items:center;flex-wrap:wrap">
         ${s.contrato_firmado_path ? `<img id="cfThumb" data-cf="${esc(s.contrato_firmado_path)}" alt="Contrato firmado" style="width:72px;height:72px;object-fit:cover;border-radius:8px;border:1px solid var(--line);cursor:pointer;background:var(--gray-bg)">` : ''}
         <div style="flex:1;min-width:180px"><b>📸 Contrato firmado</b>
@@ -2513,7 +2517,16 @@ function enlazarDetalle(s, c){
   if ($('#mpAut')) $('#mpAut').onclick = () => abrirMediaPagina(S.detData.s, 'aut');
   if ($('#mpEf')) $('#mpEf').onclick = () => abrirMediaPagina(S.detData.s, 'ef');
   if ($('#fvAbrir')) $('#fvAbrir').onclick = () => abrirFormatoVerif(S.detData.s);
-  if ($('#docAmbos')) $('#docAmbos').onclick = e => run(e.target, async () => imprimirAmbos(S.detData.s));
+  if ($('#docImp')){
+    const marcados = () => [...document.querySelectorAll('.doc-chk:checked')].map(c => c.dataset.doc);
+    const NOMDOC = { ct:'Contrato', fv:'Formato de verificación', aut:'Autorización a cuenta de tercero', ef:'Constancia de efectivo' };
+    const resumen = () => { const m = marcados(); $('#docSelTxt').textContent = m.length ? m.map(k => NOMDOC[k]).join(' + ') + (m.includes('aut') && m.includes('ef') ? ' (las dos medias páginas salen en la misma hoja)' : '') : 'No hay documentos marcados.';
+      $('#docImp').disabled = $('#docPdf').disabled = !m.length; };
+    document.querySelectorAll('.doc-chk').forEach(c => c.onchange = () => { guardarDocsSel(S.detData.s, marcados()); resumen(); });
+    resumen();
+    $('#docImp').onclick = e => run(e.target, async () => imprimirDocs(S.detData.s, marcados(), 'print'));
+    $('#docPdf').onclick = e => run(e.target, async () => { const t = e.target.textContent; e.target.textContent = 'Generando…'; try { await imprimirDocs(S.detData.s, marcados(), 'pdf'); } finally { e.target.textContent = t; } });
+  }
   if ($('#cfSubir')) $('#cfSubir').onclick = () => abrirContratoFirmado(S.detData.s);
   if ($('#cfThumb') || $('#cfDescargar')) (async () => {
     const cs = S.detData.s, path = cs.contrato_firmado_path; let url = null;
@@ -3324,6 +3337,59 @@ function contratoPaginas(s){
   const cont = document.createElement('div'); cont.className = 'ct-pages'; holder.appendChild(cont); document.body.appendChild(holder);
   try { CT.paginar(cont, st); return { html: cont.innerHTML, st }; } finally { holder.remove(); }
 }
+// ---- Selección de documentos a imprimir (se recuerda por solicitud en este equipo) ----
+function docsPorDefecto(s){
+  // Préstamo nuevo: solo el contrato. Refinanciamiento/reingreso en efectivo: solo la constancia (el cliente ya firmó el contrato de línea).
+  if (s.tipo === 'nuevo') return ['ct'];
+  if (s.forma_desembolso === 'efectivo') return ['ef'];
+  return ['ct'];
+}
+function docsSel(s){
+  let v = null; try { v = JSON.parse(localStorage.getItem('docsel_' + s.id) || 'null'); } catch(e){}
+  const ok = k => k !== 'ef' || s.forma_desembolso === 'efectivo';
+  return (Array.isArray(v) ? v : docsPorDefecto(s)).filter(ok);
+}
+function guardarDocsSel(s, arr){ try { localStorage.setItem('docsel_' + s.id, JSON.stringify(arr)); } catch(e){} }
+// Arma en un solo juego de hojas los documentos marcados; si van las dos medias páginas, salen en la misma hoja
+async function imprimirDocs(s, docs, modo){
+  if (!docs.length) throw new Error('Marque al menos un documento.');
+  let html = '', c = null;
+  if (docs.includes('ct')){ c = contratoPaginas(s); html += c.html; }
+  if (docs.includes('fv')) html += FV.pagina({ nombre: s.nombre_cliente, fecha: hoyHN() });
+  const a = docs.includes('aut'), f = docs.includes('ef');
+  if (a && f) html += MP.par(MP.autorizacion(mpDatos(s, 'aut'), ''), MP.efectivo(mpDatos(s, 'ef'), ''));
+  else if (a) html += MP.hoja(MP.autorizacion, mpDatos(s, 'aut'), false);
+  else if (f) html += MP.hoja(MP.efectivo, mpDatos(s, 'ef'), false);
+  const NOM = { ct:'Contrato', fv:'Verificacion', aut:'Autorizacion', ef:'Constancia_efectivo' };
+  const titulo = docs.map(k => NOM[k]).join('_') + '_' + nombreArchivo(s.nombre_cliente);
+  if (modo === 'pdf') await descargarHojasPDF(html, titulo); else imprimirHojas(html, titulo);
+  if (c) rpc('registrar_reconocimiento', { p_id: s.id, p_dni: c.st.id, p_monto: c.st.limite, p_accion: modo === 'pdf' ? 'pdf' : 'impreso' }).catch(e => console.warn(e));
+}
+// Descarga en PDF (hoja carta) cualquier juego de hojas .ct-page
+async function descargarHojasPDF(html, nombreArch){
+  await cargarScript('https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js');
+  await cargarScript('https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js');
+  if (document.fonts && document.fonts.ready) await document.fonts.ready;
+  const holder = document.createElement('div'); holder.style.cssText = 'position:fixed;left:-10000px;top:0';
+  holder.innerHTML = `<div class="ct-pages">${html}</div>`; document.body.appendChild(holder);
+  try {
+    const pdf = new jspdf.jsPDF({ unit: 'pt', format: 'letter', orientation: 'portrait' });
+    const pages = [...holder.querySelectorAll('.ct-page')];
+    for (let i = 0; i < pages.length; i++){
+      const pg = pages[i]; pg.style.boxShadow = 'none';
+      // html2canvas dibuja mal el subrayado: se subraya palabra por palabra con borde inferior
+      pg.querySelectorAll('.f').forEach(el => { el.style.textDecoration = 'none';
+        const tw = document.createTreeWalker(el, NodeFilter.SHOW_TEXT), nodes = []; while (tw.nextNode()) nodes.push(tw.currentNode);
+        nodes.forEach(n => { const parts = n.nodeValue.match(/[^ ]+ *| +/g); if (!parts) return; const fr = document.createDocumentFragment();
+          parts.forEach(t => { const sp = document.createElement('span'); sp.textContent = t; sp.style.borderBottom = '0.8pt solid #000'; fr.appendChild(sp); });
+          n.parentNode.replaceChild(fr, n); }); });
+      const canvas = await html2canvas(pg, { scale: 2.5, backgroundColor: '#ffffff', useCORS: true });
+      if (i) pdf.addPage();
+      pdf.addImage(canvas.toDataURL('image/jpeg', 0.92), 'JPEG', 0, 0, 612, 792);
+    }
+    pdf.save(nombreArch + '.pdf');
+  } finally { holder.remove(); }
+}
 function imprimirAmbos(s, fv){
   const c = contratoPaginas(s);
   imprimirHojas(c.html + FV.pagina(fv || { nombre: s.nombre_cliente, fecha: hoyHN() }), 'Contrato_y_Verificacion_' + nombreArchivo(s.nombre_cliente));
@@ -3367,15 +3433,20 @@ const MP = (() => {
   // Siempre lleva la línea de corte a media hoja, para aprovechar la otra mitad
   const corte = `<div class="mp-cut"><span>✂ Cortar aquí</span></div>`;
   const hoja = (fn, d, dos) => `<div class="ct-page mp"><div class="mp-wrap">${fn(d, dos ? 'Original · Más Pisto' : '')}${corte}${dos ? fn(d, 'Copia · Cliente') : ''}</div></div>`;
-  return { autorizacion, efectivo, hoja };
+  // Dos documentos distintos en una sola hoja (uno arriba y otro abajo)
+  const par = (a, b) => `<div class="ct-page mp"><div class="mp-wrap">${a}${corte}${b}</div></div>`;
+  return { autorizacion, efectivo, hoja, par };
 })();
-function abrirMediaPagina(s, tipo){
+function mpDatos(s, tipo){
   const libre = montoLibre(s), gestor = s.verificador_id ? nombre(s.verificador_id) : '';
   const [banco, ...resto] = String(s.cuenta_banco || '').split(/\s+/);
-  const st = tipo === 'aut'
+  return tipo === 'aut'
     ? { nombre: s.nombre_cliente, dni: RD.fmtId(s.dni || ''), codigo: s.codigo, titular: '', tdni: '', relacion: '', banco: s.cuenta_banco ? banco : '', cuenta: s.cuenta_banco ? resto.join(' ') : '', fecha: hoyHN(), dos: false }
     : { nombre: s.nombre_cliente, dni: RD.fmtId(s.dni || ''), codigo: s.codigo, gestor, monto: libre || '', prestamo: s.tipo !== 'nuevo' ? +(s.monto_solicitado || s.monto_aprobado || 0) : 0, saldo: s.tipo !== 'nuevo' ? (+s.saldo_capital || 0) + (+s.saldo_intereses || 0) : 0,
         tipo: s.tipo === 'nuevo' ? 'préstamo' : TIPO[s.tipo].toLowerCase(), fecha: hoyHN(), hora: '', dos: false };
+}
+function abrirMediaPagina(s, tipo){
+  const st = mpDatos(s, tipo);
   const titulo = tipo === 'aut' ? 'Autorización a cuenta de tercero' : 'Constancia de recepción de efectivo';
   const campos = tipo === 'aut'
     ? [['nombre','Cliente',2],['dni','DNI del cliente',1],['titular','Titular de la cuenta',2],['tdni','DNI del titular',1],['relacion','Relación (ej. esposa, hermano)',1],['banco','Banco',1],['cuenta','Tipo y No. de cuenta',1.5],['fecha','Fecha',1,'date']]
@@ -3400,21 +3471,7 @@ function abrirMediaPagina(s, tipo){
   w.querySelector('[data-a="print"]').onclick = () => imprimirHojas(MP.hoja(fn, st, st.dos), archivo());
   w.querySelector('[data-a="pdf"]').onclick = e => run(e.target, async () => {
     e.target.textContent = 'Generando…';
-    try {
-      await cargarScript('https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js');
-      await cargarScript('https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js');
-      if (document.fonts && document.fonts.ready) await document.fonts.ready;
-      const holder = document.createElement('div'); holder.style.cssText = 'position:fixed;left:-10000px;top:0'; document.body.appendChild(holder);
-      try {
-        holder.innerHTML = MP.hoja(fn, st, st.dos);
-        const pg = holder.firstElementChild; pg.style.boxShadow = 'none';
-        // html2canvas dibuja mal el subrayado: se usa borde inferior (ya viene así en .u)
-        const canvas = await html2canvas(pg, { scale: 2.5, backgroundColor: '#ffffff', useCORS: true });
-        const pdf = new jspdf.jsPDF({ unit: 'pt', format: 'letter', orientation: 'portrait' });
-        pdf.addImage(canvas.toDataURL('image/jpeg', 0.92), 'JPEG', 0, 0, 612, 792);
-        pdf.save(archivo() + '.pdf');
-      } finally { holder.remove(); }
-    } finally { e.target.textContent = '⬇ Descargar PDF'; }
+    try { await descargarHojasPDF(MP.hoja(fn, st, st.dos), archivo()); } finally { e.target.textContent = '⬇ Descargar PDF'; }
   });
   render(); addEventListener('resize', render, { once:true });
 }
