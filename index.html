@@ -533,7 +533,7 @@ table.ht td.nota{max-width:220px;overflow:hidden;text-overflow:ellipsis;color:va
 // App disponible sin señal (sw.js debe estar junto a index.html). Va primero para registrarse aunque falle otra cosa.
 if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) navigator.serviceWorker.register('sw.js').catch(() => {});
 // Versión de esta copia de la app: cambia en cada entrega. La app la compara con la publicada y se actualiza sola.
-const APP_VER = '2026-10-26.1145';
+const APP_VER = '2026-10-26.1155';
 // ================== Configuración ==================
 const SB_URL = 'https://edmvfqelxsxevpmxgbav.supabase.co';
 const SB_KEY = 'sb_publishable_lgTmmLtUESDDyX2sff6ArQ_z65Ti9d6';
@@ -3356,9 +3356,10 @@ const MP = (() => {
         correspondiente al monto libre de mi ${esc(d.tipo || 'crédito')}${d.prestamo ? ` (préstamo de ${esc(RD.cifra(+d.prestamo))}${+d.saldo ? `, menos saldo anterior de ${esc(RD.cifra(+d.saldo))}` : ''})` : ''}.</p>
       <p>Conté el dinero al recibirlo y lo recibí completo, por lo que no tengo reclamo posterior sobre esta entrega.</p>
       <p>San Pedro Sula, Cortés, ${fechaTxt(d.fecha)}${d.hora ? `, a las <b>${esc(d.hora)}</b>` : ', a las ' + v('', .7)}.</p>
-      <div class="mp-fir mp-fir2" style="justify-content:center;gap:.5in">
-        <div class="mp-fcol" style="flex:none;width:3in"><div class="mp-l"></div><div>Firma del cliente</div><div class="small">${esc(d.nombre || '')}${d.dni ? ' · DNI ' + esc(d.dni) : ''}</div></div>
+      <div class="mp-fir">
+        <div class="mp-fcol"><div class="mp-l"></div><div>Firma del cliente</div><div class="small">${esc(d.nombre || '')}${d.dni ? ' · DNI ' + esc(d.dni) : ''}</div></div>
         <div class="mp-hue">Huella</div>
+        <div class="mp-dni">Coloque su DNI aquí</div>
       </div></div>`;
   }
   // Una hoja carta con el documento en la mitad de arriba y, si se pide, la copia abajo (con línea para cortar)
