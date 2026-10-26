@@ -533,7 +533,7 @@ table.ht td.nota{max-width:220px;overflow:hidden;text-overflow:ellipsis;color:va
 // App disponible sin señal (sw.js debe estar junto a index.html). Va primero para registrarse aunque falle otra cosa.
 if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) navigator.serviceWorker.register('sw.js').catch(() => {});
 // Versión de esta copia de la app: cambia en cada entrega. La app la compara con la publicada y se actualiza sola.
-const APP_VER = '2026-10-26.1135';
+const APP_VER = '2026-10-26.1145';
 // ================== Configuración ==================
 const SB_URL = 'https://edmvfqelxsxevpmxgbav.supabase.co';
 const SB_KEY = 'sb_publishable_lgTmmLtUESDDyX2sff6ArQ_z65Ti9d6';
@@ -2086,7 +2086,7 @@ function renderDetalle(){
         <div class="small muted">Media página: el cliente autoriza depositar en la cuenta de otra persona, por tiempo indefinido. Firma, huella y DNI.</div></div>
         <button class="btn ghost sm" id="mpAut">Ver autorización</button></div>
       ${s.forma_desembolso === 'efectivo' ? `<div class="doc-row"><div class="ic">💵</div><div class="tx"><b>Constancia de recepción de efectivo</b>
-        <div class="small muted">Media página: el cliente firma que recibió ${montoLibre(s) != null ? L(montoLibre(s)) : 'el efectivo'} de manos del gestor.</div></div>
+        <div class="small muted">Media página: el cliente firma que recibió ${montoLibre(s) != null ? L(montoLibre(s)) : 'el efectivo'} en efectivo.</div></div>
         <button class="btn ghost sm" id="mpEf">Ver constancia</button></div>` : ''}
       <div class="doc-row"><div class="ic">🖨</div><div class="tx"><b>Imprimir ambos</b><div class="small muted">Contrato y formato de verificación en una sola impresión.</div></div>
         <button class="btn ok sm" id="docAmbos">🖨 Imprimir ambos</button></div>
@@ -3351,15 +3351,14 @@ const MP = (() => {
   function efectivo(d, copia){
     const m = +d.monto || 0;
     return `<div class="mp-half">${cab('CONSTANCIA DE RECEPCIÓN DE EFECTIVO', d.codigo)}<div class="mp-copia">${copia}</div>
-      <p>Yo, ${v(d.nombre, 2.6)}, con DNI ${v(d.dni, 1.3)}, hago constar que en esta fecha recibí a mi entera satisfacción, de manos de ${v(d.gestor, 2)}, gestor de <b>MAS PISTO S DE RL</b>, la cantidad de
+      <p>Yo, ${v(d.nombre, 2.6)}, con DNI ${v(d.dni, 1.3)}, hago constar que en esta fecha recibí a mi entera satisfacción, de parte de <b>MAS PISTO S DE RL</b>, la cantidad de
         <b class="u">${m ? esc(RD.letras(m)) + ' Lempiras' : ''}</b>${m ? '' : '<span class="bl" style="width:2.6in"></span>'} (<b>${m ? esc(RD.cifra(m)) : 'L. ' + '&nbsp;'.repeat(14)}</b>) en efectivo,
         correspondiente al monto libre de mi ${esc(d.tipo || 'crédito')}${d.prestamo ? ` (préstamo de ${esc(RD.cifra(+d.prestamo))}${+d.saldo ? `, menos saldo anterior de ${esc(RD.cifra(+d.saldo))}` : ''})` : ''}.</p>
-      <p>Conté el dinero en presencia del gestor y lo recibí completo, por lo que no tengo reclamo posterior sobre esta entrega.</p>
+      <p>Conté el dinero al recibirlo y lo recibí completo, por lo que no tengo reclamo posterior sobre esta entrega.</p>
       <p>San Pedro Sula, Cortés, ${fechaTxt(d.fecha)}${d.hora ? `, a las <b>${esc(d.hora)}</b>` : ', a las ' + v('', .7)}.</p>
-      <div class="mp-fir mp-fir2">
-        <div class="mp-fcol"><div class="mp-l"></div><div>Firma del cliente</div><div class="small">${esc(d.nombre || '')}${d.dni ? ' · DNI ' + esc(d.dni) : ''}</div></div>
+      <div class="mp-fir mp-fir2" style="justify-content:center;gap:.5in">
+        <div class="mp-fcol" style="flex:none;width:3in"><div class="mp-l"></div><div>Firma del cliente</div><div class="small">${esc(d.nombre || '')}${d.dni ? ' · DNI ' + esc(d.dni) : ''}</div></div>
         <div class="mp-hue">Huella</div>
-        <div class="mp-fcol"><div class="mp-l"></div><div>Firma del gestor</div><div class="small">${esc(d.gestor || '')}</div></div>
       </div></div>`;
   }
   // Una hoja carta con el documento en la mitad de arriba y, si se pide, la copia abajo (con línea para cortar)
@@ -3370,20 +3369,19 @@ function abrirMediaPagina(s, tipo){
   const libre = montoLibre(s), gestor = s.verificador_id ? nombre(s.verificador_id) : '';
   const [banco, ...resto] = String(s.cuenta_banco || '').split(/\s+/);
   const st = tipo === 'aut'
-    ? { nombre: s.nombre_cliente, dni: RD.fmtId(s.dni || ''), codigo: s.codigo, titular: '', tdni: '', relacion: '', banco: s.cuenta_banco ? banco : '', cuenta: s.cuenta_banco ? resto.join(' ') : '', fecha: hoyHN(), dos: true }
+    ? { nombre: s.nombre_cliente, dni: RD.fmtId(s.dni || ''), codigo: s.codigo, titular: '', tdni: '', relacion: '', banco: s.cuenta_banco ? banco : '', cuenta: s.cuenta_banco ? resto.join(' ') : '', fecha: hoyHN(), dos: false }
     : { nombre: s.nombre_cliente, dni: RD.fmtId(s.dni || ''), codigo: s.codigo, gestor, monto: libre || '', prestamo: s.tipo !== 'nuevo' ? +(s.monto_solicitado || s.monto_aprobado || 0) : 0, saldo: s.tipo !== 'nuevo' ? (+s.saldo_capital || 0) + (+s.saldo_intereses || 0) : 0,
-        tipo: s.tipo === 'nuevo' ? 'préstamo' : TIPO[s.tipo].toLowerCase(), fecha: hoyHN(), hora: '', dos: true };
+        tipo: s.tipo === 'nuevo' ? 'préstamo' : TIPO[s.tipo].toLowerCase(), fecha: hoyHN(), hora: '', dos: false };
   const titulo = tipo === 'aut' ? 'Autorización a cuenta de tercero' : 'Constancia de recepción de efectivo';
   const campos = tipo === 'aut'
     ? [['nombre','Cliente',2],['dni','DNI del cliente',1],['titular','Titular de la cuenta',2],['tdni','DNI del titular',1],['relacion','Relación (ej. esposa, hermano)',1],['banco','Banco',1],['cuenta','Tipo y No. de cuenta',1.5],['fecha','Fecha',1,'date']]
-    : [['nombre','Cliente',2],['dni','DNI del cliente',1],['gestor','Gestor que entrega',1.5],['monto','Monto entregado (L)',1],['fecha','Fecha',1,'date'],['hora','Hora (opcional)',1,'time']];
+    : [['nombre','Cliente',2],['dni','DNI del cliente',1],['monto','Monto entregado (L)',1],['fecha','Fecha',1,'date'],['hora','Hora (opcional)',1,'time']];
   const w = document.createElement('div'); w.className = 'rd-wrap';
   w.innerHTML = `<div class="rd-bar">
       <div class="t"><button class="back" data-x>←</button><span>${titulo} · ${esc(s.codigo)}</span></div>
       ${campos.map(([k, l, fl, ty]) => `<div class="fld" style="flex:${fl}"><label>${l}</label><input data-f="${k}" ${ty ? `type="${ty}"` : ''} value="${esc(st[k] ?? '')}"></div>`).join('')}
-      <label class="small" style="display:flex;gap:6px;align-items:center"><input type="checkbox" data-dos checked style="width:auto"> Original y copia en la misma hoja</label>
       <div class="acc"><button class="btn pri" data-a="print">🖨 Imprimir</button></div>
-      <div class="small muted" style="flex:1 1 100%">${tipo === 'aut' ? 'Media página. Los datos del tercero se pueden llenar aquí o a mano. Queda vigente hasta que el cliente pida el cambio.' : 'Media página. El cliente firma y pone su huella al recibir el efectivo; el gestor firma como entregó.'}</div>
+      <div class="small muted" style="flex:1 1 100%">${tipo === 'aut' ? 'Media página. Los datos del tercero se pueden llenar aquí o a mano. Queda vigente hasta que el cliente pida el cambio.' : 'Media página. El cliente firma y pone su huella al recibir el efectivo.'}</div>
     </div>
     <div class="rd-stage"><div class="rd-scaler"><div class="ct-pages"></div></div></div>`;
   document.body.appendChild(w); history.pushState({ rd:1 }, ''); S.dlgs = (S.dlgs || []).concat(w);
@@ -3393,7 +3391,6 @@ function abrirMediaPagina(s, tipo){
     const sc = Math.min(1, (stage.clientWidth - 32) / cont.offsetWidth);
     if (sc < 1){ scaler.style.transform = `scale(${sc})`; scaler.style.transformOrigin = 'top left'; scaler.style.width = cont.offsetWidth * sc + 'px'; scaler.style.height = cont.offsetHeight * sc + 'px'; } };
   w.querySelectorAll('[data-f]').forEach(i => i.oninput = () => { const k = i.dataset.f; st[k] = k === 'dni' || k === 'tdni' ? (i.value = RD.fmtId(i.value)) : k === 'monto' ? (num(i.value) || '') : i.value.trim(); render(); });
-  w.querySelector('[data-dos]').onchange = e => { st.dos = e.target.checked; render(); };
   w.querySelector('[data-x]').onclick = () => cerrarDialogo(w);
   w.querySelector('[data-a="print"]').onclick = () => {
     imprimirHojas(MP.hoja(fn, st, st.dos), (tipo === 'aut' ? 'Autorizacion_cuenta_tercero_' : 'Constancia_efectivo_') + nombreArchivo(st.nombre || s.nombre_cliente));
