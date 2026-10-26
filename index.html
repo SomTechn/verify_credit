@@ -509,7 +509,7 @@ table.ht td.nota{max-width:220px;overflow:hidden;text-overflow:ellipsis;color:va
 // App disponible sin señal (sw.js debe estar junto a index.html). Va primero para registrarse aunque falle otra cosa.
 if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) navigator.serviceWorker.register('sw.js').catch(() => {});
 // Versión de esta copia de la app: cambia en cada entrega. La app la compara con la publicada y se actualiza sola.
-const APP_VER = '2026-10-23.1146';
+const APP_VER = '2026-10-26.1017';
 // ================== Configuración ==================
 const SB_URL = 'https://edmvfqelxsxevpmxgbav.supabase.co';
 const SB_KEY = 'sb_publishable_lgTmmLtUESDDyX2sff6ArQ_z65Ti9d6';
@@ -2943,13 +2943,13 @@ function calcRefi(s, c){
     limAprob, disponible, pref, tasaNueva, cuotas, plazoMin, dictamen, politicaB, ingresoB, sugB, maxDif, B, limB, motivos, proxAum, proxLim, techo, sinFecha: !s.fecha_ingreso };
 }
 // Recuadro con la decisión del analista y su nota (aprobación o rechazo)
-function dictamenBoxHTML(s, full){
+function dictamenBoxHTML(s, full, sinNota){
   if (!s.dictamen_en) return '';
   const den = s.estado === 'denegada', col = den ? 'var(--red)' : 'var(--green)';
   return `<div class="box${full ? ' full' : ''}" style="border:1.5px solid ${col};background:${den ? 'var(--red-bg)' : 'var(--green-bg)'}"><div class="l" style="color:${col}">Dictamen del analista</div>
     <div class="v" style="font-size:16px;color:${col}">${den ? '✖ DENEGADA' : '✔ APROBADA'}</div>
     <div class="small" style="font-weight:600">${esc(nombre(s.analista_id))} · ${fDT(s.dictamen_en)}</div>
-    ${s.dictamen_nota ? `<div style="margin-top:4px;font-weight:600;color:var(--ink)">📝 ${esc(s.dictamen_nota)}</div>` : '<div class="small muted">Sin nota</div>'}</div>`;
+    ${sinNota ? '' : s.dictamen_nota ? `<div style="margin-top:4px;font-weight:600;color:var(--ink)">📝 ${esc(s.dictamen_nota)}</div>` : '<div class="small muted">Sin nota</div>'}</div>`;
 }
 function dictamenRefiHTML(r, s){
   // Ya dictaminada: muestra la decisión final y, si fue contra lo sugerido, lo deja claro
@@ -3061,7 +3061,7 @@ function refiResHTML(s, r){
       <div class="box"><div class="l">Próximo límite</div><div class="v">${r.proxLim == null ? 'BLOQUEADO' : L(r.proxLim)}</div></div>
       <div class="box"><div class="l">Saldo actual del préstamo</div><div class="v">${L((+s.saldo_capital || 0) + (+s.saldo_intereses || 0))}</div>
         <div class="small">Capital <b>${L(+s.saldo_capital || 0)}</b> · Intereses <b>${L(+s.saldo_intereses || 0)}</b></div></div>
-      ${dictamenBoxHTML(s)}
+      ${dictamenBoxHTML(s, false, true)}
     </div>
     ${politicaBHTML(s, r)}
     ${dictamenRefiHTML(r, s)}
@@ -4309,9 +4309,18 @@ function canalesHTML(d0, d1){
     <div class="small muted" style="margin-top:6px">Clientes nuevos creados en el período, según cómo llegaron. Conversión = desembolsadas ÷ solicitudes.${asum ? ` <b>${asum}</b> tienen Facebook asumido sin revisar (Historial → filtro "Por revisar").` : ''}</div></div>`;
 }
 // ================== Referidos: sorteo y bono por referido ==================
-function pintarReferidos(){
-  if (!S.ref) S.ref = { per:'todo', tipo:'', q:'', vista:'ref' };
-  const f = S.ref;
+// Bono por tipo de referido (parámetros editables por el admin)
+const bonoDe = s => +(s.origen_canal === 'referido_empleado' ? (S.params.bono_referido_empleado ?? S.params.bono_referido ?? 200) : (S.params.bono_referido_cliente ?? S.params.bono_referido ?? 200));
+// Día de pago a empleados (30 de cada mes; en febrero, el último día)
+function proxPagoEmpleados(){
+  const dia = +(S.params.bono_empleado_dia_pago ?? 30), h = hoyHN(), d = new Date(h + 'T12:00');
+  const f = (y, m) => { const ult = new Date(y, m + 1, 0).getDate(); return new Date(y, m, Math.min(dia, ult), 12).toLocaleDateString('en-CA'); };
+  let x = f(d.getFullYear(), d.getMonth()); if (x < h) x = f(d.getFullYear(), d.getMonth() + 1); return x;
+}
+const CANALES_GASTO = { facebook:'Facebook', instagram:'Instagram', tiktok:'TikTok', whatsapp:'WhatsApp', volante:'Volante / publicidad impresa', otro:'Otro' };
+async function pintarReferidos(){
+  if (!S.ref) S.ref = { per:'todo', tipo:'', q:'', vista:'pago' };
+  const f = S.ref, admin = rol() === 'admin', gestiona = es('analista');
   const d = new Date(hoyHN() + 'T12:00'), dc = new Date(d); dc.setDate(dc.getDate() - 8);
   const meses = [5,4,3,2,1,0].map(i => { const x = new Date(dc.getFullYear(), dc.getMonth() - i, 1, 12); return [`m:${x.getFullYear()}-${String(x.getMonth()+1).padStart(2,'0')}`, `9 ${MESES_C[x.getMonth()]}–8 ${MESES_C[(x.getMonth()+1)%12]}`]; });
   const [d0, d1] = f.per === 'todo' ? ['0000-00-00', '9999-12-31'] : rango(f.per);
@@ -4320,7 +4329,6 @@ function pintarReferidos(){
     .filter(s => { const x = diaHN(s.creado_en); return x >= d0 && x <= d1; })
     .filter(s => !q || norm(referidor(s) + ' ' + s.nombre_cliente).includes(q))
     .sort((a, b) => new Date(b.creado_en) - new Date(a.creado_en));
-  // Agrupado por quien refiere (empleado por usuario; cliente por nombre)
   const grupos = {};
   for (const s of lista){
     const k = s.origen_canal === 'referido_empleado' && s.referido_empleado_id ? 'e:' + s.referido_empleado_id : s.origen_canal[9] + ':' + norm(s.referido_nombre);
@@ -4329,62 +4337,171 @@ function pintarReferidos(){
     if (s.estado === 'desembolsada'){ o.des++; o.cap += capitalColocado(s); if (s.bono_pagado_en){ o.pagN++; o.pag += +s.bono_monto || 0; } else o.pend++; }
   }
   const gl = Object.values(grupos).sort((a, b) => b.des - a.des || b.n - a.n || a.nombre.localeCompare(b.nombre));
-  const tot = gl.reduce((a, o) => ({ n:a.n + o.n, des:a.des + o.des, pend:a.pend + o.pend, pag:a.pag + o.pag, pagN:a.pagN + o.pagN }), { n:0, des:0, pend:0, pag:0, pagN:0 });
+  const porPagar = lista.filter(s => s.estado === 'desembolsada' && !s.bono_pagado_en);
+  const pagados = lista.filter(s => s.bono_pagado_en).sort((a, b) => new Date(b.bono_pagado_en) - new Date(a.bono_pagado_en));
+  const enProceso = lista.filter(s => s.estado !== 'desembolsada' && !s.bono_pagado_en);
+  const totPend = porPagar.reduce((a, s) => a + bonoDe(s), 0), totPag = pagados.reduce((a, s) => a + (+s.bono_monto || 0), 0);
   const tipoTxt = t => t === 'referido_empleado' ? 'Empleado' : 'Cliente';
-  const bonoCel = s => s.estado !== 'desembolsada' ? '<span class="muted small">Aún no desembolsado</span>'
-    : s.bono_pagado_en ? `<span class="chip c-green" title="${esc(s.bono_nota || '')}">Pagado${s.bono_monto ? ' ' + L(s.bono_monto) : ''} · ${fDate(s.bono_pagado_en)}</span> <a href="#" data-bono-des="${s.id}" class="small">Deshacer</a>`
-    : `<span class="chip c-amber">Pendiente</span> <button class="btn sm ghost" data-bono="${s.id}">Marcar pagado</button>`;
-  $('#main').innerHTML = `<div class="row" style="flex-wrap:wrap;margin-bottom:10px"><div style="flex:1;min-width:200px"><div style="font:700 17px Poppins,Inter,sans-serif">Clientes referidos</div>
-      <div class="small muted">Quién nos está refiriendo clientes nuevos: para el sorteo y el control del bono por referido.</div></div>
-      <button class="btn sm ghost" id="refExp">⬇ Exportar Excel</button></div>
-    <div class="filters"><button data-p="todo" class="${f.per === 'todo' ? 'on' : ''}">Todo</button>${meses.map(([k, t]) => `<button data-p="${k}" class="${f.per === k ? 'on' : ''}" style="white-space:nowrap">${t}</button>`).join('')}</div>
-    <div class="kpis">
-      <div class="kpi"><div class="l">Clientes referidos</div><div class="v">${tot.n}</div><div class="s">${gl.length} persona(s) refiriendo</div></div>
-      <div class="kpi"><div class="l">Desembolsados</div><div class="v">${tot.des}</div><div class="s">${tot.n ? Math.round(tot.des / tot.n * 100) : 0}% de los referidos</div></div>
-      <div class="kpi" style="border-top:3px solid var(--amber)"><div class="l" style="color:var(--amber)">Bonos pendientes</div><div class="v">${tot.pend}</div><div class="s">referidos ya desembolsados sin bono</div></div>
-      <div class="kpi" style="border-top:3px solid var(--green)"><div class="l" style="color:var(--green)">Bonos pagados</div><div class="v" style="font-size:21px">${L(tot.pag)}</div><div class="s">${tot.pagN} bono(s)</div></div></div>
-    <div class="row" style="flex-wrap:wrap;gap:8px;margin:12px 0 10px">
-      <div class="seg" id="refVista" style="flex:none">${[['ref','Por referidor'],['det','Detalle']].map(([k, t]) => `<button data-v="${k}" class="${f.vista === k ? 'on' : ''}" style="white-space:nowrap;padding:8px 12px">${t}</button>`).join('')}</div>
-      <select id="refTipo" style="width:auto;flex:none"><option value="">Clientes y empleados</option><option value="referido_cliente" ${f.tipo === 'referido_cliente' ? 'selected' : ''}>Solo clientes</option><option value="referido_empleado" ${f.tipo === 'referido_empleado' ? 'selected' : ''}>Solo empleados</option></select>
-      <input id="refQ" type="search" placeholder="Buscar nombre…" value="${esc(f.q)}" style="flex:1;min-width:160px"></div>
-    <div class="card" style="overflow-x:auto">${!lista.length ? '<div class="empty">Todavía no hay clientes referidos en este período.</div>' : f.vista === 'ref'
-      ? `<table class="t"><thead><tr><th>Referido por</th><th>Tipo</th><th>Teléfono</th><th class="num">Referidos</th><th class="num">Desemb.</th><th class="num">Capital colocado</th><th class="num">Bonos pend.</th><th class="num">Bonos pagados</th></tr></thead><tbody>
-        ${gl.map(o => `<tr><td><b>${conCopiar(o.nombre)}</b><div class="small muted" style="white-space:normal">${o.sols.map(s => conCopiar(s.nombre_cliente)).join(', ')}</div></td><td>${tipoTxt(o.tipo)}</td><td>${o.tel ? `<a href="tel:${esc(o.tel)}">${esc(o.tel)}</a>` : '—'}</td><td class="num">${o.n}</td><td class="num">${o.des}</td><td class="num">${L(Math.round(o.cap))}</td><td class="num">${o.pend || '—'}</td><td class="num">${o.pagN ? L(o.pag) : '—'}</td></tr>`).join('')}</tbody></table>`
-      : `<table class="t"><thead><tr><th>Fecha</th><th>Cliente referido</th><th>Estado</th><th>Referido por</th><th>Tipo</th><th class="num">Capital</th><th>Bono</th></tr></thead><tbody>
+  const vistas = [['pago','💰 Por pagar / pagados'],['ref','Por referidor'],['det','Detalle']].concat(gestiona ? [['cac','📊 Costo por canal']] : []);
+  if (!vistas.some(v => v[0] === f.vista)) f.vista = 'pago';
+  // Pago a empleados (cada día 30): pendientes agrupados por empleado
+  const pagoEmp = proxPagoEmpleados(), empPend = {};
+  porPagar.filter(s => s.origen_canal === 'referido_empleado' && diaHN(s.desembolsado_en || s.estado_desde) <= pagoEmp)
+    .forEach(s => { const k = s.referido_empleado_id || referidor(s); (empPend[k] = empPend[k] || { nombre: referidor(s), sols: [] }).sols.push(s); });
+  const filaPago = s => `<tr data-id="${s.id}" style="cursor:pointer"><td>${fDate(s.desembolsado_en || s.estado_desde)}</td><td>${conCopiar(s.nombre_cliente)}<div class="small muted">${esc(s.codigo)}</div></td><td><b>${esc(referidor(s))}</b>${s.referido_telefono ? `<div class="small"><a href="tel:${esc(s.referido_telefono)}">${esc(s.referido_telefono)}</a></div>` : ''}</td><td>${tipoTxt(s.origen_canal)}</td>`;
+  let cuerpo = '';
+  if (f.vista === 'pago'){
+    cuerpo = `${Object.keys(empPend).length ? `<div class="card" style="border-left:4px solid var(--violet,#7c3aed)"><b>👔 Pago a empleados · ${fDate(pagoEmp + 'T12:00')}</b><div class="small muted">Los bonos de empleados se pagan el día ${S.params.bono_empleado_dia_pago ?? 30} de cada mes. Pendientes hasta esa fecha:</div>
+        <table class="t" style="margin-top:6px"><tbody>${Object.entries(empPend).map(([k, o]) => `<tr><td><b>${esc(o.nombre)}</b><div class="small muted">${o.sols.map(s => esc(s.nombre_cliente)).join(', ')}</div></td><td class="num">${o.sols.length} referido(s)</td><td class="num"><b>${L(o.sols.reduce((a, s) => a + bonoDe(s), 0))}</b></td>
+          <td>${gestiona ? `<button class="btn sm ok" data-pagaremp="${esc(k)}">Marcar pagado</button>` : ''}</td></tr>`).join('')}</tbody></table></div>` : ''}
+      <h4 class="sec">⏳ Por pagar · ${porPagar.length} · ${L(totPend)}</h4>
+      <div class="card" style="overflow-x:auto">${porPagar.length ? `<table class="t"><thead><tr><th>Desembolsado</th><th>Cliente referido</th><th>Referido por</th><th>Tipo</th><th class="num">Bono</th><th></th></tr></thead><tbody>
+        ${porPagar.map(s => filaPago(s) + `<td class="num"><b>${L(bonoDe(s))}</b></td><td>${gestiona ? `<button class="btn sm ok" data-bono="${s.id}">Marcar pagado</button>` : ''}</td></tr>`).join('')}</tbody></table>` : '<div class="empty">No hay bonos pendientes de pago.</div>'}</div>
+      <h4 class="sec">✅ Pagados · ${pagados.length} · ${L(totPag)}</h4>
+      <div class="card" style="overflow-x:auto">${pagados.length ? `<table class="t"><thead><tr><th>Desembolsado</th><th>Cliente referido</th><th>Referido por</th><th>Tipo</th><th class="num">Pagado</th><th>Fecha de pago</th><th></th></tr></thead><tbody>
+        ${pagados.map(s => filaPago(s) + `<td class="num"><b>${L(+s.bono_monto || 0)}</b></td><td>${fDate(s.bono_pagado_en)}${s.bono_nota ? `<div class="small muted">${esc(s.bono_nota)}</div>` : ''}</td><td>${gestiona ? `<a href="#" data-bono-des="${s.id}" class="small">Deshacer</a>` : ''}</td></tr>`).join('')}</tbody></table>` : '<div class="empty">Aún no hay bonos pagados en este período.</div>'}</div>
+      ${enProceso.length ? `<details class="card"><summary style="cursor:pointer;font-weight:700">⌛ Aún no desembolsados · ${enProceso.length} <span class="small muted">(el bono se paga cuando se desembolsa)</span></summary>
+        <table class="t" style="margin-top:6px"><tbody>${enProceso.map(s => `<tr data-id="${s.id}" style="cursor:pointer"><td>${conCopiar(s.nombre_cliente)}</td><td>${chip(s.estado)}</td><td>${esc(referidor(s))}</td><td>${tipoTxt(s.origen_canal)}</td></tr>`).join('')}</tbody></table></details>` : ''}`;
+  } else if (f.vista === 'ref'){
+    cuerpo = `<div class="card" style="overflow-x:auto">${!lista.length ? '<div class="empty">Todavía no hay clientes referidos en este período.</div>' : `<table class="t"><thead><tr><th>Referido por</th><th>Tipo</th><th>Teléfono</th><th class="num">Referidos</th><th class="num">Desemb.</th><th class="num">Capital colocado</th><th class="num">Bonos pend.</th><th class="num">Bonos pagados</th></tr></thead><tbody>
+        ${gl.map(o => `<tr><td><b>${conCopiar(o.nombre)}</b><div class="small muted" style="white-space:normal">${o.sols.map(s => conCopiar(s.nombre_cliente)).join(', ')}</div></td><td>${tipoTxt(o.tipo)}</td><td>${o.tel ? `<a href="tel:${esc(o.tel)}">${esc(o.tel)}</a>` : '—'}</td><td class="num">${o.n}</td><td class="num">${o.des}</td><td class="num">${L(Math.round(o.cap))}</td><td class="num">${o.pend || '—'}</td><td class="num">${o.pagN ? L(o.pag) : '—'}</td></tr>`).join('')}</tbody></table>`}</div>`;
+  } else if (f.vista === 'det'){
+    const bonoCel = s => s.estado !== 'desembolsada' ? '<span class="muted small">Aún no desembolsado</span>' : s.bono_pagado_en ? `<span class="chip c-green">Pagado ${L(+s.bono_monto || 0)} · ${fDate(s.bono_pagado_en)}</span>` : `<span class="chip c-amber">Pendiente ${L(bonoDe(s))}</span>`;
+    cuerpo = `<div class="card" style="overflow-x:auto">${!lista.length ? '<div class="empty">Todavía no hay clientes referidos en este período.</div>' : `<table class="t"><thead><tr><th>Fecha</th><th>Cliente referido</th><th>Estado</th><th>Referido por</th><th>Tipo</th><th class="num">Capital</th><th>Bono</th></tr></thead><tbody>
         ${lista.map(s => `<tr data-id="${s.id}" style="cursor:pointer"><td>${fDate(s.creado_en)}</td><td>${conCopiar(s.nombre_cliente)}</td><td>${chip(s.estado)}</td><td>${esc(referidor(s))}</td><td>${tipoTxt(s.origen_canal)}</td><td class="num">${s.estado === 'desembolsada' ? L(Math.round(capitalColocado(s))) : '—'}</td><td>${bonoCel(s)}</td></tr>`).join('')}</tbody></table>`}</div>`;
+  } else {
+    cuerpo = '<div class="empty">Calculando…</div>';
+  }
+  $('#main').innerHTML = `<div class="row" style="flex-wrap:wrap;margin-bottom:10px"><div style="flex:1;min-width:200px"><div style="font:700 17px Poppins,Inter,sans-serif">Clientes referidos y costo de adquisición</div>
+      <div class="small muted">Quién nos refiere clientes, el control del bono por referido y cuánto cuesta conseguir un cliente por cada vía.</div></div>
+      <button class="btn sm ghost" id="refExp">⬇ Exportar Excel</button></div>
+    ${admin ? `<div class="card row" style="flex-wrap:wrap;gap:10px;align-items:end"><div><label class="f" style="margin-top:0">Bono por referido de cliente (L)</label><input id="bpCli" inputmode="decimal" value="${bonoDe({ origen_canal:'referido_cliente' })}" style="width:120px"></div>
+      <div><label class="f" style="margin-top:0">Bono por referido de empleado (L)</label><input id="bpEmp" inputmode="decimal" value="${bonoDe({ origen_canal:'referido_empleado' })}" style="width:120px"></div>
+      <div><label class="f" style="margin-top:0">Día de pago a empleados</label><input id="bpDia" inputmode="numeric" value="${S.params.bono_empleado_dia_pago ?? 30}" style="width:80px"></div>
+      <button class="btn sm pri" id="bpOk">Guardar bonos</button></div>` : ''}
+    <div class="filters"><button data-p="todo" class="${f.per === 'todo' ? 'on' : ''}">Todo</button>${meses.map(([k, t]) => `<button data-p="${k}" class="${f.per === k ? 'on' : ''}" style="white-space:nowrap">${t}</button>`).join('')}</div>
+    ${f.vista !== 'cac' ? `<div class="kpis">
+      <div class="kpi"><div class="l">Clientes referidos</div><div class="v">${lista.length}</div><div class="s">${gl.length} persona(s) refiriendo</div></div>
+      <div class="kpi"><div class="l">Desembolsados</div><div class="v">${lista.filter(s => s.estado === 'desembolsada').length}</div><div class="s">${lista.length ? Math.round(lista.filter(s => s.estado === 'desembolsada').length / lista.length * 100) : 0}% de los referidos</div></div>
+      <div class="kpi" style="border-top:3px solid var(--amber)"><div class="l" style="color:var(--amber)">Bonos por pagar</div><div class="v" style="font-size:21px">${L(totPend)}</div><div class="s">${porPagar.length} bono(s)</div></div>
+      <div class="kpi" style="border-top:3px solid var(--green)"><div class="l" style="color:var(--green)">Bonos pagados</div><div class="v" style="font-size:21px">${L(totPag)}</div><div class="s">${pagados.length} bono(s)</div></div></div>` : ''}
+    <div class="row" style="flex-wrap:wrap;gap:8px;margin:12px 0 10px">
+      <div class="seg" id="refVista" style="flex:none;flex-wrap:wrap">${vistas.map(([k, t]) => `<button data-v="${k}" class="${f.vista === k ? 'on' : ''}" style="white-space:nowrap;padding:8px 12px">${t}</button>`).join('')}</div>
+      ${f.vista !== 'cac' ? `<select id="refTipo" style="width:auto;flex:none"><option value="">Clientes y empleados</option><option value="referido_cliente" ${f.tipo === 'referido_cliente' ? 'selected' : ''}>Solo clientes</option><option value="referido_empleado" ${f.tipo === 'referido_empleado' ? 'selected' : ''}>Solo empleados</option></select>
+      <input id="refQ" type="search" placeholder="Buscar nombre…" value="${esc(f.q)}" style="flex:1;min-width:160px">` : ''}</div>
+    <div id="refCuerpo">${cuerpo}</div>`;
   const M = $('#main');
   M.querySelectorAll('[data-p]').forEach(b => b.onclick = () => { f.per = b.dataset.p; pintarReferidos(); });
   M.querySelectorAll('#refVista button').forEach(b => b.onclick = () => { f.vista = b.dataset.v; pintarReferidos(); });
-  $('#refTipo').onchange = e => { f.tipo = e.target.value; pintarReferidos(); };
-  let tq; $('#refQ').oninput = e => { clearTimeout(tq); tq = setTimeout(() => { f.q = e.target.value; pintarReferidos(); const i = $('#refQ'); i.focus(); i.setSelectionRange(i.value.length, i.value.length); }, 250); };
-  M.querySelectorAll('tr[data-id]').forEach(tr => tr.onclick = e => { if (!e.target.closest('button,a')) abrirDetalle(+tr.dataset.id); });
-  M.querySelectorAll('[data-bono]').forEach(b => b.onclick = () => {
-    const so = S.sols.find(x => x.id === +b.dataset.bono);
-    if (!es('analista')) return toast('Solo el administrador o el analista registran bonos', true);
-    const w = dialogo(`<h3>Bono por referido</h3><div class="small muted">${esc(referidor(so))} refirió a <b>${conCopiar(so.nombre_cliente)}</b>.</div>
-      <label class="f">Monto pagado (L)</label><input id="bMon" type="number" inputmode="decimal" min="0" step="50" value="${S.params.bono_referido || ''}">
+  if ($('#refTipo')) $('#refTipo').onchange = e => { f.tipo = e.target.value; pintarReferidos(); };
+  let tq; if ($('#refQ')) $('#refQ').oninput = e => { clearTimeout(tq); tq = setTimeout(() => { f.q = e.target.value; pintarReferidos(); const i = $('#refQ'); i.focus(); i.setSelectionRange(i.value.length, i.value.length); }, 250); };
+  if ($('#bpOk')) $('#bpOk').onclick = e => run(e.target, async () => {
+    const c = num($('#bpCli').value), m = num($('#bpEmp').value), dd = num($('#bpDia').value);
+    if (c == null || c < 0 || m == null || m < 0) throw new Error('Monto de bono inválido'); if (!dd || dd < 1 || dd > 31) throw new Error('Día de pago inválido');
+    await rpc('actualizar_parametro', { p_clave: 'bono_referido_cliente', p_valor: c }); await rpc('actualizar_parametro', { p_clave: 'bono_referido_empleado', p_valor: m });
+    await rpc('actualizar_parametro', { p_clave: 'bono_empleado_dia_pago', p_valor: dd });
+    await cargarParams(); toast('Bonos actualizados'); pintarReferidos(); });
+  const enlazarFilas = R => R.querySelectorAll('tr[data-id]').forEach(tr => tr.onclick = e => { if (!e.target.closest('button,a,input,select')) abrirDetalle(+tr.dataset.id); });
+  enlazarFilas(M);
+  // Marcar pagado: fecha (hoy, o el día de pago si es de empleado) y monto prellenado para confirmar
+  const pagar = (sols, titulo) => {
+    const emp = sols.every(s => s.origen_canal === 'referido_empleado');
+    const fechaDef = emp && pagoEmp <= hoyHN() ? pagoEmp : emp ? (hoyHN() >= pagoEmp ? pagoEmp : hoyHN()) : hoyHN();
+    const w = dialogo(`<h3>${esc(titulo)}</h3>
+      <div class="small muted">${sols.length === 1 ? `${esc(referidor(sols[0]))} refirió a <b>${esc(sols[0].nombre_cliente)}</b> (${tipoTxt(sols[0].origen_canal).toLowerCase()}).` : `${sols.length} referidos: ${sols.map(s => esc(s.nombre_cliente)).join(', ')}`}</div>
+      <label class="f">Fecha en que se pagó</label><input id="bFec" type="date" value="${fechaDef}" max="${hoyHN()}">
+      ${sols.length === 1 ? `<label class="f">Monto pagado (L)</label><input id="bMon" inputmode="decimal" value="${bonoDe(sols[0])}">`
+        : `<label class="f">Monto por referido (L)</label><input id="bMon" inputmode="decimal" value="${bonoDe(sols[0])}"><div class="small" id="bTot" style="margin-top:4px">Total: <b>${L(bonoDe(sols[0]) * sols.length)}</b></div>`}
       <label class="f">Nota (opcional)</label><input id="bNota" placeholder="Ej.: transferencia, efectivo, recibo #…">
-      <div class="btns"><button class="btn ghost" data-close>Cancelar</button><button class="btn pri" id="bOk">Registrar pago</button></div>`);
+      <div class="btns"><button class="btn ghost" data-close>Cancelar</button><button class="btn ok" id="bOk">✅ Confirmar pago</button></div>`);
+    const mon = w.querySelector('#bMon'); if (w.querySelector('#bTot')) mon.oninput = () => { w.querySelector('#bTot').innerHTML = `Total: <b>${L((num(mon.value) || 0) * sols.length)}</b>`; };
     w.querySelector('#bOk').onclick = e => run(e.target, async () => {
-      const m = w.querySelector('#bMon').value.trim();
-      await rpc('marcar_bono_referido', { p_id:so.id, p_pagado:true, p_monto:m === '' ? null : num(m), p_nota:w.querySelector('#bNota').value });
-      await cerrarDialogo(w); await cargarSolicitudes(); pintarReferidos(); toast('Bono registrado como pagado'); });
-  });
+      const m = num(mon.value), fe = w.querySelector('#bFec').value;
+      if (m == null || m < 0) throw new Error('Monto inválido'); if (!fe) throw new Error('Indique la fecha de pago');
+      for (const s of sols) await rpc('marcar_bono_referido', { p_id: s.id, p_pagado: true, p_monto: m, p_nota: w.querySelector('#bNota').value, p_fecha: fe });
+      await cerrarDialogo(w); await cargarSolicitudes(); pintarReferidos(); toast(sols.length > 1 ? `${sols.length} bonos marcados como pagados` : 'Bono marcado como pagado'); });
+  };
+  M.querySelectorAll('[data-bono]').forEach(b => b.onclick = () => pagar([S.sols.find(x => x.id === +b.dataset.bono)], 'Marcar bono como pagado'));
+  M.querySelectorAll('[data-pagaremp]').forEach(b => b.onclick = () => { const o = empPend[b.dataset.pagaremp]; pagar(o.sols, `Pago a ${o.nombre} · ${fDate(pagoEmp + 'T12:00')}`); });
   M.querySelectorAll('[data-bono-des]').forEach(a => a.onclick = e => { e.preventDefault(); run(a, async () => {
     if (!confirm('¿Marcar este bono como pendiente otra vez?')) return;
-    await rpc('marcar_bono_referido', { p_id:+a.dataset.bonoDes, p_pagado:false }); await cargarSolicitudes(); pintarReferidos(); }); });
+    await rpc('marcar_bono_referido', { p_id: +a.dataset.bonoDes, p_pagado: false, p_monto: null, p_nota: null, p_fecha: null }); await cargarSolicitudes(); pintarReferidos(); }); });
   $('#refExp').onclick = e => run(e.target, async () => {
     const X = await rfXlsx(), wb = X.utils.book_new();
     const h1 = X.utils.json_to_sheet(gl.map(o => ({ 'Referido por':o.nombre, 'Tipo':tipoTxt(o.tipo), 'Teléfono':o.tel, 'Clientes referidos':o.n, 'Desembolsados':o.des, 'Capital colocado':Math.round(o.cap), 'Bonos pendientes':o.pend, 'Bonos pagados (L)':o.pag, 'Clientes':o.sols.map(s => s.nombre_cliente).join(', ') })));
     h1['!cols'] = [30,10,14,10,10,14,10,12,60].map(wch => ({ wch }));
     const h2 = X.utils.json_to_sheet(lista.map(s => ({ 'Fecha':diaHN(s.creado_en), 'Código':s.codigo, 'Cliente referido':s.nombre_cliente, 'Estado':EST[s.estado]?.t || s.estado, 'Referido por':referidor(s), 'Tipo':tipoTxt(s.origen_canal), 'Teléfono referidor':s.referido_telefono || '',
-      'Capital colocado':s.estado === 'desembolsada' ? Math.round(capitalColocado(s)) : '', 'Bono':s.estado !== 'desembolsada' ? '' : s.bono_pagado_en ? 'PAGADO' : 'PENDIENTE', 'Monto bono':s.bono_monto ?? '', 'Fecha pago bono':s.bono_pagado_en ? diaHN(s.bono_pagado_en) : '', 'Nota bono':s.bono_nota || '' })));
+      'Capital colocado':s.estado === 'desembolsada' ? Math.round(capitalColocado(s)) : '', 'Bono':s.estado !== 'desembolsada' ? '' : s.bono_pagado_en ? 'PAGADO' : 'PENDIENTE', 'Monto bono':s.bono_pagado_en ? +s.bono_monto || 0 : s.estado === 'desembolsada' ? bonoDe(s) : '', 'Fecha pago bono':s.bono_pagado_en ? diaHN(s.bono_pagado_en) : '', 'Nota bono':s.bono_nota || '' })));
     h2['!cols'] = [11,12,30,16,30,10,14,12,10,10,12,30].map(wch => ({ wch }));
     X.utils.book_append_sheet(wb, h1, 'Referidores'); X.utils.book_append_sheet(wb, h2, 'Referidos');
+    if (S.ref.cacFilas) X.utils.book_append_sheet(wb, X.utils.json_to_sheet(S.ref.cacFilas), 'Costo por canal');
     const blob = new Blob([X.write(wb, { type:'array', bookType:'xlsx' })], { type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
     const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `referidos_${hoyHN()}.xlsx`;
     document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 2000);
   });
+  if (f.vista === 'cac') await pintarCAC(d0, d1, admin);
+}
+// ================== Costo de adquisición por canal ==================
+async function pintarCAC(d0, d1, admin){
+  const box = $('#refCuerpo'); if (!box) return;
+  let gastos = [];
+  try { const { data, error } = await sb.from('gastos_publicidad').select('*').eq('anulado', false).order('fecha', { ascending: false }); if (error) throw error; gastos = data || []; }
+  catch(e){ box.innerHTML = `<div class="alert err">${navigator.onLine ? 'No se pudieron cargar los gastos: ' + esc(e.message || e) : 'Esta sección necesita conexión.'}</div>`; return; }
+  if (!$('#refCuerpo')) return;
+  const enPer = x => x >= d0 && x <= d1;
+  const gPer = gastos.filter(g => enPer(g.fecha));
+  const nuevos = S.sols.filter(s => s.id > 0 && s.tipo === 'nuevo' && !s.importado && enPer(diaHN(s.creado_en)));
+  const GR = [
+    ['ref_cli', '🤝 Referidos por clientes', s => s.origen_canal === 'referido_cliente', null],
+    ['ref_emp', '👔 Referidos por empleados', s => s.origen_canal === 'referido_empleado', null],
+    ['redes', '📱 Publicidad en redes', s => ['facebook','instagram','tiktok','whatsapp'].includes(s.origen_canal), ['facebook','instagram','tiktok','whatsapp']],
+    ['volante', '📰 Volante / publicidad impresa', s => s.origen_canal === 'volante', ['volante']],
+    ['otros', '🏢 Oficina / otros / sin dato', s => !s.origen_canal || ['oficina','otro'].includes(s.origen_canal), ['otro']],
+  ];
+  const calc = (filtro, canalesGasto, esRef) => {
+    const sols = nuevos.filter(filtro), des = sols.filter(s => ['desembolsada'].includes(s.estado));
+    const cap = des.reduce((a, s) => a + capitalColocado(s), 0);
+    const gasto = esRef ? des.reduce((a, s) => a + (s.bono_pagado_en ? +s.bono_monto || 0 : bonoDe(s)), 0) : gPer.filter(g => (canalesGasto || []).includes(g.canal)).reduce((a, g) => a + +g.monto, 0);
+    return { sol: sols.length, des: des.length, cap, gasto, conv: sols.length ? des.length / sols.length : null, cac: des.length && gasto ? gasto / des.length : (des.length ? 0 : null), cps: sols.length && gasto ? gasto / sols.length : null, roi: gasto ? cap / gasto : null };
+  };
+  const filas = GR.map(([k, t, fl, cg]) => ({ k, t, ...calc(fl, cg, k.startsWith('ref')) }));
+  const sub = ['facebook','instagram','tiktok','whatsapp'].map(c => ({ k:c, t:'   ' + CANAL[c], sub:true, ...calc(s => s.origen_canal === c, [c], false) }));
+  const tot = filas.reduce((a, r) => ({ sol:a.sol + r.sol, des:a.des + r.des, cap:a.cap + r.cap, gasto:a.gasto + r.gasto }), { sol:0, des:0, cap:0, gasto:0 });
+  const conGasto = filas.filter(r => r.gasto > 0 && r.des > 0);
+  const mejorCac = conGasto.slice().sort((a, b) => a.cac - b.cac)[0], mejorRoi = conGasto.slice().sort((a, b) => b.roi - a.roi)[0];
+  const sinGastoRedes = filas.find(r => r.k === 'redes' && r.sol > 0 && !r.gasto);
+  const pct = v => v == null ? '—' : Math.round(v * 100) + '%';
+  const fila = r => `<tr ${r.sub ? 'class="small" style="color:var(--ink2)"' : ''}><td>${r.sub ? '&nbsp;&nbsp;↳ ' + esc(r.t.trim()) : `<b>${esc(r.t)}</b>`}</td><td class="num">${r.sol}</td><td class="num">${r.des}</td><td class="num">${pct(r.conv)}</td><td class="num">${L(Math.round(r.cap))}</td><td class="num">${r.gasto ? L(Math.round(r.gasto)) : '—'}</td>
+    <td class="num"><b>${r.cac == null ? '—' : r.gasto ? L(Math.round(r.cac)) : '<span class="muted small">sin gasto registrado</span>'}</b></td><td class="num">${r.cps == null ? '—' : L(Math.round(r.cps))}</td><td class="num">${r.roi == null ? '—' : L(Math.round(r.roi))}</td></tr>`;
+  S.ref.cacFilas = filas.concat(sub).map(r => ({ 'Canal':r.t.trim(), 'Solicitudes':r.sol, 'Desembolsados':r.des, 'Conversión':r.conv == null ? '' : Math.round(r.conv * 100) + '%', 'Capital colocado':Math.round(r.cap), 'Gasto':Math.round(r.gasto), 'Costo por cliente (CAC)':r.cac == null ? '' : Math.round(r.cac), 'Costo por solicitud':r.cps == null ? '' : Math.round(r.cps), 'Colocado por L1 de gasto':r.roi == null ? '' : +r.roi.toFixed(1) }));
+  box.innerHTML = `<div class="kpis">
+      <div class="kpi"><div class="l">Gasto de adquisición</div><div class="v" style="font-size:21px">${L(Math.round(tot.gasto))}</div><div class="s">publicidad + bonos de referidos</div></div>
+      <div class="kpi"><div class="l">Clientes nuevos desembolsados</div><div class="v">${tot.des}</div><div class="s">de ${tot.sol} solicitudes nuevas (${pct(tot.sol ? tot.des / tot.sol : null)})</div></div>
+      <div class="kpi" style="border-top:3px solid var(--brand)"><div class="l">Costo promedio por cliente</div><div class="v" style="font-size:21px">${tot.des ? L(Math.round(tot.gasto / tot.des)) : '—'}</div><div class="s">gasto ÷ desembolsados</div></div>
+      <div class="kpi" style="border-top:3px solid var(--green)"><div class="l" style="color:var(--green)">Vía más barata por cliente</div><div class="v" style="font-size:16px">${mejorCac ? esc(mejorCac.t) : '—'}</div><div class="s">${mejorCac ? L(Math.round(mejorCac.cac)) + ' por cliente' : 'registre gastos para comparar'}</div></div>
+      <div class="kpi" style="border-top:3px solid var(--green)"><div class="l" style="color:var(--green)">Más colocado por lempira</div><div class="v" style="font-size:16px">${mejorRoi ? esc(mejorRoi.t) : '—'}</div><div class="s">${mejorRoi ? L(Math.round(mejorRoi.roi)) + ' colocados por cada L 1' : '—'}</div></div></div>
+    ${sinGastoRedes ? `<div class="alert warn small">Hay ${sinGastoRedes.sol} solicitud(es) que llegaron por redes y no hay gasto de publicidad registrado en este período: regístrelo abajo para medir su costo real.</div>` : ''}
+    <div class="card" style="overflow-x:auto"><table class="t"><thead><tr><th>Vía de llegada</th><th class="num">Solicitudes</th><th class="num">Desemb.</th><th class="num">Conversión</th><th class="num">Capital colocado</th><th class="num">Gasto</th><th class="num">Costo por cliente</th><th class="num">Costo por solicitud</th><th class="num">Colocado por L1</th></tr></thead>
+      <tbody>${filas.map(r => fila(r) + (r.k === 'redes' ? sub.filter(x => x.sol || x.gasto).map(fila).join('') : '')).join('')}</tbody>
+      <tfoot><tr><td>Total</td><td class="num">${tot.sol}</td><td class="num">${tot.des}</td><td class="num">${pct(tot.sol ? tot.des / tot.sol : null)}</td><td class="num">${L(Math.round(tot.cap))}</td><td class="num">${L(Math.round(tot.gasto))}</td><td class="num">${tot.des ? L(Math.round(tot.gasto / tot.des)) : '—'}</td><td class="num">${tot.sol && tot.gasto ? L(Math.round(tot.gasto / tot.sol)) : '—'}</td><td class="num">${tot.gasto ? L(Math.round(tot.cap / tot.gasto)) : '—'}</td></tr></tfoot></table>
+      <div class="small muted" style="margin-top:6px">Solo clientes nuevos creados en el período, según "Cómo llegó". Gasto de referidos = bonos de los desembolsados (pagados o por pagar). Gasto de publicidad = lo registrado abajo en el período. Costo por cliente = gasto ÷ desembolsados; Colocado por L1 = capital colocado ÷ gasto.</div></div>
+    ${conGasto.length ? `<div class="card"><b>Costo por cliente desembolsado</b><div style="margin-top:8px">${barras(conGasto.map(r => [r.t, r.cac, L(Math.round(r.cac))]))}</div></div>` : ''}
+    <h4 class="sec">💸 Gastos de publicidad</h4>
+    <div class="card">${admin ? `<div class="row" style="flex-wrap:wrap;gap:8px;align-items:end;margin-bottom:10px">
+        <div><label class="f" style="margin-top:0">Fecha</label><input type="date" id="gFec" value="${hoyHN()}" max="${hoyHN()}"></div>
+        <div><label class="f" style="margin-top:0">Canal</label><select id="gCan">${Object.entries(CANALES_GASTO).map(([k, t]) => `<option value="${k}">${t}</option>`).join('')}</select></div>
+        <div><label class="f" style="margin-top:0">Monto (L)</label><input id="gMon" inputmode="decimal" style="width:120px"></div>
+        <div style="flex:1;min-width:160px"><label class="f" style="margin-top:0">Descripción</label><input id="gDes" placeholder="Ej.: campaña Facebook semana 1"></div>
+        <button class="btn pri" id="gOk">＋ Registrar gasto</button></div>` : ''}
+      ${gPer.length ? `<table class="t"><thead><tr><th>Fecha</th><th>Canal</th><th>Descripción</th><th class="num">Monto</th>${admin ? '<th></th>' : ''}</tr></thead><tbody>
+        ${gPer.map(g => `<tr><td>${fDate(g.fecha + 'T12:00')}</td><td>${esc(CANALES_GASTO[g.canal] || g.canal)}</td><td>${esc(g.descripcion || '')}</td><td class="num">${L(+g.monto)}</td>${admin ? `<td><a href="#" data-ganular="${g.id}" class="small" style="color:var(--red)">Anular</a></td>` : ''}</tr>`).join('')}</tbody>
+        <tfoot><tr><td colspan="3">Total del período</td><td class="num"><b>${L(gPer.reduce((a, g) => a + +g.monto, 0))}</b></td>${admin ? '<td></td>' : ''}</tr></tfoot></table>` : '<div class="small muted">No hay gastos de publicidad registrados en este período.</div>'}</div>`;
+  if ($('#gOk')) $('#gOk').onclick = e => run(e.target, async () => {
+    const m = num($('#gMon').value); if (!m || m <= 0) throw new Error('Indique el monto');
+    await rpc('guardar_gasto_publicidad', { p_id: null, p_fecha: $('#gFec').value, p_canal: $('#gCan').value, p_monto: m, p_descripcion: $('#gDes').value || null, p_anular: false });
+    toast('Gasto registrado'); pintarReferidos(); });
+  box.querySelectorAll('[data-ganular]').forEach(a => a.onclick = ev => { ev.preventDefault(); if (!confirm('¿Anular este gasto?')) return; run(a, async () => {
+    await rpc('guardar_gasto_publicidad', { p_id: +a.dataset.ganular, p_fecha: null, p_canal: null, p_monto: null, p_descripcion: null, p_anular: true }); toast('Gasto anulado'); pintarReferidos(); }); });
 }
 function barras(rows){
   const max = Math.max(1, ...rows.map(r => r[1]));
