@@ -162,6 +162,30 @@ label.f{display:block;font-size:12px;color:var(--ink2);margin:10px 0 4px;font-we
 .doc-row:first-of-type{border-top:0;padding-top:2px}
 .doc-row .ic{width:38px;height:38px;border-radius:10px;display:flex;align-items:center;justify-content:center;background:var(--brand2);font-size:19px;flex:none}
 .doc-row .tx{flex:1;min-width:170px}
+/* Documentos de media página (2 por hoja carta) */
+.ct-page.mp{font-family:Calibri,Carlito,Arial,Helvetica,sans-serif;font-size:9.6pt;line-height:1.3;color:#000}
+.ct-page.mp .mp-wrap{position:absolute;inset:0}
+.ct-page.mp .mp-half{position:relative;height:5.28in;padding:.32in .55in 0;box-sizing:border-box}
+.ct-page.mp .mp-cab{display:flex;align-items:center;gap:10pt;border-bottom:1.2pt solid #0A2A66;padding-bottom:4pt;margin-bottom:5pt}
+.ct-page.mp .mp-cab img{height:.42in}
+.ct-page.mp .mp-t{font-size:12pt;font-weight:700;color:#0A2A66}
+.ct-page.mp .mp-c{font-size:8.5pt;color:#444}
+.ct-page.mp .mp-copia{position:absolute;top:.34in;right:.55in;font-size:7.5pt;color:#666;text-transform:uppercase;letter-spacing:.5pt}
+.ct-page.mp p{margin:0 0 5pt;text-align:justify}
+.ct-page.mp .u{border-bottom:.7pt solid #000;padding:0 2pt}
+.ct-page.mp .bl{display:inline-block;border-bottom:.7pt solid #000;height:9pt;vertical-align:baseline}
+.ct-page.mp .mp-tb{width:100%;border-collapse:collapse;margin:2pt 0 6pt;font-size:9pt}
+.ct-page.mp .mp-tb td{border:.7pt solid #000;padding:3pt 5pt;height:13pt}
+.ct-page.mp .mp-tb td:nth-child(odd){background:#eef2f8;font-weight:700;width:1.25in;white-space:nowrap}
+.ct-page.mp .mp-fir{display:flex;align-items:flex-end;gap:.25in;margin-top:8pt}
+.ct-page.mp .mp-fcol{flex:1;text-align:center;font-size:8.5pt}
+.ct-page.mp .mp-fcol .small{font-size:7.5pt;color:#333}
+.ct-page.mp .mp-l{border-top:.8pt solid #000;margin:0 .1in 2pt;height:0}
+.ct-page.mp .mp-fcol .mp-l{margin-top:.55in}
+.ct-page.mp .mp-hue{width:.85in;height:1.05in;border:.8pt solid #000;border-radius:4pt;display:flex;align-items:flex-end;justify-content:center;font-size:7.5pt;color:#555;padding-bottom:3pt;box-sizing:border-box;flex:none}
+.ct-page.mp .mp-dni{width:3.2in;height:1.4in;border:1pt dashed #555;border-radius:8pt;display:flex;align-items:center;justify-content:center;font-size:10pt;color:#666;flex:none}
+.ct-page.mp .mp-cut{position:absolute;top:5.45in;left:.3in;right:.3in;border-top:1pt dashed #999;font-size:9pt;color:#999;line-height:0}
+.ct-page.mp .mp-half + .mp-cut + .mp-half{position:absolute;top:5.5in;left:0;right:0}
 /* Formato de verificación de domicilio (hoja carta) */
 .ct-page.fv{font-family:Calibri,Carlito,Arial,Helvetica,sans-serif;font-size:10.5pt;line-height:1.25}
 .ct-page.fv .in{position:absolute;top:.45in;left:.8in;right:.8in;bottom:.55in}
@@ -509,7 +533,7 @@ table.ht td.nota{max-width:220px;overflow:hidden;text-overflow:ellipsis;color:va
 // App disponible sin señal (sw.js debe estar junto a index.html). Va primero para registrarse aunque falle otra cosa.
 if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) navigator.serviceWorker.register('sw.js').catch(() => {});
 // Versión de esta copia de la app: cambia en cada entrega. La app la compara con la publicada y se actualiza sola.
-const APP_VER = '2026-10-26.1017';
+const APP_VER = '2026-10-26.1135';
 // ================== Configuración ==================
 const SB_URL = 'https://edmvfqelxsxevpmxgbav.supabase.co';
 const SB_KEY = 'sb_publishable_lgTmmLtUESDDyX2sff6ArQ_z65Ti9d6';
@@ -2058,6 +2082,12 @@ function renderDetalle(){
       <div class="doc-row"><div class="ic">🏠</div><div class="tx"><b>Formato de verificación de domicilio</b>
         <div class="small muted">Sale con el nombre del cliente y la fecha; el verificador llena el resto a mano.</div></div>
         <button class="btn ghost sm" id="fvAbrir">Ver formato</button></div>
+      <div class="doc-row"><div class="ic">🏦</div><div class="tx"><b>Autorización de desembolso a cuenta de tercero</b>
+        <div class="small muted">Media página: el cliente autoriza depositar en la cuenta de otra persona, por tiempo indefinido. Firma, huella y DNI.</div></div>
+        <button class="btn ghost sm" id="mpAut">Ver autorización</button></div>
+      ${s.forma_desembolso === 'efectivo' ? `<div class="doc-row"><div class="ic">💵</div><div class="tx"><b>Constancia de recepción de efectivo</b>
+        <div class="small muted">Media página: el cliente firma que recibió ${montoLibre(s) != null ? L(montoLibre(s)) : 'el efectivo'} de manos del gestor.</div></div>
+        <button class="btn ghost sm" id="mpEf">Ver constancia</button></div>` : ''}
       <div class="doc-row"><div class="ic">🖨</div><div class="tx"><b>Imprimir ambos</b><div class="small muted">Contrato y formato de verificación en una sola impresión.</div></div>
         <button class="btn ok sm" id="docAmbos">🖨 Imprimir ambos</button></div>
       <div style="border-top:1px solid var(--line);padding-top:10px;margin-top:2px;display:flex;gap:12px;align-items:center;flex-wrap:wrap">
@@ -2479,6 +2509,8 @@ function enlazarDetalle(s, c){
     catch(e){ const w = dialogo(`<h3>Resumen</h3><textarea rows="10" readonly>${esc(txt)}</textarea><div class="btns"><button class="btn pri" data-close>Cerrar</button></div>`); w.querySelector('textarea').select(); }
   };
   if ($('#rdAbrir')) $('#rdAbrir').onclick = () => abrirContrato(S.detData.s);
+  if ($('#mpAut')) $('#mpAut').onclick = () => abrirMediaPagina(S.detData.s, 'aut');
+  if ($('#mpEf')) $('#mpEf').onclick = () => abrirMediaPagina(S.detData.s, 'ef');
   if ($('#fvAbrir')) $('#fvAbrir').onclick = () => abrirFormatoVerif(S.detData.s);
   if ($('#docAmbos')) $('#docAmbos').onclick = e => run(e.target, async () => imprimirAmbos(S.detData.s));
   if ($('#cfSubir')) $('#cfSubir').onclick = () => abrirContratoFirmado(S.detData.s);
@@ -3295,6 +3327,78 @@ function imprimirAmbos(s, fv){
   const c = contratoPaginas(s);
   imprimirHojas(c.html + FV.pagina(fv || { nombre: s.nombre_cliente, fecha: hoyHN() }), 'Contrato_y_Verificacion_' + nombreArchivo(s.nombre_cliente));
   rpc('registrar_reconocimiento', { p_id: s.id, p_dni: c.st.id, p_monto: c.st.limite, p_accion: 'impreso' }).catch(e => console.warn(e));
+}
+// ================== Documentos de media página: autorización a cuenta de tercero y constancia de efectivo ==================
+const MP = (() => {
+  const MESES = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+  const v = (x, w = 1.6) => x ? `<b class="u">${esc(x)}</b>` : `<span class="bl" style="width:${w}in"></span>`;
+  const fechaTxt = f => { if (!f) return `a los ${v('', .4)} días del mes de ${v('', 1)} de ${v('', .5)}`; const [y, m, d] = f.split('-').map(Number); return `a los <b>${d}</b> días del mes de <b>${MESES[m - 1]}</b> de <b>${y}</b>`; };
+  const cab = (t, cod) => `<div class="mp-cab"><img src="${LOGO_MP}" alt="Más Pisto"><div><div class="mp-t">${t}</div>${cod ? `<div class="mp-c">Solicitud ${esc(cod)}</div>` : ''}</div></div>`;
+  function autorizacion(d, copia){
+    return `<div class="mp-half">${cab('AUTORIZACIÓN DE DESEMBOLSO A CUENTA DE TERCERO', d.codigo)}<div class="mp-copia">${copia}</div>
+      <p>Yo, ${v(d.nombre, 2.6)}, con DNI ${v(d.dni, 1.3)}, cliente de <b>MAS PISTO S DE RL</b>, autorizo que los desembolsos de los créditos que me sean otorgados se depositen en la siguiente cuenta bancaria a nombre de un tercero:</p>
+      <table class="mp-tb"><tr><td>Titular de la cuenta</td><td colspan="3">${esc(d.titular || '')}</td></tr>
+        <tr><td>DNI del titular</td><td>${esc(d.tdni || '')}</td><td>Relación con el cliente</td><td>${esc(d.relacion || '')}</td></tr>
+        <tr><td>Banco</td><td>${esc(d.banco || '')}</td><td>Tipo y No. de cuenta</td><td>${esc(d.cuenta || '')}</td></tr></table>
+      <p>Todo depósito hecho en esa cuenta lo doy por recibido por mí en su totalidad; reconozco como propia la deuda de cada desembolso y libero a MAS PISTO S DE RL de responsabilidad por el uso o retiro de esos fondos. <b>Esta autorización es por tiempo indefinido</b> y aplica a todos mis créditos presentes y futuros, hasta que yo solicite por escrito su cambio o revocación.</p>
+      <p>San Pedro Sula, Cortés, ${fechaTxt(d.fecha)}.</p>
+      <div class="mp-fir">
+        <div class="mp-fcol"><div class="mp-l"></div><div>Firma del cliente</div><div class="small">${esc(d.nombre || '')}${d.dni ? ' · DNI ' + esc(d.dni) : ''}</div></div>
+        <div class="mp-hue">Huella</div>
+        <div class="mp-dni">Coloque su DNI aquí</div>
+      </div></div>`;
+  }
+  function efectivo(d, copia){
+    const m = +d.monto || 0;
+    return `<div class="mp-half">${cab('CONSTANCIA DE RECEPCIÓN DE EFECTIVO', d.codigo)}<div class="mp-copia">${copia}</div>
+      <p>Yo, ${v(d.nombre, 2.6)}, con DNI ${v(d.dni, 1.3)}, hago constar que en esta fecha recibí a mi entera satisfacción, de manos de ${v(d.gestor, 2)}, gestor de <b>MAS PISTO S DE RL</b>, la cantidad de
+        <b class="u">${m ? esc(RD.letras(m)) + ' Lempiras' : ''}</b>${m ? '' : '<span class="bl" style="width:2.6in"></span>'} (<b>${m ? esc(RD.cifra(m)) : 'L. ' + '&nbsp;'.repeat(14)}</b>) en efectivo,
+        correspondiente al monto libre de mi ${esc(d.tipo || 'crédito')}${d.prestamo ? ` (préstamo de ${esc(RD.cifra(+d.prestamo))}${+d.saldo ? `, menos saldo anterior de ${esc(RD.cifra(+d.saldo))}` : ''})` : ''}.</p>
+      <p>Conté el dinero en presencia del gestor y lo recibí completo, por lo que no tengo reclamo posterior sobre esta entrega.</p>
+      <p>San Pedro Sula, Cortés, ${fechaTxt(d.fecha)}${d.hora ? `, a las <b>${esc(d.hora)}</b>` : ', a las ' + v('', .7)}.</p>
+      <div class="mp-fir mp-fir2">
+        <div class="mp-fcol"><div class="mp-l"></div><div>Firma del cliente</div><div class="small">${esc(d.nombre || '')}${d.dni ? ' · DNI ' + esc(d.dni) : ''}</div></div>
+        <div class="mp-hue">Huella</div>
+        <div class="mp-fcol"><div class="mp-l"></div><div>Firma del gestor</div><div class="small">${esc(d.gestor || '')}</div></div>
+      </div></div>`;
+  }
+  // Una hoja carta con el documento en la mitad de arriba y, si se pide, la copia abajo (con línea para cortar)
+  const hoja = (fn, d, dos) => `<div class="ct-page mp"><div class="mp-wrap">${fn(d, dos ? 'Original · Más Pisto' : '')}${dos ? `<div class="mp-cut"><span style="background:#fff;padding-right:4pt;position:relative;top:-1pt">✂</span></div>${fn(d, 'Copia · Cliente')}` : ''}</div></div>`;
+  return { autorizacion, efectivo, hoja };
+})();
+function abrirMediaPagina(s, tipo){
+  const libre = montoLibre(s), gestor = s.verificador_id ? nombre(s.verificador_id) : '';
+  const [banco, ...resto] = String(s.cuenta_banco || '').split(/\s+/);
+  const st = tipo === 'aut'
+    ? { nombre: s.nombre_cliente, dni: RD.fmtId(s.dni || ''), codigo: s.codigo, titular: '', tdni: '', relacion: '', banco: s.cuenta_banco ? banco : '', cuenta: s.cuenta_banco ? resto.join(' ') : '', fecha: hoyHN(), dos: true }
+    : { nombre: s.nombre_cliente, dni: RD.fmtId(s.dni || ''), codigo: s.codigo, gestor, monto: libre || '', prestamo: s.tipo !== 'nuevo' ? +(s.monto_solicitado || s.monto_aprobado || 0) : 0, saldo: s.tipo !== 'nuevo' ? (+s.saldo_capital || 0) + (+s.saldo_intereses || 0) : 0,
+        tipo: s.tipo === 'nuevo' ? 'préstamo' : TIPO[s.tipo].toLowerCase(), fecha: hoyHN(), hora: '', dos: true };
+  const titulo = tipo === 'aut' ? 'Autorización a cuenta de tercero' : 'Constancia de recepción de efectivo';
+  const campos = tipo === 'aut'
+    ? [['nombre','Cliente',2],['dni','DNI del cliente',1],['titular','Titular de la cuenta',2],['tdni','DNI del titular',1],['relacion','Relación (ej. esposa, hermano)',1],['banco','Banco',1],['cuenta','Tipo y No. de cuenta',1.5],['fecha','Fecha',1,'date']]
+    : [['nombre','Cliente',2],['dni','DNI del cliente',1],['gestor','Gestor que entrega',1.5],['monto','Monto entregado (L)',1],['fecha','Fecha',1,'date'],['hora','Hora (opcional)',1,'time']];
+  const w = document.createElement('div'); w.className = 'rd-wrap';
+  w.innerHTML = `<div class="rd-bar">
+      <div class="t"><button class="back" data-x>←</button><span>${titulo} · ${esc(s.codigo)}</span></div>
+      ${campos.map(([k, l, fl, ty]) => `<div class="fld" style="flex:${fl}"><label>${l}</label><input data-f="${k}" ${ty ? `type="${ty}"` : ''} value="${esc(st[k] ?? '')}"></div>`).join('')}
+      <label class="small" style="display:flex;gap:6px;align-items:center"><input type="checkbox" data-dos checked style="width:auto"> Original y copia en la misma hoja</label>
+      <div class="acc"><button class="btn pri" data-a="print">🖨 Imprimir</button></div>
+      <div class="small muted" style="flex:1 1 100%">${tipo === 'aut' ? 'Media página. Los datos del tercero se pueden llenar aquí o a mano. Queda vigente hasta que el cliente pida el cambio.' : 'Media página. El cliente firma y pone su huella al recibir el efectivo; el gestor firma como entregó.'}</div>
+    </div>
+    <div class="rd-stage"><div class="rd-scaler"><div class="ct-pages"></div></div></div>`;
+  document.body.appendChild(w); history.pushState({ rd:1 }, ''); S.dlgs = (S.dlgs || []).concat(w);
+  const cont = w.querySelector('.ct-pages'), scaler = w.querySelector('.rd-scaler'), stage = w.querySelector('.rd-stage');
+  const fn = tipo === 'aut' ? MP.autorizacion : MP.efectivo;
+  const render = () => { cont.innerHTML = MP.hoja(fn, st, st.dos); scaler.style.transform = ''; scaler.style.width = ''; scaler.style.height = '';
+    const sc = Math.min(1, (stage.clientWidth - 32) / cont.offsetWidth);
+    if (sc < 1){ scaler.style.transform = `scale(${sc})`; scaler.style.transformOrigin = 'top left'; scaler.style.width = cont.offsetWidth * sc + 'px'; scaler.style.height = cont.offsetHeight * sc + 'px'; } };
+  w.querySelectorAll('[data-f]').forEach(i => i.oninput = () => { const k = i.dataset.f; st[k] = k === 'dni' || k === 'tdni' ? (i.value = RD.fmtId(i.value)) : k === 'monto' ? (num(i.value) || '') : i.value.trim(); render(); });
+  w.querySelector('[data-dos]').onchange = e => { st.dos = e.target.checked; render(); };
+  w.querySelector('[data-x]').onclick = () => cerrarDialogo(w);
+  w.querySelector('[data-a="print"]').onclick = () => {
+    imprimirHojas(MP.hoja(fn, st, st.dos), (tipo === 'aut' ? 'Autorizacion_cuenta_tercero_' : 'Constancia_efectivo_') + nombreArchivo(st.nombre || s.nombre_cliente));
+  };
+  render(); addEventListener('resize', render, { once:true });
 }
 function abrirFormatoVerif(s){
   const st = { nombre: s.nombre_cliente, fecha: hoyHN() };
