@@ -535,7 +535,7 @@ table.ht td.nota{max-width:220px;overflow:hidden;text-overflow:ellipsis;color:va
 // App disponible sin señal (sw.js debe estar junto a index.html). Va primero para registrarse aunque falle otra cosa.
 if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) navigator.serviceWorker.register('sw.js').catch(() => {});
 // Versión de esta copia de la app: cambia en cada entrega. La app la compara con la publicada y se actualiza sola.
-const APP_VER = '2026-10-26.1203';
+const APP_VER = '2026-10-26.1450';
 // ================== Configuración ==================
 const SB_URL = 'https://edmvfqelxsxevpmxgbav.supabase.co';
 const SB_KEY = 'sb_publishable_lgTmmLtUESDDyX2sff6ArQ_z65Ti9d6';
@@ -1803,7 +1803,7 @@ async function mapaVerificar(pts){
         <select data-mapasig="${s.id}" data-fn="${fnAsig}" style="width:100%;padding:4px"><option value="">${fnAsig === 't' ? 'El mismo del domicilio' : '— Sin asignar —'}</option>${verifs.map(p => `<option value="${p.id}" ${p.id === (fnAsig === 't' ? s.verificador_trabajo_id : s.verificador_id) ? 'selected' : ''}>${esc(p.nombre)}</option>`).join('')}</select>
         ${sug.length ? `<div class="small" style="margin-top:4px">📍 Más cerca: ${sug.map(([v, c]) => `<a href="#" data-mapsug="${v}" style="color:${avColor(v)};font-weight:700">${esc(nombre(v))}</a> (${fKm(c.d)} de ${esc(nombreCorto(c.o.s.nombre_cliente))})`).join(' · ')}</div>` : ''}</div>`
         : `<br>Verificador: ${esc(x.ver ? nombre(x.ver) : 'Sin asignar')}`}
-      <div style="margin-top:6px"><a href="#" data-open="${s.id}">Abrir solicitud</a> · <a href="${linkRuta(x.lat, x.lng)}" target="_blank" rel="noopener">🧭 Cómo llegar</a></div></div>`;
+      <div style="margin-top:6px"><a href="#" data-open="${s.id}">Abrir solicitud</a> · <a href="${linkRuta(x.lat, x.lng)}" target="_blank" rel="noopener">🧭 Cómo llegar</a>${s.estado === 'por_verificar' ? ` · <a href="#" data-mapwa="${s.id}">💬 WhatsApp</a>` : ''}</div></div>`;
     LF.marker([x.lat, x.lng], { icon, riseOnHover:true }).addTo(map).bindPopup(pop);
   });
   if (S.miPos){ b.push([S.miPos.lat, S.miPos.lng]); LF.circleMarker([S.miPos.lat, S.miPos.lng], { radius:8, color:'#0A2A66', weight:3, fillColor:'#FFD400', fillOpacity:1 }).addTo(map).bindPopup('Usted está aquí'); }
@@ -1811,7 +1811,8 @@ async function mapaVerificar(pts){
     LF.polyline((S.miPos ? [[S.miPos.lat, S.miPos.lng]] : []).concat(r.out.map(x => { const p = puntoVerif(x.s); return [p.lat, p.lng]; })), { color:'#1877F2', weight:3, opacity:.6, dashArray:'6 6' }).addTo(map); }
   if (S.vMapView) map.setView(S.vMapView.c, S.vMapView.z); else if (b.length) map.fitBounds(b, { padding:[30,30], maxZoom:15 });
   map.on('moveend', () => { S.vMapView = { c: map.getCenter(), z: map.getZoom() }; });
-  el.addEventListener('click', e => { const a = e.target.closest('[data-open]'); if (a){ e.preventDefault(); abrirDetalle(+a.dataset.open); } });
+  el.addEventListener('click', e => { const a = e.target.closest('[data-open]'); if (a){ e.preventDefault(); abrirDetalle(+a.dataset.open); }
+    const w = e.target.closest('[data-mapwa]'); if (w){ e.preventDefault(); const s = S.sols.find(x => x.id === +w.dataset.mapwa); if (s) abrirWhatsApp(s); } });
   map.on('popupopen', e => {
     const box = e.popup.getElement(); if (!box) return;
     const sel = box.querySelector('[data-mapasig]'); if (!sel) return;
@@ -2435,7 +2436,7 @@ function datosVisitaHTML(s){
       ${lat != null ? `<a href="${linkRuta(lat, s[k + '_lng'])}" target="_blank" rel="noopener">🧭 Cómo llegar</a>` : '<span class="muted small">sin coordenadas</span>'}</div>`; };
   const libre = montoLibre(s);
   return `<div class="dvbox">
-    ${s.telefono ? `<div class="dv"><span>📞 <b>Teléfono</b></span><span><a href="tel:${esc(s.telefono)}">${esc(s.telefono)}</a> · <a href="https://wa.me/504${esc(s.telefono.replace(/\D/g,'').slice(-8))}" target="_blank">WhatsApp</a></span></div>` : ''}
+    ${s.telefono ? `<div class="dv"><span>📞 <b>Teléfono</b></span><span><a href="tel:${esc(s.telefono)}">${esc(s.telefono)}</a> · <a href="https://wa.me/504${esc(s.telefono.replace(/\D/g,'').slice(-8))}" target="_blank">WhatsApp</a>${s.estado === 'por_verificar' ? ' · <a href="#" data-dvwa>💬 Plantillas</a>' : ''}</span></div>` : ''}
     ${s.dni ? `<div class="dv"><span>🪪 <b>Identidad</b></span><span>${esc(s.dni)}</span></div>` : ''}
     ${itemAplica(s, 'domicilio') ? lug('dom', '🏠', 'Domicilio' + (s.verificador_trabajo_id && s.verificador_id ? ' · ' + nombre(s.verificador_id) : '')) : ''}
     ${itemAplica(s, 'trabajo') ? lug('trab', '🏢', 'Trabajo' + (s.verificador_trabajo_id ? ' · ' + nombre(s.verificador_trabajo_id) : '')) : ''}
@@ -2539,6 +2540,7 @@ function enlazarDetalle(s, c){
     });
   })();
   if ($('#dWaPl')) $('#dWaPl').onclick = ev => { ev.preventDefault(); abrirWhatsApp(s); };
+  document.querySelectorAll('[data-dvwa]').forEach(a => a.onclick = ev => { ev.preventDefault(); abrirWhatsApp(s); });
   if ($('#dOrigen')) $('#dOrigen').onclick = ev => { ev.preventDefault(); abrirOrigen(s, () => abrirDetalle(s.id, true)); };
   if ($('#dAsesor')) $('#dAsesor').onchange = e => run(e.target, async () => { await rpc('reasignar_asesor', { p_id: s.id, p_asesor: e.target.value }); toast('Asesor reasignado'); await refrescar(); });
   // Asesor: enviar
