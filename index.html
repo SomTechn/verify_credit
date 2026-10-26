@@ -184,7 +184,8 @@ label.f{display:block;font-size:12px;color:var(--ink2);margin:10px 0 4px;font-we
 .ct-page.mp .mp-fcol .mp-l{margin-top:.55in}
 .ct-page.mp .mp-hue{width:.85in;height:1.05in;border:.8pt solid #000;border-radius:4pt;display:flex;align-items:flex-end;justify-content:center;font-size:7.5pt;color:#555;padding-bottom:3pt;box-sizing:border-box;flex:none}
 .ct-page.mp .mp-dni{width:3.2in;height:1.4in;border:1pt dashed #555;border-radius:8pt;display:flex;align-items:center;justify-content:center;font-size:10pt;color:#666;flex:none}
-.ct-page.mp .mp-cut{position:absolute;top:5.45in;left:.3in;right:.3in;border-top:1pt dashed #999;font-size:9pt;color:#999;line-height:0}
+.ct-page.mp .mp-cut{position:absolute;top:5.5in;left:.3in;right:.3in;border-top:1pt dashed #888;font-size:8pt;color:#777;line-height:0}
+.ct-page.mp .mp-cut span{position:relative;top:-1pt;background:#fff;padding:0 5pt;margin-left:.2in}
 .ct-page.mp .mp-half + .mp-cut + .mp-half{position:absolute;top:5.5in;left:0;right:0}
 /* Formato de verificación de domicilio (hoja carta) */
 .ct-page.fv{font-family:Calibri,Carlito,Arial,Helvetica,sans-serif;font-size:10.5pt;line-height:1.25}
@@ -533,7 +534,7 @@ table.ht td.nota{max-width:220px;overflow:hidden;text-overflow:ellipsis;color:va
 // App disponible sin señal (sw.js debe estar junto a index.html). Va primero para registrarse aunque falle otra cosa.
 if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) navigator.serviceWorker.register('sw.js').catch(() => {});
 // Versión de esta copia de la app: cambia en cada entrega. La app la compara con la publicada y se actualiza sola.
-const APP_VER = '2026-10-26.1155';
+const APP_VER = '2026-10-26.1158';
 // ================== Configuración ==================
 const SB_URL = 'https://edmvfqelxsxevpmxgbav.supabase.co';
 const SB_KEY = 'sb_publishable_lgTmmLtUESDDyX2sff6ArQ_z65Ti9d6';
@@ -3363,7 +3364,9 @@ const MP = (() => {
       </div></div>`;
   }
   // Una hoja carta con el documento en la mitad de arriba y, si se pide, la copia abajo (con línea para cortar)
-  const hoja = (fn, d, dos) => `<div class="ct-page mp"><div class="mp-wrap">${fn(d, dos ? 'Original · Más Pisto' : '')}${dos ? `<div class="mp-cut"><span style="background:#fff;padding-right:4pt;position:relative;top:-1pt">✂</span></div>${fn(d, 'Copia · Cliente')}` : ''}</div></div>`;
+  // Siempre lleva la línea de corte a media hoja, para aprovechar la otra mitad
+  const corte = `<div class="mp-cut"><span>✂ Cortar aquí</span></div>`;
+  const hoja = (fn, d, dos) => `<div class="ct-page mp"><div class="mp-wrap">${fn(d, dos ? 'Original · Más Pisto' : '')}${corte}${dos ? fn(d, 'Copia · Cliente') : ''}</div></div>`;
   return { autorizacion, efectivo, hoja };
 })();
 function abrirMediaPagina(s, tipo){
@@ -3381,7 +3384,7 @@ function abrirMediaPagina(s, tipo){
   w.innerHTML = `<div class="rd-bar">
       <div class="t"><button class="back" data-x>←</button><span>${titulo} · ${esc(s.codigo)}</span></div>
       ${campos.map(([k, l, fl, ty]) => `<div class="fld" style="flex:${fl}"><label>${l}</label><input data-f="${k}" ${ty ? `type="${ty}"` : ''} value="${esc(st[k] ?? '')}"></div>`).join('')}
-      <div class="acc"><button class="btn pri" data-a="print">🖨 Imprimir</button></div>
+      <div class="acc"><button class="btn pri" data-a="print">🖨 Imprimir</button><button class="btn" data-a="pdf">⬇ Descargar PDF</button></div>
       <div class="small muted" style="flex:1 1 100%">${tipo === 'aut' ? 'Media página. Los datos del tercero se pueden llenar aquí o a mano. Queda vigente hasta que el cliente pida el cambio.' : 'Media página. El cliente firma y pone su huella al recibir el efectivo.'}</div>
     </div>
     <div class="rd-stage"><div class="rd-scaler"><div class="ct-pages"></div></div></div>`;
@@ -3393,9 +3396,26 @@ function abrirMediaPagina(s, tipo){
     if (sc < 1){ scaler.style.transform = `scale(${sc})`; scaler.style.transformOrigin = 'top left'; scaler.style.width = cont.offsetWidth * sc + 'px'; scaler.style.height = cont.offsetHeight * sc + 'px'; } };
   w.querySelectorAll('[data-f]').forEach(i => i.oninput = () => { const k = i.dataset.f; st[k] = k === 'dni' || k === 'tdni' ? (i.value = RD.fmtId(i.value)) : k === 'monto' ? (num(i.value) || '') : i.value.trim(); render(); });
   w.querySelector('[data-x]').onclick = () => cerrarDialogo(w);
-  w.querySelector('[data-a="print"]').onclick = () => {
-    imprimirHojas(MP.hoja(fn, st, st.dos), (tipo === 'aut' ? 'Autorizacion_cuenta_tercero_' : 'Constancia_efectivo_') + nombreArchivo(st.nombre || s.nombre_cliente));
-  };
+  const archivo = () => (tipo === 'aut' ? 'Autorizacion_cuenta_tercero_' : 'Constancia_efectivo_') + nombreArchivo(st.nombre || s.nombre_cliente);
+  w.querySelector('[data-a="print"]').onclick = () => imprimirHojas(MP.hoja(fn, st, st.dos), archivo());
+  w.querySelector('[data-a="pdf"]').onclick = e => run(e.target, async () => {
+    e.target.textContent = 'Generando…';
+    try {
+      await cargarScript('https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js');
+      await cargarScript('https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js');
+      if (document.fonts && document.fonts.ready) await document.fonts.ready;
+      const holder = document.createElement('div'); holder.style.cssText = 'position:fixed;left:-10000px;top:0'; document.body.appendChild(holder);
+      try {
+        holder.innerHTML = MP.hoja(fn, st, st.dos);
+        const pg = holder.firstElementChild; pg.style.boxShadow = 'none';
+        // html2canvas dibuja mal el subrayado: se usa borde inferior (ya viene así en .u)
+        const canvas = await html2canvas(pg, { scale: 2.5, backgroundColor: '#ffffff', useCORS: true });
+        const pdf = new jspdf.jsPDF({ unit: 'pt', format: 'letter', orientation: 'portrait' });
+        pdf.addImage(canvas.toDataURL('image/jpeg', 0.92), 'JPEG', 0, 0, 612, 792);
+        pdf.save(archivo() + '.pdf');
+      } finally { holder.remove(); }
+    } finally { e.target.textContent = '⬇ Descargar PDF'; }
+  });
   render(); addEventListener('resize', render, { once:true });
 }
 function abrirFormatoVerif(s){
