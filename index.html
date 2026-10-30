@@ -535,7 +535,7 @@ table.ht td.nota{max-width:220px;overflow:hidden;text-overflow:ellipsis;color:va
 // App disponible sin señal (sw.js debe estar junto a index.html). Va primero para registrarse aunque falle otra cosa.
 if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) navigator.serviceWorker.register('sw.js').catch(() => {});
 // Versión de esta copia de la app: cambia en cada entrega. La app la compara con la publicada y se actualiza sola.
-const APP_VER = '2026-10-26.1450';
+const APP_VER = '2026-10-30.1030';
 // ================== Configuración ==================
 const SB_URL = 'https://edmvfqelxsxevpmxgbav.supabase.co';
 const SB_KEY = 'sb_publishable_lgTmmLtUESDDyX2sff6ArQ_z65Ti9d6';
@@ -1048,7 +1048,15 @@ $('#btnBell').onclick = () => {
     <div class="small muted">Se activan por dispositivo: hágalo en cada computadora y teléfono donde quiera recibirlas.${esIOS() ? ' En iPhone solo funcionan con la app instalada en la pantalla de inicio.' : ''}</div>
     <div class="btns">
       ${PUSH.on ? '<button class="btn ghost" id="pbOff">Desactivar</button><button class="btn ghost" id="pbLocal">Probar este dispositivo</button><button class="btn ghost" id="pbTest">Enviar prueba</button>' : '<button class="btn pri" id="pbOn">Activar notificaciones</button>'}
-      <button class="btn ghost" data-close>Cerrar</button></div>`);
+      <button class="btn ghost" data-close>Cerrar</button></div>
+    <h3 style="margin-top:16px">🔊 Sonido y voz</h3>
+    <div class="small muted">Con la app abierta (en pantalla o, en computadora, en otra pestaña) cada aviso suena como caja registradora y una voz lee el cliente y el estado. Con la app cerrada el teléfono usa su sonido normal de notificación.</div>
+    <label class="chk" style="margin-top:8px"><input type="checkbox" id="avSon" ${AVISO.sonido() ? 'checked' : ''}> 💵 Sonido de caja registradora</label>
+    <label class="chk"><input type="checkbox" id="avVoz" ${AVISO.voz() ? 'checked' : ''} ${'speechSynthesis' in window ? '' : 'disabled'}> 🗣️ Leer el aviso en voz alta${'speechSynthesis' in window ? '' : ' (no disponible en este navegador)'}</label>
+    <div class="btns"><button class="btn ghost" id="avProbar">▶ Probar sonido y voz</button></div>`);
+  w.querySelector('#avSon').addEventListener('change', e => { localStorage.setItem('vc_aviso_sonido', e.target.checked ? '1' : '0'); if (e.target.checked){ audioDesbloquear(); sonidoCaja(); } });
+  w.querySelector('#avVoz').addEventListener('change', e => { localStorage.setItem('vc_aviso_voz', e.target.checked ? '1' : '0'); });
+  w.querySelector('#avProbar').addEventListener('click', () => { audioDesbloquear(); sonarAviso('✅ Solicitud aprobada', 'Juan Pérez · Nuevo'); });
   w.querySelector('#pbOn')?.addEventListener('click', e => run(e.target, async () => { await pushActivar(); await cerrarDialogo(w); toast('🔔 Notificaciones activadas en este dispositivo'); $('#btnBell').onclick(); }));
   w.querySelector('#pbOff')?.addEventListener('click', e => run(e.target, async () => { await pushDesactivar(); await cerrarDialogo(w); toast('Notificaciones desactivadas en este dispositivo'); }));
   // Muestra un aviso sin pasar por el servidor: si este no aparece, el bloqueo está en el sistema (Windows/Android), no en la app
@@ -1064,7 +1072,77 @@ $('#btnBell').onclick = () => {
   }));
 };
 // Toque en un aviso con la app abierta: abre la solicitud
-if ('serviceWorker' in navigator) navigator.serviceWorker.addEventListener('message', e => { const id = +e.data?.abrir; if (id && S.me) abrirDetalle(id); });
+if ('serviceWorker' in navigator) navigator.serviceWorker.addEventListener('message', e => {
+  const id = +e.data?.abrir; if (id && S.me) abrirDetalle(id);
+  const a = e.data?.aviso;   // llegó un push con la app abierta: toast + caja + voz (los viejos se ignoran: el teléfono pudo tener la app dormida)
+  if (a && S.me && Date.now() - (a.ts || 0) < 20000) avisoApp(a.title || 'VerifyCredit', a.body || '', a.id);
+});
+// ================== Sonido de caja y voz en los avisos ==================
+const AVISO = { sonido: () => localStorage.getItem('vc_aviso_sonido') !== '0', voz: () => localStorage.getItem('vc_aviso_voz') !== '0', ult: {} };
+let ACTX = null;
+function audioCtx(){ try { if (!ACTX){ const C = window.AudioContext || window.webkitAudioContext; if (!C) return null; ACTX = new C(); } return ACTX; } catch(e){ return null; } }
+// Los navegadores solo dejan sonar después de que el usuario toca la página: se habilita con el primer toque
+function audioDesbloquear(){
+  const c = audioCtx(); if (c && c.state !== 'running') c.resume().catch(() => {});
+  if ('speechSynthesis' in window) speechSynthesis.getVoices();
+}
+['pointerdown','keydown','touchend'].forEach(ev => document.addEventListener(ev, audioDesbloquear, { passive:true }));
+// "Cha-ching" sintetizado (no necesita archivo ni señal): golpe del cajón + dos campanas
+function sonidoCaja(){
+  const c = audioCtx(); if (!c) return 0;
+  if (c.state !== 'running') c.resume().catch(() => {});
+  const t = c.currentTime + .03, out = c.createGain(); out.gain.value = .55; out.connect(c.destination);
+  const golpe = (t0, f, dur, vol) => {
+    const n = Math.floor(c.sampleRate * dur), b = c.createBuffer(1, n, c.sampleRate), d = b.getChannelData(0);
+    for (let i = 0; i < n; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / n, 4);
+    const src = c.createBufferSource(), bp = c.createBiquadFilter(), g = c.createGain();
+    src.buffer = b; bp.type = 'bandpass'; bp.frequency.value = f; bp.Q.value = 1.2; g.gain.value = vol;
+    src.connect(bp); bp.connect(g); g.connect(out); src.start(t0);
+  };
+  const campana = (t0, f, vol, dur) => [[1, 1], [2.01, .45], [3.03, .22], [4.2, .1]].forEach(([r, a]) => {
+    const o = c.createOscillator(), g = c.createGain(); o.type = 'sine'; o.frequency.value = f * r;
+    g.gain.setValueAtTime(0, t0); g.gain.linearRampToValueAtTime(vol * a, t0 + .004); g.gain.exponentialRampToValueAtTime(.0001, t0 + dur / r);
+    o.connect(g); g.connect(out); o.start(t0); o.stop(t0 + dur + .05);
+  });
+  golpe(t, 1800, .05, .9); golpe(t + .07, 900, .09, 1.1);       // ka-chunk
+  campana(t + .16, 2093, .35, 1.1); campana(t + .31, 2637, .4, 1.4);   // cha-ching
+  return 900;   // ms hasta que conviene empezar a hablar
+}
+// Voz en español: lee "cliente, estado"
+function vozEs(){
+  const vs = ('speechSynthesis' in window ? speechSynthesis.getVoices() : []).filter(v => /^es/i.test(v.lang));
+  const pref = ['es-HN','es-MX','es-US','es-419','es-CO','es-ES'];
+  return vs.sort((a, b) => { const ia = pref.findIndex(p => a.lang.replace('_','-').startsWith(p)), ib = pref.findIndex(p => b.lang.replace('_','-').startsWith(p));
+    return (ia < 0 ? 99 : ia) - (ib < 0 ? 99 : ib) || (b.localService - a.localService); })[0] || null;
+}
+function textoVoz(t, b){
+  const limpio = x => String(x || '').replace(/[\p{Extended_Pictographic}\uFE0F\u200D]/gu, '').replace(/\s+/g, ' ').trim();
+  const tit = limpio(t), cli = limpio(String(b || '').split(' · ')[0]);
+  if (/^\s*💬/u.test(t)) return 'Nuevo comentario de ' + tit.replace(' comentó en ', ' en ');
+  if (/meta|prueba|notificaciones/i.test(tit) || !cli) return tit;
+  return `${cli}. ${tit}.`;
+}
+function hablar(txt){
+  if (!('speechSynthesis' in window) || !txt) return;
+  try {
+    const u = new SpeechSynthesisUtterance(txt), v = vozEs();
+    if (v) u.voice = v; u.lang = v ? v.lang : 'es-MX'; u.rate = 1; u.pitch = 1; u.volume = 1;
+    if (speechSynthesis.pending) speechSynthesis.cancel();   // si llegan muchos seguidos, no se acumulan
+    speechSynthesis.speak(u);
+  } catch(e){}
+}
+function sonarAviso(t, b){
+  const ms = AVISO.sonido() ? sonidoCaja() : 0;
+  if (AVISO.voz()) setTimeout(() => hablar(textoVoz(t, b)), ms);
+}
+// Un mismo aviso puede llegar por tiempo real y por push: suena una sola vez
+function avisoApp(t, b, id){
+  const k = id ? 'i' + id : t + '|' + b, ahora = Date.now();
+  Object.keys(AVISO.ult).forEach(x => { if (ahora - AVISO.ult[x] > 15000) delete AVISO.ult[x]; });
+  if (AVISO.ult[k]) return false;
+  AVISO.ult[k] = ahora; toast(`${t}: ${b}`); sonarAviso(t, b); return true;
+}
+if ('speechSynthesis' in window) speechSynthesis.onvoiceschanged = () => {};
 
 // ================== Datos ==================
 async function cargarPerfiles(){
@@ -4976,7 +5054,7 @@ function avisar(p){
   else if (s.estado === 'desembolso_pendiente' && es('analista')) notificar('Desembolso por transferencia pendiente', n, s.id);
 }
 function notificar(t, b, id){
-  toast(`${t}: ${b}`);
+  if (!avisoApp(t, b, id)) return;
   // Con push activo el aviso de escritorio lo envía el servidor (evita duplicados)
   try { if (!PUSH.on && 'Notification' in window && Notification.permission === 'granted' && document.hidden){
     const nt = new Notification(t, { body: b, tag: 'vc-' + id, icon: 'icon-192.png', badge: 'badge-96.png' }); nt.onclick = () => { window.focus(); abrirDetalle(id); };

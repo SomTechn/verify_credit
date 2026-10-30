@@ -1,6 +1,6 @@
 // VerifiCrédito · service worker: permite abrir la app sin señal.
 // Los datos (Supabase) NO pasan por aquí: la app los guarda en el teléfono y envía los cambios al volver la conexión.
-const V = 'verificredito-v4';
+const V = 'verificredito-v5';
 const CDN = /^(cdn\.jsdelivr\.net|cdnjs\.cloudflare\.com|fonts\.googleapis\.com|fonts\.gstatic\.com|unpkg\.com)$/;
 
 self.addEventListener('install', e => {
@@ -47,8 +47,15 @@ self.addEventListener('push', e => {
   let d = {}; try { d = e.data ? e.data.json() : {}; } catch(_) { d = { body: e.data ? e.data.text() : '' }; }
   // icon = logo a color; badge = silueta blanca para la barra de estado de Android
   const url = f => new URL(f, self.registration.scope).href;
-  e.waitUntil(self.registration.showNotification(d.title || 'VerifyCredit', {
-    body: d.body || '', tag: d.tag || 'vc', renotify: true, icon: url('icon-192.png'), badge: url('badge-96.png'), data: { id: d.id || null } }));
+  // Con la app abierta: se le pasa el aviso para que suene la caja y lo lea en voz alta (aquí no se puede reproducir sonido)
+  const apple = /iPhone|iPad|iPod|Macintosh/.test(self.navigator.userAgent) && !/Chrome|Edg|Firefox/.test(self.navigator.userAgent);
+  e.waitUntil(self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(cs => {
+    cs.forEach(c => c.postMessage({ aviso: { title: d.title || 'VerifyCredit', body: d.body || '', id: d.id || null, ts: Date.now() } }));
+    // si la app está en pantalla, el aviso ya se ve y suena dentro de ella (Safari exige mostrarlo siempre)
+    if (!apple && cs.some(c => c.visibilityState === 'visible' && c.focused)) return;
+    return self.registration.showNotification(d.title || 'VerifyCredit', {
+      body: d.body || '', tag: d.tag || 'vc', renotify: true, icon: url('icon-192.png'), badge: url('badge-96.png'), data: { id: d.id || null } });
+  }));
 });
 self.addEventListener('notificationclick', e => {
   e.notification.close();
