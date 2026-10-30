@@ -1,6 +1,6 @@
 // VerifiCrédito · service worker: permite abrir la app sin señal.
 // Los datos (Supabase) NO pasan por aquí: la app los guarda en el teléfono y envía los cambios al volver la conexión.
-const V = 'verificredito-v5';
+const V = 'verificredito-v6';
 const CDN = /^(cdn\.jsdelivr\.net|cdnjs\.cloudflare\.com|fonts\.googleapis\.com|fonts\.gstatic\.com|unpkg\.com)$/;
 
 self.addEventListener('install', e => {
@@ -50,7 +50,7 @@ self.addEventListener('push', e => {
   // Con la app abierta: se le pasa el aviso para que suene la caja y lo lea en voz alta (aquí no se puede reproducir sonido)
   const apple = /iPhone|iPad|iPod|Macintosh/.test(self.navigator.userAgent) && !/Chrome|Edg|Firefox/.test(self.navigator.userAgent);
   e.waitUntil(self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(cs => {
-    cs.forEach(c => c.postMessage({ aviso: { title: d.title || 'VerifyCredit', body: d.body || '', id: d.id || null, ts: Date.now() } }));
+    cs.forEach(c => c.postMessage({ aviso: { title: d.title || 'VerifyCredit', body: d.body || '', id: d.id || null, k: d.k || null, voz: d.voz != null ? d.voz : null, ts: Date.now() } }));
     // si la app está en pantalla, el aviso ya se ve y suena dentro de ella (Safari exige mostrarlo siempre)
     if (!apple && cs.some(c => c.visibilityState === 'visible' && c.focused)) return;
     return self.registration.showNotification(d.title || 'VerifyCredit', {

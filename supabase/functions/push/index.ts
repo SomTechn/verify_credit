@@ -27,13 +27,13 @@ async function config() {
   return (cfg = c);
 }
 
-async function enviar(ids: string[], msg: { title: string; body: string; id?: number }) {
+async function enviar(ids: string[], msg: { title: string; body: string; id?: number; k?: string; voz?: string }) {
   ids = [...new Set(ids.filter(Boolean))];
   if (!ids.length) return 0;
   await config();
   const { data: subs, error } = await sb.from('push_subs').select('*').in('user_id', ids);
   if (error) throw error;
-  const payload = JSON.stringify({ ...msg, tag: msg.id ? 'vc-' + msg.id : 'vc' });
+  const payload = JSON.stringify({ ...msg, tag: msg.k || (msg.id ? 'vc-' + msg.id : 'vc') });
   let ok = 0;
   await Promise.all((subs || []).map(async (s) => {
     try {
@@ -96,6 +96,20 @@ Deno.serve(async (req) => {
       return json({ enviados: await evento(body) });
     }
     if (body.clave) return json({ publica: (await config()).publica });
+    if (body.aviso) {   // aviso personalizado escrito por el administrador
+      const jwt = (req.headers.get('Authorization') || '').replace(/^Bearer\s+/i, '');
+      const { data: u, error } = await sb.auth.getUser(jwt);
+      if (error || !u?.user) return json({ error: 'Sesión no válida' }, 401);
+      const { data: yo } = await sb.from('perfiles').select('rol, activo').eq('id', u.user.id).maybeSingle();
+      if (!yo?.activo || yo.rol !== 'admin') return json({ error: 'Solo el administrador puede enviar avisos' }, 403);
+      const a = body.aviso, msg = String(a.mensaje || '').trim().slice(0, 400), tit = String(a.titulo || 'Aviso del administrador').trim().slice(0, 60);
+      if (!msg) return json({ error: 'Mensaje vacío' }, 400);
+      const { data: act } = await sb.from('perfiles').select('id').eq('activo', true);
+      const validos = new Set((act || []).map((p) => p.id as string));
+      const ids = (Array.isArray(a.ids) ? a.ids : []).filter((id: string) => validos.has(id));
+      const n = await enviar(ids, { title: '📢 ' + tit, body: msg, k: String(a.k || 'm' + Date.now()).slice(0, 40), voz: typeof a.voz === 'string' ? a.voz.slice(0, 500) : undefined });
+      return json({ enviados: n, personas: ids.length });
+    }
     if (body.prueba) {
       const jwt = (req.headers.get('Authorization') || '').replace(/^Bearer\s+/i, '');
       const { data: u, error } = await sb.auth.getUser(jwt);

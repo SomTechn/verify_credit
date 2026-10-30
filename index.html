@@ -516,6 +516,7 @@ table.ht td.nota{max-width:220px;overflow:hidden;text-overflow:ellipsis;color:va
       <div class="who"><div id="whoName"></div><div id="whoRol"></div></div>
       <button class="netpill hidden" id="netPill"></button>
       <button class="iconbtn hidden" id="btnInstall" title="Instalar la app">📲</button>
+      <button class="iconbtn hidden" id="btnAviso" title="Enviar aviso al equipo">📢</button>
       <button class="iconbtn" id="btnBell" title="Notificaciones">🔔</button>
       <button class="iconbtn" id="btnOut" title="Salir">⎋</button>
     </div>
@@ -535,7 +536,7 @@ table.ht td.nota{max-width:220px;overflow:hidden;text-overflow:ellipsis;color:va
 // App disponible sin señal (sw.js debe estar junto a index.html). Va primero para registrarse aunque falle otra cosa.
 if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) navigator.serviceWorker.register('sw.js').catch(() => {});
 // Versión de esta copia de la app: cambia en cada entrega. La app la compara con la publicada y se actualiza sola.
-const APP_VER = '2026-10-30.1030';
+const APP_VER = '2026-10-30.1100';
 // ================== Configuración ==================
 const SB_URL = 'https://edmvfqelxsxevpmxgbav.supabase.co';
 const SB_KEY = 'sb_publishable_lgTmmLtUESDDyX2sff6ArQ_z65Ti9d6';
@@ -900,7 +901,7 @@ async function init(){
   pintarTabs(); pintar(); suscribir(); indicadorRed();
   if (vuelta){ window.scrollTo(0, vuelta.y || 0); if (vuelta.det != null && S.sols.some(x => x.id === vuelta.det)) abrirDetalle(vuelta.det); if (vuelta.ver) toast(`✨ App actualizada a la versión más reciente`); }
   if (outbox().length) programarEnvio(1500);
-  vigilarVersion(); mostrarInstalar(); pushRevisar(); revisarMeta(); iniciarMotivacion();
+  vigilarVersion(); mostrarInstalar(); pushRevisar(); $('#btnAviso').classList.toggle('hidden', rol() !== 'admin'); revisarMeta(); iniciarMotivacion();
   // Abierta desde un aviso: va directo a la solicitud
   const solQ = +new URLSearchParams(location.search).get('sol');
   if (solQ){ history.replaceState(null, '', location.pathname); if (S.sols.some(x => x.id === solQ)) abrirDetalle(solQ); }
@@ -1075,7 +1076,7 @@ $('#btnBell').onclick = () => {
 if ('serviceWorker' in navigator) navigator.serviceWorker.addEventListener('message', e => {
   const id = +e.data?.abrir; if (id && S.me) abrirDetalle(id);
   const a = e.data?.aviso;   // llegó un push con la app abierta: toast + caja + voz (los viejos se ignoran: el teléfono pudo tener la app dormida)
-  if (a && S.me && Date.now() - (a.ts || 0) < 20000) avisoApp(a.title || 'VerifyCredit', a.body || '', a.id);
+  if (a && S.me && Date.now() - (a.ts || 0) < 20000) avisoApp(a.title || 'VerifyCredit', a.body || '', a.id, { k:a.k, voz:a.voz });
 });
 // ================== Sonido de caja y voz en los avisos ==================
 const AVISO = { sonido: () => localStorage.getItem('vc_aviso_sonido') !== '0', voz: () => localStorage.getItem('vc_aviso_voz') !== '0', ult: {} };
@@ -1131,18 +1132,79 @@ function hablar(txt){
     speechSynthesis.speak(u);
   } catch(e){}
 }
-function sonarAviso(t, b){
+function sonarAviso(t, b, voz){
   const ms = AVISO.sonido() ? sonidoCaja() : 0;
-  if (AVISO.voz()) setTimeout(() => hablar(textoVoz(t, b)), ms);
+  const txt = voz != null ? voz : textoVoz(t, b);   // voz = '' → solo sonido
+  if (AVISO.voz() && txt) setTimeout(() => hablar(txt), ms);
 }
 // Un mismo aviso puede llegar por tiempo real y por push: suena una sola vez
-function avisoApp(t, b, id){
-  const k = id ? 'i' + id : t + '|' + b, ahora = Date.now();
+function avisoApp(t, b, id, o = {}){
+  const k = o.k || (id ? 'i' + id : t + '|' + b), ahora = Date.now();
   Object.keys(AVISO.ult).forEach(x => { if (ahora - AVISO.ult[x] > 15000) delete AVISO.ult[x]; });
   if (AVISO.ult[k]) return false;
-  AVISO.ult[k] = ahora; toast(`${t}: ${b}`); sonarAviso(t, b); return true;
+  AVISO.ult[k] = ahora;
+  if (o.k) avisoGrande(t, b); else toast(`${t}: ${b}`);
+  sonarAviso(t, b, o.voz); return true;
 }
 if ('speechSynthesis' in window) speechSynthesis.onvoiceschanged = () => {};
+// Aviso personalizado recibido: recuadro que se queda hasta que la persona lo cierra
+function avisoGrande(t, b){
+  const w = dialogo(`<h3>${esc(t)}</h3><div style="white-space:pre-wrap;font-size:17px;line-height:1.45;margin:8px 0 4px">${esc(b)}</div>
+    <div class="btns"><button class="btn ghost" id="agOir">🔊 Escuchar otra vez</button><button class="btn pri" data-close>Entendido</button></div>`);
+  w.querySelector('#agOir').onclick = () => { audioDesbloquear(); hablar(textoVozAviso(t, b)); };
+}
+const textoVozAviso = (t, b) => { const ti = String(t || '').replace(/[\p{Extended_Pictographic}️‍]/gu, '').trim(); return `${ti || 'Aviso'}. ${b || ''}`; };
+// ================== Avisos personalizados (solo admin) ==================
+$('#btnAviso').onclick = () => {
+  if (rol() !== 'admin') return;
+  const ROLES = [['todos','Todo el equipo'],['asesor','Asesores'],['analista','Analistas'],['verificador','Verificadores'],['admin','Administradores'],['personas','Personas específicas']];
+  const gente = Object.values(S.perfiles).filter(p => p.activo && p.id !== S.me.id).sort((a, b) => (a.nombre || '').localeCompare(b.nombre || ''));
+  const w = dialogo(`<h3>📢 Enviar aviso al equipo</h3>
+    <div class="small muted">Les llega como notificación (aunque tengan la app cerrada, si activaron 🔔) y, con la app abierta, suena la caja y una voz lee el mensaje.</div>
+    <label class="small" style="display:block;margin-top:10px">Para</label>
+    <select id="avPara">${ROLES.map(([k, t]) => `<option value="${k}">${t}</option>`).join('')}</select>
+    <div id="avGente" class="hidden" style="max-height:220px;overflow:auto;margin-top:6px">${gente.map(p => `<label class="chk"><input type="checkbox" value="${p.id}"> ${esc(p.nombre || p.id)} <span class="small muted">· ${esc(p.rol || '')}</span></label>`).join('') || '<div class="small muted">No hay otros usuarios activos.</div>'}</div>
+    <label class="small" style="display:block;margin-top:10px">Título <span class="muted">(opcional)</span></label>
+    <input id="avTit" maxlength="60" placeholder="Aviso del administrador">
+    <label class="small" style="display:block;margin-top:10px">Mensaje</label>
+    <textarea id="avMsg" rows="4" maxlength="400" placeholder="Escriba el mensaje…"></textarea>
+    <div class="small muted" id="avCnt" style="text-align:right">0 / 400</div>
+    <label class="chk"><input type="checkbox" id="avLeer" checked> 🗣️ Leer el mensaje en voz alta</label>
+    <div class="small muted" id="avCuantos"></div>
+    <div class="btns"><button class="btn ghost" id="avOir">▶ Escuchar aquí</button><button class="btn ghost" data-close>Cancelar</button><button class="btn pri" id="avEnviar">Enviar aviso</button></div>`);
+  const q = x => w.querySelector(x);
+  const ids = () => {
+    const v = q('#avPara').value;
+    if (v === 'personas') return [...w.querySelectorAll('#avGente input:checked')].map(i => i.value);
+    return gente.filter(p => v === 'todos' || p.rol === v).map(p => p.id);
+  };
+  const datos = () => {
+    const titulo = q('#avTit').value.trim() || 'Aviso del administrador', msg = q('#avMsg').value.trim();
+    return { titulo, msg, title: '📢 ' + titulo, voz: q('#avLeer').checked ? textoVozAviso(titulo, msg) : '' };
+  };
+  const contar = () => { const n = ids().length; q('#avCuantos').textContent = n ? `Se enviará a ${n} persona${n === 1 ? '' : 's'}.` : 'Elija a quién enviarlo.'; };
+  q('#avPara').onchange = () => { q('#avGente').classList.toggle('hidden', q('#avPara').value !== 'personas'); contar(); };
+  q('#avGente').onchange = contar; contar();
+  q('#avMsg').oninput = () => { q('#avCnt').textContent = `${q('#avMsg').value.length} / 400`; };
+  q('#avOir').onclick = () => { const d = datos(); audioDesbloquear(); sonarAviso(d.title, d.msg, d.voz || null); };
+  q('#avEnviar').onclick = e => run(e.target, async () => {
+    const d = datos(), dest = ids();
+    if (!d.msg) throw new Error('Escriba el mensaje.');
+    if (!dest.length) throw new Error('Elija al menos una persona.');
+    if (!navigator.onLine) throw new Error('Se necesita señal para enviar avisos.');
+    const k = 'm' + Date.now() + Math.random().toString(36).slice(2, 7);
+    // 1) a quienes tienen la app abierta, al instante
+    let vivo = false;
+    try { const r = await canal?.send({ type:'broadcast', event:'aviso', payload:{ k, ids:dest, title:d.title, body:d.msg, voz:d.voz } }); vivo = r === 'ok'; } catch(_){}
+    // 2) notificación push (llega aunque la app esté cerrada)
+    let push = null;
+    try { const { data, error } = await sb.functions.invoke('push', { body:{ aviso:{ k, ids:dest, titulo:d.titulo, mensaje:d.msg, voz:d.voz } } }); if (!error && data && !data.error) push = data.enviados || 0; } catch(_){}
+    if (!vivo && push == null) throw new Error('No se pudo enviar el aviso. Revise la conexión.');
+    await cerrarDialogo(w);
+    toast(push == null ? '📢 Aviso enviado a quienes tienen la app abierta (las notificaciones con la app cerrada se activan al publicar el servicio push)'
+      : `📢 Aviso enviado · ${push} dispositivo${push === 1 ? '' : 's'} con notificaciones`);
+  });
+};
 
 // ================== Datos ==================
 async function cargarPerfiles(){
@@ -5017,6 +5079,7 @@ function suscribir(){
       }
       programarRecarga();
     })
+    .on('broadcast', { event:'aviso' }, ({ payload:a }) => { if (a && (a.ids || []).includes(S.me?.id)) avisoApp(a.title, a.body, null, { k:a.k, voz:a.voz }); })
     .on('postgres_changes', { event:'INSERT', schema:'public', table:'celebraciones' }, p => celebrarMeta(p.new))
     .on('postgres_changes', { event:'*', schema:'public', table:'refi_clientes' }, p => rfCambio(p))
     .on('postgres_changes', { event:'*', schema:'public', table:'refi_cortes' }, p => rfCambio(p, true))
