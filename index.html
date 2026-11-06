@@ -327,9 +327,24 @@ table.ht td.nota{max-width:220px;overflow:hidden;text-overflow:ellipsis;color:va
 .bd-cap .hero .bar i{display:block;height:100%;background:#FFD400;border-radius:4px}
 .bd-cap .sec .v{font-size:19px;color:var(--ink2)}
 .bd-sum .kpi.prom .v{color:var(--green)}
-.board{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px;align-items:start}
+.board{display:grid;grid-template-columns:repeat(6,minmax(262px,1fr));gap:12px;align-items:start}
+/* Tablero: 6 columnas sin achicar las tarjetas; la pantalla se amplía y, si no cabe, se desplaza a los lados */
+main.wide.board-wide{max-width:1720px}
+@media (min-width:981px){.board-wrap{overflow-x:auto;padding-bottom:6px}}
 @media (max-width:980px){.board{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;margin:0 -16px;padding:0 16px 8px;-webkit-overflow-scrolling:touch}
   .board .col{flex:0 0 84vw;max-width:360px;scroll-snap-align:start}}
+/* Columna "En espera" y arrastre de tarjetas */
+.col-esp{background:var(--gray-bg);border:1.5px dashed var(--gray)}
+.col.drop{outline:3px dashed var(--brand);outline-offset:-3px;background:var(--brand2)}
+.col-esp.drop{background:#e9edf3}
+.board .kc{-webkit-touch-callout:none;-webkit-user-select:none;user-select:none}
+.kc.arrastrando{opacity:.35}
+.kc-ghost{position:fixed!important;z-index:9999;pointer-events:none;margin:0;opacity:.95;transform:rotate(2deg);box-shadow:0 14px 34px rgba(10,42,102,.3)!important}
+#dropBar{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);z-index:9998;background:var(--ink);color:#fff;font:700 15px Poppins,Inter,sans-serif;padding:14px 22px;border-radius:999px;box-shadow:0 8px 24px rgba(0,0,0,.3);border:3px dashed transparent;white-space:nowrap}
+#dropBar.drop{background:var(--brand);border-color:#FFD400;transform:translateX(-50%) scale(1.06)}
+body.arrastrando-kc{cursor:grabbing}
+.fcol{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.fcol input[type=date]{width:auto;flex:0 0 170px}
 .col{background:var(--brand2);border-radius:16px;padding:8px;min-height:120px}
 .col-h{display:flex;align-items:center;gap:8px;padding:6px 6px 10px;border-bottom:3px solid var(--cc);margin-bottom:8px}
 .col-h > div{flex:1;min-width:0}
@@ -536,7 +551,7 @@ table.ht td.nota{max-width:220px;overflow:hidden;text-overflow:ellipsis;color:va
 // App disponible sin señal (sw.js debe estar junto a index.html). Va primero para registrarse aunque falle otra cosa.
 if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) navigator.serviceWorker.register('sw.js').catch(() => {});
 // Versión de esta copia de la app: cambia en cada entrega. La app la compara con la publicada y se actualiza sola.
-const APP_VER = '2026-10-30.1100';
+const APP_VER = '2026-11-06.1200';
 // ================== Configuración ==================
 const SB_URL = 'https://edmvfqelxsxevpmxgbav.supabase.co';
 const SB_KEY = 'sb_publishable_lgTmmLtUESDDyX2sff6ArQ_z65Ti9d6';
@@ -563,7 +578,7 @@ const ACC = { creada:'Creó la solicitud', enviada_analisis:'Envió a análisis'
   dictamen_aprobada:'Aprobó', dictamen_denegada:'Denegó', enviada_verificacion:'Envió a verificación',
   enviada_desembolso:'Envió a desembolso por transferencia', verificacion_ok:'Verificación exitosa',
   verificacion_rechazada:'Rechazó en verificación', desembolsada:'Marcó como desembolsada', desistida:'Cliente desistió',
-  regresada_revisadas:'Regresó a revisadas', reasignada:'Reasignó la solicitud', ajuste_monto:'Ajustó el monto aprobado', ajuste_tasa:'Ajustó la tasa', reconocimiento_deuda:'Generó el documento para firma (contrato / reconocimiento de deuda', edicion_admin:'Editó la solicitud', cambio_estado_admin:'Cambió el estado (administrador)', en_espera:'Puso en espera', reanudada:'Reanudó la solicitud', ubicacion_domicilio:'Guardó la ubicación del domicilio', ubicacion_trabajo:'Guardó la ubicación del trabajo', verificador_asignado:'Asignó verificador', visita_corregida:'Corrigió una visita (pago a verificadores)', duplicada:'Creó una solicitud nueva a partir de esta', contrato_firmado:'Subió la foto del contrato firmado', politica_b_aplicada:'Aplicó política tipo B', politica_b_quitada:'Quitó política tipo B' };
+  regresada_revisadas:'Regresó a revisadas', reasignada:'Reasignó la solicitud', ajuste_monto:'Ajustó el monto aprobado', ajuste_tasa:'Ajustó la tasa', reconocimiento_deuda:'Generó el documento para firma (contrato / reconocimiento de deuda', edicion_admin:'Editó la solicitud', cambio_estado_admin:'Cambió el estado (administrador)', en_espera:'Puso en espera', reanudada:'Reanudó la solicitud', ubicacion_domicilio:'Guardó la ubicación del domicilio', ubicacion_trabajo:'Guardó la ubicación del trabajo', verificador_asignado:'Asignó verificador', visita_corregida:'Corrigió una visita (pago a verificadores)', duplicada:'Creó una solicitud nueva a partir de esta', contrato_firmado:'Subió la foto del contrato firmado', politica_b_aplicada:'Aplicó política tipo B', politica_b_quitada:'Quitó política tipo B', fecha_colocacion:'Cambió el día en que cuenta la colocación' };
 const CERRADAS = ['desembolsada','denegada','rechazada_verificacion','desistida'];
 
 const S = { user:null, me:null, perfiles:{}, params:{}, sols:[], com:{}, tab:null, q:'', filtroTodas:'abiertas',
@@ -717,10 +732,10 @@ function aplicarOp(op, nuevo){
       if (nuevo && a.p_resultado !== 'ok' && !a.p_nota) throw new Error('Indique el motivo del rechazo');
       const d = a.p_resultado === 'ok' ? (s.forma_desembolso === 'efectivo' ? 'desembolsada' : 'desembolso_pendiente') : 'rechazada_verificacion';
       evento(s.id, 'verificacion_' + a.p_resultado, s.estado, d, a.p_nota);
-      est(s, d, { verificado_en:op.ts, verificacion_nota:a.p_nota, verificador_id:s.verificador_id || S.me.id, desembolsado_en:d === 'desembolsada' ? op.ts : s.desembolsado_en }); return d; }
+      est(s, d, { verificado_en:op.ts, verificacion_nota:a.p_nota, verificador_id:s.verificador_id || S.me.id, desembolsado_en:d === 'desembolsada' ? op.ts : s.desembolsado_en, fecha_colocacion:d === 'desembolsada' ? (a.p_fecha || diaHN(op.ts)) : s.fecha_colocacion }); return d; }
     case 'marcar_desembolsada':
       if (nuevo && !a.p_referencia) throw new Error('Indique la referencia de la transferencia');
-      evento(a.p_id, 'desembolsada', s?.estado, 'desembolsada', a.p_referencia); est(s, 'desembolsada', { desembolso_referencia:a.p_referencia, desembolsado_en:op.ts }); return;
+      evento(a.p_id, 'desembolsada', s?.estado, 'desembolsada', a.p_referencia); est(s, 'desembolsada', { desembolso_referencia:a.p_referencia, desembolsado_en:op.ts, fecha_colocacion:a.p_fecha || diaHN(op.ts) }); return;
     case 'desistir': evento(a.p_id, 'desistida', s?.estado, 'desistida', a.p_motivo); est(s, 'desistida', { motivo_cierre:a.p_motivo, en_espera:false }); return;
     case 'regresar_a_revisadas': evento(a.p_id, 'regresada_revisadas', s?.estado, 'aprobada', a.p_nota); est(s, 'aprobada'); return;
     case 'poner_en_espera': if (s) Object.assign(s, { en_espera:true, espera_motivo:a.p_motivo, espera_desde:op.ts, espera_por:S.me.id, _pend:true }); evento(a.p_id, 'en_espera', null, null, a.p_motivo); return;
@@ -1703,6 +1718,7 @@ function rfCambio(p, corte){
 // Repintado en segundo plano (tiempo real / cada minuto): no mueve la pantalla ni interrumpe al usuario
 function pintarSuave(){
   if ((S.dlgs || []).some(w => w.isConnected)) return;
+  if (document.body.classList.contains('arrastrando-kc')) return;   // no repintar mientras se arrastra una tarjeta
   const a = document.activeElement; if (a && /^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName) && a.id !== 'q') return;
   if (['stats','pagos','params','usuarios','refi','referidos'].includes(S.tab)) return;   // pantallas pesadas: se actualizan al entrar
   const y = window.scrollY, M = $('#main'), sc = [...M.querySelectorAll('*')].map((e, i) => [i, e.scrollLeft, e.scrollTop]).filter(x => x[1] || x[2]);
@@ -1713,6 +1729,7 @@ function pintarSuave(){
 function pintar(){
   const tab = tabsRol().find(t => t[0] === S.tab);
   $('#main').classList.toggle('wide', ['tablero','historial','referidos'].includes(S.tab));
+  $('#main').classList.toggle('board-wide', S.tab === 'tablero');
   if (S.tab === 'tablero') return pintarTablero();
   if (S.tab === 'historial') return pintarHistorial();
   if (S.tab === 'stats') return pintarStats();
@@ -2499,6 +2516,12 @@ function accionesHTML(s, c){
   // Asesor: completar (revisadas)
   if (s.estado === 'aprobada' && es('asesor')) h += completarHTML(s);
   // Desembolso por transferencia
+  if (s.estado === 'desembolsada'){
+    const fc = diaColoc(s), real = diaHN(s.desembolsado_en);
+    h += `<div class="card"><h4 class="sec" style="margin-top:0">📅 Colocación</h4>
+      <div>Cuenta en la meta y las estadísticas del <b>${fc ? fDate(fc + 'T12:00') : '—'}</b>${real && real !== fc ? `<div class="small muted">Se desembolsó el ${fDate(real + 'T12:00')}</div>` : ''}</div>
+      ${es('analista') ? `<div class="btns"><button class="btn ghost sm" id="fcCambiar">Cambiar el día</button></div>` : ''}</div>`;
+  }
   if (s.estado === 'desembolso_pendiente' && es('analista')){
     const libre = montoLibre(s);
     h += `<div class="card"><h4 class="sec" style="margin-top:0">Desembolso por transferencia</h4>
@@ -2506,6 +2529,7 @@ function accionesHTML(s, c){
       <dt>Monto crédito</dt><dd>${L(s.monto_solicitado || s.monto_aprobado)}</dd>
       ${s.tipo !== 'nuevo' ? `<dt>A transferir (libre)</dt><dd><b>${L(libre)}</b></dd>` : ''}</dl>
       <label class="f">Referencia / N.º de transferencia</label><input id="tRef">
+      ${fechaColocHTML(s, 'tFc')}
       <div class="btns"><button class="btn ok" id="tOk">Marcar como desembolsada</button></div>
       <div class="btns" style="margin-top:6px"><button class="btn ghost sm" id="tBack">↩ Regresar al asesor</button></div></div>`;
   }
@@ -2601,6 +2625,7 @@ function verificacionHTML(s, items){
       ${i.foto_path ? `<div class="thumbs"><img data-path="${esc(i.foto_path)}" alt="foto"></div>` : ''}
     </div>`).join('')}
     ${fin ? `<label class="f">Observación final</label><textarea id="vNota" rows="2"></textarea>
+      ${s.forma_desembolso === 'efectivo' ? fechaColocHTML(s, 'vFc') : ''}
       <div class="btns"><button class="btn ok" id="vOk">Verificación exitosa${s.forma_desembolso==='efectivo'?' · efectivo entregado':''}</button><button class="btn bad" id="vBad">Rechazar</button></div>` : ''}
   </div>`;
 }
@@ -2729,7 +2754,18 @@ function enlazarDetalle(s, c){
   if ($('#cForm')) enlazarCompletar(s, refrescar);
 
   // Desembolso
-  if ($('#tOk')) $('#tOk').onclick = e => run(e.target, async () => { await rpc('marcar_desembolsada', { p_id: s.id, p_referencia: $('#tRef').value }); toast('Desembolsada'); await refrescar(); });
+  enlazarFechaColoc(document.body);
+  if ($('#fcCambiar')) $('#fcCambiar').onclick = () => {
+    const w = dialogo(`<h3>Día en que cuenta la colocación</h3><div class="small muted">${esc(s.nombre_cliente)} · ${esc(s.codigo)}</div>
+      ${fechaColocHTML(s, 'fcDlg', diaColoc(s))}<label class="f">Nota (opcional)</label><input id="fcNota" placeholder="Ej. el desembolso tocaba ese día">
+      <div class="btns"><button class="btn ghost" data-close>Cancelar</button><button class="btn pri" id="fcOk">Guardar</button></div>`);
+    enlazarFechaColoc(w);
+    w.querySelector('#fcOk').onclick = e => run(e.target, async () => {
+      const fc = leerFechaColoc(s, 'fcDlg');
+      await rpc('cambiar_fecha_colocacion', { p_id: s.id, p_fecha: fc, p_nota: w.querySelector('#fcNota').value || null });
+      cerrarDialogo(w); toast(`Cuenta para el ${fDate(fc + 'T12:00')}`); await refrescar(); });
+  };
+  if ($('#tOk')) $('#tOk').onclick = e => run(e.target, async () => { const fc = leerFechaColoc(s, 'tFc'); await rpc('marcar_desembolsada', { p_id: s.id, p_referencia: $('#tRef').value, p_fecha: fc }); toast(fc === hoyHN() ? 'Desembolsada' : `Desembolsada · cuenta para el ${fDate(fc + 'T12:00')}`); await refrescar(); });
   if ($('#tBack')) $('#tBack').onclick = async e => { const n = await pedirTexto('Regresar al asesor', 'Qué debe corregir', 'Regresar'); if (n) run(e.target, async () => { await rpc('regresar_a_revisadas', { p_id: s.id, p_nota: n }); await refrescar(); }); };
   if ($('#admEditar')) $('#admEditar').onclick = () => editorAdmin(S.detData.s, refrescar);
   if ($('#admEliminar')) $('#admEliminar').onclick = async e => {
@@ -2789,7 +2825,8 @@ function enlazarDetalle(s, c){
     if (data?.signedUrl){ img.src = data.signedUrl; img.onclick = () => window.open(data.signedUrl, '_blank'); }
   });
   if ($('#vOk')) $('#vOk').onclick = e => run(e.target, async () => {
-    const r = await rpc('finalizar_verificacion', { p_id: s.id, p_resultado: 'ok', p_nota: $('#vNota').value || null });
+    const fc = $('#vFc') ? leerFechaColoc(s, 'vFc') : null;
+    const r = await rpc('finalizar_verificacion', { p_id: s.id, p_resultado: 'ok', p_nota: $('#vNota').value || null, p_fecha: fc });
     toast(r === 'desembolsada' ? 'Verificada y desembolsada en efectivo' : 'Verificada · pasa a desembolso por transferencia'); await refrescar();
     celebrar('🎉', '¡Bien hecho!!', `Verificación de ${s.nombre_cliente} completada con éxito. ¡Excelente trabajo!`);
   });
@@ -4123,8 +4160,11 @@ const COLS = [
   { k:'ana', t:'Analista',    sub:'Análisis',                  est:['en_analisis'], c:'var(--r-analista)' },
   { k:'ver', t:'Verificador', sub:'Verificación en campo',     est:['por_verificar'], c:'var(--r-verificador)' },
   { k:'des', t:'Desembolso',  sub:'Transferencia pendiente',   est:['desembolso_pendiente'], c:'var(--r-desembolso)' },
-  { k:'fin', t:'Finalizadas / Canceladas / Rechazadas', sub:'Cerradas del día', est:['desembolsada','denegada','rechazada_verificacion','desistida'], c:'var(--r-finalizada)' }
+  { k:'fin', t:'Finalizadas / Canceladas / Rechazadas', sub:'Cerradas del día', est:['desembolsada','denegada','rechazada_verificacion','desistida'], c:'var(--r-finalizada)' },
+  { k:'esp', t:'⏸ En espera', sub:'Pausadas · no suman en estadísticas', est:['borrador','en_analisis','aprobada','por_verificar','desembolso_pendiente'], c:'var(--gray)', espera:true }
 ];
+// Día en que un desembolso cuenta para la meta y las estadísticas (se puede elegir al desembolsar)
+const diaColoc = s => s.fecha_colocacion || diaHN(s.desembolsado_en || s.cerrado_en);
 const diaHN = d => d ? new Date(d).toLocaleDateString('en-CA', { timeZone: TZ }) : null;
 // Capital nuevo colocado: en refinanciamiento/reingreso = monto del préstamo − saldo de capital anterior
 function capitalColocado(s){ if (s.capital_colocado_hist != null) return +s.capital_colocado_hist; const m = +(s.monto_solicitado || s.monto_aprobado || 0); return s.tipo !== 'nuevo' ? Math.max(0, m - (+s.saldo_capital || 0)) : m; }
@@ -4135,12 +4175,14 @@ function pintarTablero(){
   const q = S.q.trim().toLowerCase();
   const match = s => !q || [s.nombre_cliente, s.codigo, s.dni, s.telefono].some(v => (v||'').toLowerCase().includes(q));
   const abiertas = s => !CERRADAS.includes(s.estado);
-  const enCol = c => base.filter(match).filter(s => c.est.includes(s.estado)).filter(s =>
-    abiertas(s) ? (esHoy ? diaHN(s.creado_en) <= dia : diaHN(s.creado_en) === dia) : diaHN(s.cerrado_en || s.actualizado_en) === dia)
-    .sort((a,b) => abiertas(a) ? ((a.en_espera ? 1 : 0) - (b.en_espera ? 1 : 0)) || (ORDEN_PASOS.indexOf(a.estado) - ORDEN_PASOS.indexOf(b.estado)) || (new Date(a.estado_desde || a.actualizado_en) - new Date(b.estado_desde || b.actualizado_en))
+  // Las solicitudes en espera van solo en su columna (al final) y no suman en los indicadores
+  const enCol = c => base.filter(match).filter(s => c.est.includes(s.estado) && (abiertas(s) ? !!s.en_espera === !!c.espera : !c.espera)).filter(s =>
+    abiertas(s) ? (esHoy ? diaHN(s.creado_en) <= dia : diaHN(s.creado_en) === dia) : (s.estado === 'desembolsada' ? diaColoc(s) : diaHN(s.cerrado_en || s.actualizado_en)) === dia)
+    .sort((a,b) => c.espera ? new Date(b.espera_desde || 0) - new Date(a.espera_desde || 0)
+                 : abiertas(a) ? (ORDEN_PASOS.indexOf(a.estado) - ORDEN_PASOS.indexOf(b.estado)) || (new Date(a.estado_desde || a.actualizado_en) - new Date(b.estado_desde || b.actualizado_en))
                                 : new Date(b.cerrado_en || b.actualizado_en) - new Date(a.cerrado_en || a.actualizado_en));
-  const creadasDia = base.filter(s => diaHN(s.creado_en) === dia);
-  const desDia = base.filter(s => s.estado === 'desembolsada' && diaHN(s.cerrado_en || s.desembolsado_en) === dia);
+  const creadasDia = base.filter(s => diaHN(s.creado_en) === dia && !(abiertas(s) && s.en_espera));
+  const desDia = base.filter(s => s.estado === 'desembolsada' && diaColoc(s) === dia);
   const cicloProm = desDia.length ? desDia.reduce((a,s) => a + (s.duracion_total_habil_seg ?? segHabiles(s.creado_en, s.desembolsado_en)), 0) / desDia.length : null;
   const monto = desDia.reduce((a,s) => a + capitalColocado(s), 0);
   // Las solicitudes en espera no cuentan como capital en proceso
@@ -4174,13 +4216,14 @@ function pintarTablero(){
       <div class="kpi prom"><div class="l">Promedio refi / reingreso</div><div class="v">${prom(desRef) == null ? '—' : L(Math.round(prom(desRef)))}</div><div class="s">${desRef.length} desembolsado(s) · capital nuevo</div></div>
       <div class="kpi"><div class="l">Nuevas del día</div><div class="v">${creadasDia.length}</div></div>
       <div class="kpi"><div class="l">Ciclo promedio (hábil)</div><div class="v">${fmtDur(cicloProm)}</div><div class="s">meta ${fmtDur((S.params.meta_total_min||0)*60)}</div></div>
-      <div class="kpi"><div class="l">En proceso ahora</div><div class="v">${base.filter(abiertas).length}</div><div class="s">${base.filter(s => abiertas(s) && diaHN(s.creado_en) < hoy).length} de días anteriores</div></div>
+      <div class="kpi"><div class="l">En proceso ahora</div><div class="v">${base.filter(s => abiertas(s) && !s.en_espera).length}</div><div class="s">${base.filter(s => abiertas(s) && !s.en_espera && diaHN(s.creado_en) < hoy).length} de días anteriores${base.some(s => abiertas(s) && s.en_espera) ? ` · ${base.filter(s => abiertas(s) && s.en_espera).length} en espera aparte` : ''}</div></div>
     </div>
     ${leyendaHTML()}
-    <div class="board">${COLS.map(c => { const l = enCol(c); return `
-      <section class="col"><div class="col-h" style="--cc:${c.c}"><div><b>${c.t}</b><div class="small muted" style="font-weight:500">${c.sub}${l.filter(s => s.en_espera).length ? ` · ${l.filter(s => s.en_espera).length} en espera` : ''}</div></div><span class="cnt">${l.length}</span></div>
-      <div class="col-body">${l.length ? l.map(s => cardK(s, dia)).join('') : '<div class="empty">Sin solicitudes</div>'}</div></section>`; }).join('')}
-    </div>`;
+    <div class="board-wrap"><div class="board">${COLS.map(c => { const l = enCol(c); return `
+      <section class="col${c.espera ? ' col-esp' : ''}" data-col="${c.k}"><div class="col-h" style="--cc:${c.c}"><div><b>${c.t}</b><div class="small muted" style="font-weight:500">${c.sub}</div></div><span class="cnt">${l.length}</span></div>
+      <div class="col-body">${l.length ? l.map(s => cardK(s, dia)).join('') : `<div class="empty">${c.espera ? 'Arrastre aquí una solicitud para ponerla en espera' : 'Sin solicitudes'}</div>`}</div></section>`; }).join('')}
+    </div></div>
+    <div class="small muted" style="margin-top:6px">✋ Arrastre una tarjeta a <b>En espera</b> para pausarla (en el celular: mantenga presionada la tarjeta). Arrástrela de vuelta a cualquier columna para reanudarla.</div>`;
   $('#main').querySelectorAll('[data-dd]').forEach(b => b.onclick = () => {
     const n = +b.dataset.dd; if (!n){ S.boardDay = hoy; } else { const d = new Date(S.boardDay + 'T12:00'); d.setDate(d.getDate() + n); S.boardDay = d.toLocaleDateString('en-CA'); }
     pintarTablero(); });
@@ -4196,7 +4239,8 @@ function pintarTablero(){
     w.querySelectorAll('tr[data-id]').forEach(tr => tr.onclick = () => { cerrarDialogo(w); abrirDetalle(+tr.dataset.id); });
   };
   const qi = $('#q'); qi.oninput = () => { S.q = qi.value; const p = qi.selectionStart; pintarTablero(); const n = $('#q'); n.focus(); n.setSelectionRange(p,p); };
-  $('#main').querySelectorAll('.kc').forEach(c => c.onclick = () => abrirDetalle(+c.dataset.id));
+  $('#main').querySelectorAll('.kc').forEach(c => c.onclick = () => { if (Date.now() - (S._dragFin || 0) < 400) return; abrirDetalle(+c.dataset.id); });
+  activarArrastre($('#main').querySelector('.board'));
 }
 function cardK(s, dia){
   const ab = !CERRADAS.includes(s.estado), ahora = new Date();
@@ -4222,6 +4266,121 @@ function cardK(s, dia){
     ${entregaHTML(s, true)}
     <div class="tm">${tm}</div></div>`;
 }
+// ================== Día de colocación (selector al desembolsar) ==================
+function fechaColocHTML(s, id, valor){
+  const hoy = hoyHN(), ini = diaHN(s.creado_en) || hoy, v = valor || hoy;
+  const d = new Date(hoy + 'T12:00'); d.setDate(d.getDate() - 1); const ayer = d.toLocaleDateString('en-CA');
+  const corta = f => fDate(f + 'T12:00').replace(/\s*(de\s*)?\d{4}$/, '');
+  const op = [[hoy, 'Hoy'], ...(ayer >= ini ? [[ayer, 'Ayer']] : []), ...(ini < ayer ? [[ini, 'Día de la solicitud · ' + corta(ini)]] : [])];
+  return `<label class="f">📅 Cuenta en la colocación del día</label>
+    <div class="fcol"><input type="date" id="${id}" value="${v}" min="${ini}" max="${hoy}">
+    ${op.map(([f, t]) => `<button type="button" class="btn sm ${f === v ? 'pri' : 'ghost'}" data-fc="${id}" data-v="${f}">${t}</button>`).join('')}</div>
+    <div class="small muted">Si el desembolso tocaba otro día y se hace después, elija ese día: la meta y las estadísticas lo cuentan ahí.</div>`;
+}
+function enlazarFechaColoc(root){
+  if (!root) return;
+  root.querySelectorAll('[data-fc]').forEach(b => b.onclick = () => { const i = document.getElementById(b.dataset.fc); if (!i) return; i.value = b.dataset.v; i.dispatchEvent(new Event('input')); });
+  root.querySelectorAll('.fcol input[type=date]').forEach(i => i.oninput = i.onchange = () =>
+    i.parentElement.querySelectorAll('[data-fc]').forEach(b => { b.classList.toggle('pri', b.dataset.v === i.value); b.classList.toggle('ghost', b.dataset.v !== i.value); }));
+}
+function leerFechaColoc(s, id){
+  const v = document.getElementById(id)?.value, hoy = hoyHN(), ini = diaHN(s.creado_en);
+  if (!v) throw new Error('Elija el día en que cuenta la colocación');
+  if (v > hoy) throw new Error('El día de colocación no puede ser futuro');
+  if (ini && v < ini) throw new Error('El día de colocación no puede ser anterior a la solicitud');
+  return v;
+}
+
+// ================== Arrastrar tarjetas del tablero (poner en espera / reanudar) ==================
+// Ratón: arrastrar. Celular: mantener presionada la tarjeta ~0.4 s y arrastrar. Al arrastrar aparece además
+// una barra abajo ("Suelte aquí…") para no tener que desplazarse hasta la última columna.
+function activarArrastre(board){
+  if (!board) return;
+  let d = null;
+  const wrap = board.parentElement;
+  const objetivo = (x, y) => { const el = document.elementFromPoint(x, y); return el ? el.closest('#dropBar,[data-col]') : null; };
+  const clave = t => t ? (t.dataset.drop || t.dataset.col) : null;
+  const valido = k => !d?.s ? false : d.s.en_espera ? (k && k !== 'esp' && k !== 'fin') : k === 'esp';
+  const marcar = () => {
+    document.querySelectorAll('.col.drop,#dropBar.drop').forEach(e => e.classList.remove('drop'));
+    const t = objetivo(d.x, d.y); d.sobre = valido(clave(t)) ? t : null;
+    if (d.sobre) d.sobre.classList.add('drop');
+  };
+  const mover = (x, y) => { d.x = x; d.y = y; d.ghost.style.left = (x - d.dx) + 'px'; d.ghost.style.top = (y - d.dy) + 'px'; marcar(); };
+  const loop = () => {
+    if (!d || !d.activo) return;
+    const sc = board.scrollWidth > board.clientWidth + 2 ? board : wrap, r = sc.getBoundingClientRect(), m = 48;
+    if (d.x < r.left + m) sc.scrollLeft -= 14; else if (d.x > r.right - m) sc.scrollLeft += 14;
+    if (d.y < 80) window.scrollBy(0, -12);
+    marcar();
+    requestAnimationFrame(loop);
+  };
+  const iniciar = () => {
+    const s = S.sols.find(z => z.id === d.id);
+    if (!s){ fin(); return; }
+    if (CERRADAS.includes(s.estado)){ toast('Las solicitudes cerradas no se pueden poner en espera', true); fin(); return; }
+    d.s = s; d.activo = true;
+    const r = d.card.getBoundingClientRect(); d.dx = d.x - r.left; d.dy = d.y - r.top;
+    const g = d.card.cloneNode(true); g.classList.add('kc-ghost'); g.style.width = r.width + 'px';
+    document.body.appendChild(g); d.ghost = g; d.card.classList.add('arrastrando');
+    const bar = document.createElement('div'); bar.id = 'dropBar'; bar.dataset.drop = s.en_espera ? 'reanudar' : 'esp';
+    bar.textContent = s.en_espera ? '▶ Suelte aquí para reanudar' : '⏸ Suelte aquí para poner en espera';
+    document.body.appendChild(bar); d.bar = bar;
+    document.body.classList.add('arrastrando-kc'); board.style.scrollSnapType = 'none';
+    try { navigator.vibrate && navigator.vibrate(25); } catch(e){}
+    mover(d.x, d.y); requestAnimationFrame(loop);
+  };
+  const fin = () => {
+    if (!d) return;
+    clearTimeout(d.timer);
+    if (d.activo) S._dragFin = Date.now();
+    d.ghost?.remove(); d.bar?.remove(); d.card?.classList.remove('arrastrando');
+    document.querySelectorAll('.col.drop').forEach(e => e.classList.remove('drop'));
+    document.body.classList.remove('arrastrando-kc'); board.style.scrollSnapType = '';
+    window.removeEventListener('mousemove', mm); window.removeEventListener('mouseup', mu);
+    d = null;
+  };
+  const soltar = () => { const k = d?.sobre ? clave(d.sobre) : null, s = d?.s; fin(); if (s && k) moverEspera(s, k); };
+  // Ratón
+  const mm = e => { if (!d) return; if (!d.activo){ if (Math.hypot(e.clientX - d.x0, e.clientY - d.y0) > 6){ d.x = e.clientX; d.y = e.clientY; iniciar(); } return; } e.preventDefault(); mover(e.clientX, e.clientY); };
+  const mu = () => { if (d?.activo) soltar(); else fin(); };
+  board.addEventListener('mousedown', e => {
+    const c = e.button === 0 && e.target.closest('.kc'); if (!c || e.target.closest('a,button,input,select,textarea')) return;
+    fin(); d = { id:+c.dataset.id, card:c, x0:e.clientX, y0:e.clientY, x:e.clientX, y:e.clientY };
+    e.preventDefault();
+    window.addEventListener('mousemove', mm); window.addEventListener('mouseup', mu);
+  });
+  // Toque (celular)
+  board.addEventListener('touchstart', e => {
+    const c = e.touches.length === 1 && e.target.closest('.kc'); if (!c || e.target.closest('a,button,input,select,textarea')) return;
+    fin(); const t = e.touches[0];
+    d = { id:+c.dataset.id, card:c, x0:t.clientX, y0:t.clientY, x:t.clientX, y:t.clientY, touch:true };
+    d.timer = setTimeout(() => { if (d && !d.activo) iniciar(); }, 420);
+  }, { passive:true });
+  board.addEventListener('touchmove', e => {
+    if (!d?.touch) return; const t = e.touches[0];
+    if (!d.activo){ if (Math.hypot(t.clientX - d.x0, t.clientY - d.y0) > 10) fin(); return; }   // es desplazamiento normal
+    e.preventDefault(); mover(t.clientX, t.clientY);
+  }, { passive:false });
+  board.addEventListener('touchend', e => { if (!d?.touch) return; if (d.activo){ e.preventDefault(); soltar(); } else fin(); });
+  board.addEventListener('touchcancel', () => fin());
+  board.addEventListener('contextmenu', e => { if (d) e.preventDefault(); });
+}
+async function moverEspera(s, k){
+  try {
+    if (!s.en_espera && k === 'esp'){
+      const m = await pedirTexto(`Poner en espera · ${s.nombre_cliente}`, 'Motivo (ej. cliente enviará documentos mañana)', 'Poner en espera');
+      if (!m) return;
+      await rpc('poner_en_espera', { p_id: s.id, p_motivo: m });
+      toast('Solicitud en espera · no suma en las estadísticas');
+    } else if (s.en_espera && k !== 'esp'){
+      await rpc('reanudar', { p_id: s.id, p_nota: null });
+      toast(`Reanudada · vuelve a ${PASO[s.estado]?.t || 'su paso'}`);
+    } else return;
+    await cargarSolicitudes(); pintarTabs(); if (S.tab === 'tablero') pintarTablero();
+  } catch(e){ toast(e.message || String(e), true); }
+}
+
 // Cronómetros en vivo (tablero y detalle)
 setInterval(() => {
   const ahora = new Date();
@@ -4273,7 +4432,8 @@ const H_COLS = [
   { k:'origen', t:'Origen', v:s => s.importado ? 'Histórico Excel' : 'App', oculta:true }
 ];
 // Fecha según la base elegida: solicitud (creación) o cierre (desembolso / rechazo / cancelación)
-const hFecha = s => S.h.base === 'solicitud' ? s.creado_en : (s.estado === 'desembolsada' ? (s.desembolsado_en || s.cerrado_en) : s.cerrado_en);
+const hFecha = s => S.h.base === 'solicitud' ? s.creado_en : (s.estado === 'desembolsada'
+  ? (s.fecha_colocacion && s.fecha_colocacion !== diaHN(s.desembolsado_en || s.cerrado_en) ? s.fecha_colocacion + 'T12:00:00-06:00' : (s.desembolsado_en || s.cerrado_en)) : s.cerrado_en);
 function hRangos(){
   const d = new Date(hoyHN() + 'T12:00'); const dc = new Date(d); dc.setDate(dc.getDate() - 8);
   const mk = i => { const x = new Date(dc.getFullYear(), dc.getMonth() - i, 1, 12); const r = rango(`m:${x.getFullYear()}-${String(x.getMonth()+1).padStart(2,'0')}`); return [r[0], r[2]]; };
