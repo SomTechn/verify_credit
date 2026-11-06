@@ -343,6 +343,17 @@ main.wide.board-wide{max-width:1720px}
 #dropBar{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);z-index:9998;background:var(--ink);color:#fff;font:700 15px Poppins,Inter,sans-serif;padding:14px 22px;border-radius:999px;box-shadow:0 8px 24px rgba(0,0,0,.3);border:3px dashed transparent;white-space:nowrap}
 #dropBar.drop{background:var(--brand);border-color:#FFD400;transform:translateX(-50%) scale(1.06)}
 body.arrastrando-kc{cursor:grabbing}
+/* Novedades */
+.nov-v{margin-top:12px}
+.nov-f{font:700 12px Inter,sans-serif;text-transform:uppercase;letter-spacing:.6px;color:var(--brand-dk);margin-bottom:6px}
+.nov-i{display:flex;gap:10px;align-items:flex-start;padding:9px 10px;border:1px solid var(--line);border-radius:12px;margin-bottom:7px;background:var(--card)}
+.nov-e{font-size:20px;line-height:1.2;flex:none;width:26px;text-align:center}
+.nov-d{font-size:13.5px;color:var(--ink2);margin-top:2px;line-height:1.4}
+/* Vista del verificador (admin) */
+#vcBar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;background:#FFD400;color:#0A2A66;font-size:13.5px;padding:7px 14px}
+#vcBar .btn{margin-left:auto;background:#0A2A66;color:#fff;border:0}
+body.marco-cel #main{max-width:430px!important;border-left:1px solid var(--line);border-right:1px solid var(--line);min-height:100vh}
+body.marco-cel #sheet > *{max-width:430px;margin-left:auto;margin-right:auto}
 .fcol{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
 .fcol input[type=date]{width:auto;flex:0 0 170px}
 .col{background:var(--brand2);border-radius:16px;padding:8px;min-height:120px}
@@ -532,6 +543,7 @@ body.arrastrando-kc{cursor:grabbing}
       <button class="netpill hidden" id="netPill"></button>
       <button class="iconbtn hidden" id="btnInstall" title="Instalar la app">📲</button>
       <button class="iconbtn hidden" id="btnAviso" title="Enviar aviso al equipo">📢</button>
+      <button class="iconbtn" id="btnNov" title="Novedades de la app">✨</button>
       <button class="iconbtn" id="btnBell" title="Notificaciones">🔔</button>
       <button class="iconbtn" id="btnOut" title="Salir">⎋</button>
     </div>
@@ -551,7 +563,30 @@ body.arrastrando-kc{cursor:grabbing}
 // App disponible sin señal (sw.js debe estar junto a index.html). Va primero para registrarse aunque falle otra cosa.
 if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) navigator.serviceWorker.register('sw.js').catch(() => {});
 // Versión de esta copia de la app: cambia en cada entrega. La app la compara con la publicada y se actualiza sola.
-const APP_VER = '2026-11-06.1200';
+const APP_VER = '2026-11-06.1400';
+// Novedades que ve cada usuario al abrir una versión nueva (la más reciente primero).
+// Al publicar cambios: subir APP_VER y agregar aquí una entrada con la misma versión.
+// r = roles que la ven (sin r = todos; el admin ve todo).
+const NOVEDADES = [
+  { v:'2026-11-06.1400', f:'6 de noviembre de 2026 · tarde', items:[
+    { i:'🚀', t:'"Enviar a verificar" sin escoger verificador', r:['asesor'],
+      d:'En Completar datos el botón ahora dice "Enviar a verificar" (o "Enviar a desembolso" si es transferencia sin visita). Ya no se escoge el verificador ahí: al enviar, la app lo lleva a la pantalla Por verificar para asignarlo.' },
+    { i:'🧭', t:'Por verificar para asesores', r:['asesor','analista'],
+      d:'En Por verificar puede ver todas las visitas pendientes, filtrar por verificador o por "Sin asignar" y asignar o reasignar el verificador de domicilio y de trabajo (en la lista o en el mapa). Arriba se avisa cuántas están sin verificador.' },
+    { i:'↩️', t:'Regresar una solicitud a un paso anterior', r:['admin'],
+      d:'En el detalle, tarjeta Administración → "Regresar a un paso anterior": por ejemplo de Completar datos a Análisis, o de Verificación a Análisis o al asesor. También reabre solicitudes cerradas. Pide motivo y queda en el historial. En el tablero también puede arrastrar la tarjeta a una columna anterior.' },
+    { i:'👁', t:'Vista del verificador', r:['admin'],
+      d:'Nueva pestaña "Vista verificador": elija un verificador y vea la app exactamente como la ve él (sus pestañas y sus visitas), en tamaño de celular si quiere. Es solo de consulta: no se puede guardar nada mientras está en esa vista.' },
+    { i:'✨', t:'Avisos de novedades', d:'Cada vez que la app se actualice verá este resumen con lo nuevo. Puede volver a verlo con el botón ✨ de arriba.' }
+  ]},
+  { v:'2026-11-06.1200', f:'6 de noviembre de 2026', items:[
+    { i:'⏸', t:'Columna "En espera" en el tablero',
+      d:'Nueva columna al final del tablero. Arrastre una tarjeta hasta ahí para pausarla (en el celular: mantenga presionada la tarjeta y arrástrela; abajo aparece "Suelte aquí"). Pide el motivo. Para reanudarla, arrástrela a cualquier otra columna. Las solicitudes en espera no suman en el tablero ni en las estadísticas.' },
+    { i:'↔️', t:'Tablero más ancho', d:'Las tarjetas mantienen su tamaño: el tablero se amplía y, si la pantalla no alcanza, se desplaza hacia los lados.' },
+    { i:'📅', t:'Día en que cuenta el desembolso', r:['analista','verificador'],
+      d:'Al marcar desembolsada (transferencia o efectivo) puede elegir el día en que cuenta para la meta y las estadísticas: Hoy, Ayer o el día de la solicitud. Sirve cuando el desembolso tocaba un día y se hizo al siguiente. El analista puede corregirlo después en el detalle ("📅 Colocación").' }
+  ]}
+];
 // ================== Configuración ==================
 const SB_URL = 'https://edmvfqelxsxevpmxgbav.supabase.co';
 const SB_KEY = 'sb_publishable_lgTmmLtUESDDyX2sff6ArQ_z65Ti9d6';
@@ -578,7 +613,7 @@ const ACC = { creada:'Creó la solicitud', enviada_analisis:'Envió a análisis'
   dictamen_aprobada:'Aprobó', dictamen_denegada:'Denegó', enviada_verificacion:'Envió a verificación',
   enviada_desembolso:'Envió a desembolso por transferencia', verificacion_ok:'Verificación exitosa',
   verificacion_rechazada:'Rechazó en verificación', desembolsada:'Marcó como desembolsada', desistida:'Cliente desistió',
-  regresada_revisadas:'Regresó a revisadas', reasignada:'Reasignó la solicitud', ajuste_monto:'Ajustó el monto aprobado', ajuste_tasa:'Ajustó la tasa', reconocimiento_deuda:'Generó el documento para firma (contrato / reconocimiento de deuda', edicion_admin:'Editó la solicitud', cambio_estado_admin:'Cambió el estado (administrador)', en_espera:'Puso en espera', reanudada:'Reanudó la solicitud', ubicacion_domicilio:'Guardó la ubicación del domicilio', ubicacion_trabajo:'Guardó la ubicación del trabajo', verificador_asignado:'Asignó verificador', visita_corregida:'Corrigió una visita (pago a verificadores)', duplicada:'Creó una solicitud nueva a partir de esta', contrato_firmado:'Subió la foto del contrato firmado', politica_b_aplicada:'Aplicó política tipo B', politica_b_quitada:'Quitó política tipo B', fecha_colocacion:'Cambió el día en que cuenta la colocación' };
+  regresada_revisadas:'Regresó a revisadas', reasignada:'Reasignó la solicitud', ajuste_monto:'Ajustó el monto aprobado', ajuste_tasa:'Ajustó la tasa', reconocimiento_deuda:'Generó el documento para firma (contrato / reconocimiento de deuda', edicion_admin:'Editó la solicitud', cambio_estado_admin:'Cambió el estado (administrador)', en_espera:'Puso en espera', reanudada:'Reanudó la solicitud', ubicacion_domicilio:'Guardó la ubicación del domicilio', ubicacion_trabajo:'Guardó la ubicación del trabajo', verificador_asignado:'Asignó verificador', visita_corregida:'Corrigió una visita (pago a verificadores)', duplicada:'Creó una solicitud nueva a partir de esta', contrato_firmado:'Subió la foto del contrato firmado', politica_b_aplicada:'Aplicó política tipo B', politica_b_quitada:'Quitó política tipo B', fecha_colocacion:'Cambió el día en que cuenta la colocación', paso_revertido:'Regresó la solicitud a un paso anterior (administrador)' };
 const CERRADAS = ['desembolsada','denegada','rechazada_verificacion','desistida'];
 
 const S = { user:null, me:null, perfiles:{}, params:{}, sols:[], com:{}, tab:null, q:'', filtroTodas:'abiertas',
@@ -641,7 +676,7 @@ const KV = (() => { let dbp;
     t.oncomplete = () => ok(q && q.result); t.onerror = () => ko(t.error); }); };
   return { get: k => tx('readonly', st => st.get(k)).catch(() => undefined), set: (k, v) => tx('readwrite', st => st.put(v, k)).catch(() => {}),
     del: k => tx('readwrite', st => st.delete(k)).catch(() => {}) }; })();
-const ck = k => `${S.me?.id || S.user?.id || 'x'}:${k}`;
+const ck = k => `${S.verComo?.admin.id || S.me?.id || S.user?.id || 'x'}:${k}`;
 const esRed = e => !navigator.onLine || /failed to fetch|networkerror|load failed|network request|aborterror|aborted|fetch/i.test(String(e?.message || '') + ' ' + String(e?.name || '') + ' ' + String(e?.details || '') + ' ' + (typeof e === 'string' ? e : ''));
 // Cola de cambios hechos sin señal (se envían en orden al volver la conexión)
 const OB_KEY = () => 'vc_outbox_' + (S.me?.id || ''), OBF_KEY = () => 'vc_fallidos_' + (S.me?.id || ''), MAP_KEY = () => 'vc_tmpmap_' + (S.me?.id || '');
@@ -660,6 +695,7 @@ const opSid = op => op.t === 'rpc' ? (op.args.p_id ?? op.tmpId) : (op.row?.solic
 function opDesc(op){ const sid = opSid(op), so = S.sols.find(x => x.id === sid);
   return `${OB_DESC[op.t === 'rpc' ? op.fn : op.t + ':' + op.tabla] || op.fn || op.tabla}${so ? ' · ' + so.nombre_cliente : op.args?.p_nombre ? ' · ' + op.args.p_nombre : ''}`; }
 async function rpc(fn, args){
+  if (S.verComo) throw new Error('👁 Vista del verificador: solo consulta, no se guardan cambios');
   // Si ya hay cambios en cola (o no hay señal) se encola para respetar el orden
   if (COLA.has(fn) && (!navigator.onLine || outbox().length || JSON.stringify(args || {}).match(/"p_id":-\d/))) return encolar({ t:'rpc', fn, args });
   try { const { data, error } = await sb.rpc(fn, args); if (error) throw error; marcarConexion(true); return data; }
@@ -667,6 +703,7 @@ async function rpc(fn, args){
 }
 // Escrituras directas a tablas (ingresos, comentarios) con el mismo respaldo sin señal
 async function dbw(op){
+  if (S.verComo) throw new Error('👁 Vista del verificador: solo consulta, no se guardan cambios');
   if (!navigator.onLine || outbox().length || (op.row?.solicitud_id < 0) || op.id < 0) return encolar(op);
   try { const r = await ejecutarOp(op, lsGet(MAP_KEY(), {})); marcarConexion(true); return r; }
   catch(e){ if (esRed(e)){ marcarConexion(false); return encolar(op); } throw e; }
@@ -916,6 +953,7 @@ async function init(){
   pintarTabs(); pintar(); suscribir(); indicadorRed();
   if (vuelta){ window.scrollTo(0, vuelta.y || 0); if (vuelta.det != null && S.sols.some(x => x.id === vuelta.det)) abrirDetalle(vuelta.det); if (vuelta.ver) toast(`✨ App actualizada a la versión más reciente`); }
   if (outbox().length) programarEnvio(1500);
+  setTimeout(() => mostrarNovedades(), vuelta ? 1200 : 700);
   vigilarVersion(); mostrarInstalar(); pushRevisar(); $('#btnAviso').classList.toggle('hidden', rol() !== 'admin'); revisarMeta(); iniciarMotivacion();
   // Abierta desde un aviso: va directo a la solicitud
   const solQ = +new URLSearchParams(location.search).get('sol');
@@ -1279,12 +1317,12 @@ function tabsRol(){
     historial:['historial','Historial'],
     tablero:['tablero','Tablero', s => false],
     refi:['refi','Refinanciar'],
-    stats:['stats','Estadísticas'], referidos:['referidos','Referidos'], usuarios:['usuarios','Usuarios'], params:['params','Parámetros'], pagos:['pagos','Pago verificadores']
+    stats:['stats','Estadísticas'], referidos:['referidos','Referidos'], usuarios:['usuarios','Usuarios'], params:['params','Parámetros'], pagos:['pagos','Pago verificadores'], vercomo:['vercomo','👁 Vista verificador']
   };
   const m = { asesor:['tablero','solicitudes','revisadas','proceso','verificar','todas','refi','historial','stats'],
     analista:['tablero','analisis','desembolsos','todas','refi','referidos','historial','stats'],
     verificador:['verificar','tablero','verificadas','historial','stats'],
-    admin:['tablero','solicitudes','revisadas','analisis','verificar','desembolsos','todas','refi','referidos','historial','stats','pagos','usuarios','params'] };
+    admin:['tablero','solicitudes','revisadas','analisis','verificar','desembolsos','todas','refi','referidos','historial','stats','pagos','vercomo','usuarios','params'] };
   return m[rol()].map(k => T[k]);
 }
 function pintarTabs(){
@@ -1720,7 +1758,7 @@ function pintarSuave(){
   if ((S.dlgs || []).some(w => w.isConnected)) return;
   if (document.body.classList.contains('arrastrando-kc')) return;   // no repintar mientras se arrastra una tarjeta
   const a = document.activeElement; if (a && /^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName) && a.id !== 'q') return;
-  if (['stats','pagos','params','usuarios','refi','referidos'].includes(S.tab)) return;   // pantallas pesadas: se actualizan al entrar
+  if (['stats','pagos','params','usuarios','refi','referidos','vercomo'].includes(S.tab)) return;   // pantallas pesadas: se actualizan al entrar
   const y = window.scrollY, M = $('#main'), sc = [...M.querySelectorAll('*')].map((e, i) => [i, e.scrollLeft, e.scrollTop]).filter(x => x[1] || x[2]);
   const h0 = M.offsetHeight; M.style.minHeight = h0 + 'px';
   const fin = () => { const els = M.querySelectorAll('*'); sc.forEach(([i, l, t]) => { const e = els[i]; if (e){ e.scrollLeft = l; e.scrollTop = t; } }); window.scrollTo(0, y); M.style.minHeight = ''; };
@@ -1738,6 +1776,7 @@ function pintar(){
   if (S.tab === 'usuarios') return pintarUsuarios();
   if (S.tab === 'params') return pintarParams();
   if (S.tab === 'pagos') return pintarPagos();
+  if (S.tab === 'vercomo') return pintarVerComo();
   let lista = S.sols.filter(tab[2]);
   let extra = '';
   if (S.tab === 'todas'){
@@ -1865,7 +1904,8 @@ async function pintarPlantillasAdmin(){
 function pintarVerificar(lista, extra){
   S.vOrden = S.vOrden || 'antig'; S.vVista = S.vVista || 'lista'; if (S.vVerif == null) S.vVerif = '';
   const vs = Object.values(S.perfiles).filter(p => p.rol === 'verificador' && p.activo);
-  if (es('analista') && S.vVerif) lista = lista.filter(s => S.vVerif === 'sin' ? !s.verificador_id : (s.verificador_id === S.vVerif || s.verificador_trabajo_id === S.vVerif));
+  const sinAsig = lista.filter(s => !s.verificador_id && !s.en_espera).length;
+  if (es('analista','asesor') && S.vVerif) lista = lista.filter(s => S.vVerif === 'sin' ? !s.verificador_id : (s.verificador_id === S.vVerif || s.verificador_trabajo_id === S.vVerif));
   const conPt = lista.filter(s => puntoVerif(s) && !s.en_espera), sinPt = lista.filter(s => !puntoVerif(s) || s.en_espera);
   let cuerpo = '', nota = '';
   if (S.vVista === 'mapa'){
@@ -1893,12 +1933,14 @@ function pintarVerificar(lista, extra){
       <div class="seg"><button data-vo="antig" class="${S.vOrden==='antig'?'on':''}">Antigüedad</button><button data-vo="cerca" class="${S.vOrden==='cerca'?'on':''}">Cercanía</button><button data-vo="sector" class="${S.vOrden==='sector'?'on':''}">Sector</button></div>
       <div class="seg"><button data-vv="lista" class="${S.vVista==='lista'?'on':''}">☰ Lista</button><button data-vv="mapa" class="${S.vVista==='mapa'?'on':''}">🗺 Mapa</button></div>
       <button class="btn sm ghost" id="vYo">📍 ${S.miPos ? 'Actualizar mi ubicación' : 'Mi ubicación'}</button>
-      ${es('analista') ? `<select id="vVerif"><option value="">Todos los verificadores</option><option value="sin" ${S.vVerif==='sin'?'selected':''}>Sin asignar</option>${vs.map(p => `<option value="${p.id}" ${S.vVerif===p.id?'selected':''}>${esc(p.nombre)}</option>`).join('')}</select>` : ''}
+      ${es('analista','asesor') ? `<select id="vVerif"><option value="">Todos los verificadores</option><option value="sin" ${S.vVerif==='sin'?'selected':''}>Sin asignar</option>${vs.map(p => `<option value="${p.id}" ${S.vVerif===p.id?'selected':''}>${esc(p.nombre)}</option>`).join('')}</select>` : ''}
     </div>
+    ${es('analista','asesor') && sinAsig && S.vVerif !== 'sin' ? `<div class="alert warn" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">👤 <b>${sinAsig} sin verificador asignado</b><button class="btn sm pri" id="vVerSin" style="margin-left:auto">Ver y asignar</button></div>` : ''}
     ${extra}${nota}
     ${sinCoord ? `<div class="small muted" style="margin:-2px 2px 8px">⚠ ${sinCoord} solicitud(es) sin coordenadas: ábrala y complete "Ubicación para verificación".</div>` : ''}
     ${lista.length ? cuerpo : '<div class="empty">No hay solicitudes aquí.</div>'}`;
   const qi = $('#q'); qi.oninput = () => { S.q = qi.value; const p = qi.selectionStart; pintar(); const n = $('#q'); n.focus(); n.setSelectionRange(p,p); };
+  if ($('#vVerSin')) $('#vVerSin').onclick = () => { S.vVerif = 'sin'; S.vVista = 'lista'; pintar(); };
   $('#main').querySelectorAll('[data-vo]').forEach(b => b.onclick = async () => { S.vOrden = b.dataset.vo; S.vVista = 'lista';
     if (S.vOrden === 'cerca' && !S.miPos) { try { await miUbicacion(); } catch(e){ toast(errMsg(e), true); } } pintar(); });
   $('#main').querySelectorAll('[data-vv]').forEach(b => b.onclick = () => { S.vVista = b.dataset.vv; pintar(); });
@@ -2486,7 +2528,7 @@ function accionesHTML(s, c){
   if (rol() === 'admin'){
     const eds = (S.detData.evs || []).filter(e => e.accion === 'edicion_admin').slice(-5).reverse();
     h += `<div class="card" style="border:1.5px dashed var(--brand)"><h4 class="sec" style="margin-top:0">Administración</h4>
-      <div class="btns" style="margin-top:0"><button class="btn pri" id="admEditar">✏️ Editar solicitud completa</button><button class="btn bad" id="admEliminar">🗑 Eliminar solicitud</button></div>
+      <div class="btns" style="margin-top:0"><button class="btn pri" id="admEditar">✏️ Editar solicitud completa</button>${destinosRegreso(s).length ? `<button class="btn ghost" id="admRegresar">↩ Regresar a un paso anterior</button>` : ''}<button class="btn bad" id="admEliminar">🗑 Eliminar solicitud</button></div>
       ${eds.length ? `<label class="f">Últimos cambios del administrador</label>${eds.map(e => `<div class="small" style="margin:4px 0"><b>${esc(nombre(e.usuario_id))}</b> · ${fDT(e.creado_en)}<br><span class="muted">${esc(e.nota)}</span></div>`).join('')}` : ''}
     </div>`;
   }
@@ -2565,7 +2607,6 @@ async function repetirSolicitud(s, btn){
 
 function completarHTML(s){
   const nuevo = s.tipo === 'nuevo';
-  const verifs = Object.values(S.perfiles).filter(p => p.rol === 'verificador' && p.activo);
   return `<div class="card" id="cForm"><h4 class="sec" style="margin-top:0">Completar con el cliente</h4>
     <div class="alert ok small">Aprobada por ${L(s.monto_aprobado)}${s.tipo !== 'nuevo' && montoLibre(s) != null ? ` · Monto libre ${L(montoLibre(s))}` : ''}${s.politica_b ? `<br><b>🅱️ Política tipo B:</b> tasa ${+((S.params.tipob_tasa ?? 0.2) * 100).toFixed(2)}% mensual nivelado · plazo ${(S.params.tipob_plazo ?? 3)} meses` : ''}</div>
     <h4 class="sec">Verificación en campo</h4>
@@ -2585,10 +2626,8 @@ function completarHTML(s){
     <h4 class="sec">Forma de desembolso</h4>
     <div class="seg" id="cForma"><button type="button" data-v="efectivo" class="${s.forma_desembolso==='efectivo'?'on':''}">💵 Efectivo</button><button type="button" data-v="transferencia" class="${s.forma_desembolso==='transferencia'?'on':''}">🏦 Transferencia</button></div>
     <div id="cCtaF" class="${s.forma_desembolso==='transferencia'?'':'hidden'}"><label class="f">Banco y número de cuenta</label><input id="cCta" value="${esc(s.cuenta_banco||'')}" placeholder="Ej. BAC 7412..."></div>
-    <div id="cVerF"><h4 class="sec">Verificador</h4><select id="cVer"><option value="">Cualquier verificador</option>${verifs.map(p => `<option value="${p.id}" ${s.verificador_id===p.id?'selected':''}>${esc(p.nombre)}</option>`).join('')}</select>
-      <div id="cVerTF"><label class="f">🏢 Trabajo (si lo visita otro verificador)</label><select id="cVerT"><option value="">El mismo del domicilio</option>${verifs.map(p => `<option value="${p.id}" ${s.verificador_trabajo_id===p.id?'selected':''}>${esc(p.nombre)}</option>`).join('')}</select></div></div>
     <div id="cDestino" class="alert info small" style="margin-top:12px"></div>
-    <div class="btns"><button class="btn pri" id="cEnviar">Enviar</button></div>
+    <div class="btns"><button class="btn pri" id="cEnviar" style="font-size:16px;padding:13px 18px">🚀 Enviar a verificar</button></div>
   </div>`;
 }
 
@@ -2768,6 +2807,7 @@ function enlazarDetalle(s, c){
   if ($('#tOk')) $('#tOk').onclick = e => run(e.target, async () => { const fc = leerFechaColoc(s, 'tFc'); await rpc('marcar_desembolsada', { p_id: s.id, p_referencia: $('#tRef').value, p_fecha: fc }); toast(fc === hoyHN() ? 'Desembolsada' : `Desembolsada · cuenta para el ${fDate(fc + 'T12:00')}`); await refrescar(); });
   if ($('#tBack')) $('#tBack').onclick = async e => { const n = await pedirTexto('Regresar al asesor', 'Qué debe corregir', 'Regresar'); if (n) run(e.target, async () => { await rpc('regresar_a_revisadas', { p_id: s.id, p_nota: n }); await refrescar(); }); };
   if ($('#admEditar')) $('#admEditar').onclick = () => editorAdmin(S.detData.s, refrescar);
+  if ($('#admRegresar')) $('#admRegresar').onclick = () => dialogoRegresar(s);
   if ($('#admEliminar')) $('#admEliminar').onclick = async e => {
     const m = await pedirTexto(`Eliminar ${s.codigo}`, 'Motivo de la eliminación (ej. duplicada, prueba)', 'Continuar', 'bad');
     if (!m) return;
@@ -2900,10 +2940,10 @@ function enlazarCompletar(s, refrescar){
   const destino = () => {
     const act = !nuevo && ($('#cDom').checked || $('#cTrab').checked);
     const directo = !nuevo && forma === 'transferencia' && !act;
-    $('#cVerF').classList.toggle('hidden', directo);
+    $('#cEnviar').textContent = directo ? '🏦 Enviar a desembolso' : '🚀 Enviar a verificar';
     $('#cDestino').innerHTML = !forma ? 'Seleccione la forma de desembolso.'
       : directo ? '➡ Pasará directo a <b>Desembolsos por transferencia</b> (no requiere verificador).'
-      : `➡ Pasará a <b>Verificación</b>${nuevo ? (verTrab ? ' · visitas: domicilio y trabajo' : ' · visita: solo domicilio') : ''}${forma === 'efectivo' ? ' (el verificador entrega el efectivo)' : ''}.${s.dom_lat == null ? '<div class="muted" style="margin-top:4px">Opcional: agregue sector y coordenadas en "Ubicación para verificación" para ordenar las visitas por cercanía. Se puede hacer después.</div>' : ''}`;
+      : `➡ Pasará a <b>Verificación</b>${nuevo ? (verTrab ? ' · visitas: domicilio y trabajo' : ' · visita: solo domicilio') : ''}${forma === 'efectivo' ? ' (el verificador entrega el efectivo)' : ''}.<div style="margin-top:4px">👤 El verificador se asigna después, en <b>Por verificar</b>${s.verificador_id ? ` (ya asignado: ${esc(nombre(s.verificador_id))})` : ''}.</div>${s.dom_lat == null ? '<div class="muted" style="margin-top:4px">Opcional: agregue sector y coordenadas en "Ubicación para verificación" para ordenar las visitas por cercanía. Se puede hacer después.</div>' : ''}`;
   };
   F.querySelectorAll('input,textarea,select').forEach(i => i.addEventListener('input', () => S.dirty = true));
   F.querySelectorAll('#cForma button').forEach(b => b.onclick = () => { forma = b.dataset.v; S.dirty = true;
@@ -2920,12 +2960,17 @@ function enlazarCompletar(s, refrescar){
     if (!forma) throw new Error('Seleccione la forma de desembolso');
     const r = await rpc('completar_solicitud', { p_id: s.id, p_datos: {}, p_forma: forma,
       p_act_domicilio: !nuevo && $('#cDom').checked, p_act_trabajo: nuevo ? verTrab : $('#cTrab').checked, p_act_foto: false,
-      p_verificador: $('#cVer').value || null, p_monto_solicitado: (() => { const m = num($('#cMonto').value); if (!m || m <= 0) throw new Error('Indique el monto que toma el cliente'); if (m > +s.monto_aprobado) throw new Error(`El monto excede el aprobado (${L(s.monto_aprobado)})`); return m; })(), p_plazo: null, p_cuenta: $('#cCta').value || null });
-    const vt = $('#cVerT') && $('#cVerT').value;
-    if (r === 'por_verificar' && (nuevo ? verTrab : $('#cTrab').checked) && vt && vt !== ($('#cVer').value || ''))
-      await rpc('asignar_verificador_trabajo', { p_id: s.id, p_verificador: vt });
+      p_verificador: s.verificador_id || null, p_monto_solicitado: (() => { const m = num($('#cMonto').value); if (!m || m <= 0) throw new Error('Indique el monto que toma el cliente'); if (m > +s.monto_aprobado) throw new Error(`El monto excede el aprobado (${L(s.monto_aprobado)})`); return m; })(), p_plazo: null, p_cuenta: $('#cCta').value || null });
     S.dirty = false;
-    toast(r === 'por_verificar' ? 'Enviada a verificación' : 'Enviada a desembolsos por transferencia');
+    if (r === 'por_verificar'){
+      // El verificador se asigna en la pantalla Por verificar
+      toast(s.verificador_id ? 'Enviada a verificación' : 'Enviada a verificación · asigne el verificador');
+      await cargarSolicitudes();
+      S.tab = 'verificar'; S.q = ''; S.vVista = 'lista'; S.vVerif = s.verificador_id ? '' : 'sin';
+      cerrarDetalle(); window.scrollTo(0, 0);
+      return;
+    }
+    toast('Enviada a desembolsos por transferencia');
     await refrescar();
   });
 }
@@ -4291,6 +4336,97 @@ function leerFechaColoc(s, id){
   return v;
 }
 
+// ================== Regresar a un paso anterior (solo admin) ==================
+function destinosRegreso(s){
+  if (!s || s.id < 0) return [];
+  const i = ORDEN_PASOS.indexOf(s.estado);
+  return ORDEN_PASOS.filter((k, j) => (i < 0 || j < i))
+    .filter(k => k !== 'desembolso_pendiente' || s.forma_desembolso === 'transferencia')
+    .filter(k => k !== 'por_verificar' || !!s.forma_desembolso)
+    .filter(k => !['aprobada','por_verificar','desembolso_pendiente'].includes(k) || s.monto_aprobado != null);
+}
+const pasoTxt = k => `${PASO[k].t} · ${k === 'desembolso_pendiente' ? 'Analista' : RC[PASO[k].r].t}`;
+function dialogoRegresar(s, opciones){
+  const ops = (opciones && opciones.length ? opciones : destinosRegreso(s));
+  if (!ops.length) return toast('No hay pasos anteriores a los que regresar', true);
+  const actual = PASO[s.estado] ? pasoTxt(s.estado) : (EST[s.estado]?.t || s.estado);
+  const w = dialogo(`<h3>↩ Regresar a un paso anterior</h3>
+    <div class="small muted">${esc(s.nombre_cliente)} · ${esc(s.codigo)}<br>Ahora: <b>${esc(actual)}</b>${CERRADAS.includes(s.estado) ? ' (se reabre)' : ''}</div>
+    <label class="f">Regresar a</label>
+    ${ops.map((k, i) => `<label class="chk"><input type="radio" name="rgDest" value="${k}" ${i === ops.length - 1 ? 'checked' : ''}> <span class="rol" style="${rcVars(PASO[k].c)}">${esc(pasoTxt(k))}</span></label>`).join('')}
+    ${s.estado === 'desembolsada' ? '<div class="alert warn small">Deja de contar como desembolsada: se quita del capital colocado y de las estadísticas.</div>' : ''}
+    ${ops.some(k => ['borrador','en_analisis'].includes(k)) && s.dictamen_en ? '<div class="small muted">Si vuelve a Captura o Análisis, el analista debe dictaminar de nuevo.</div>' : ''}
+    <label class="f">Motivo</label><textarea id="rgMot" rows="2" placeholder="Ej. el analista debe revisar de nuevo los ingresos"></textarea>
+    <div class="btns"><button class="btn ghost" data-close>Cancelar</button><button class="btn pri" id="rgOk">Regresar</button></div>`);
+  w.querySelector('#rgOk').onclick = e => run(e.target, async () => {
+    const dest = w.querySelector('[name=rgDest]:checked')?.value, mot = w.querySelector('#rgMot').value.trim();
+    if (!dest) throw new Error('Elija el paso');
+    if (!mot) throw new Error('Escriba el motivo');
+    await rpc('admin_regresar_paso', { p_id: s.id, p_destino: dest, p_motivo: mot });
+    cerrarDialogo(w); toast(`Regresada a ${pasoTxt(dest)}`);
+    await cargarSolicitudes(); pintarTabs();
+    if (S.det === s.id && !$('#sheet').classList.contains('hidden')) await abrirDetalle(s.id, true); else pintar();
+  });
+}
+
+// ================== Vista del verificador (admin) ==================
+function pintarVerComo(){
+  const vs = Object.values(S.perfiles).filter(p => p.rol === 'verificador' && p.activo).sort((a, b) => a.nombre.localeCompare(b.nombre));
+  const pv = S.sols.filter(x => x.estado === 'por_verificar');
+  const cuenta = id => { const l = pv.filter(x => x.verificador_id === id || x.verificador_trabajo_id === id); return { n:l.length, esp:l.filter(x => x.en_espera).length, ef:l.filter(x => x.forma_desembolso === 'efectivo' && !x.en_espera).reduce((a, x) => a + (montoLibre(x) || 0), 0) }; };
+  const sin = pv.filter(x => !x.verificador_id).length;
+  $('#main').innerHTML = `<div class="card"><h3 style="margin-top:0">👁 Vista del verificador</h3>
+    <div class="small muted">Vea la app exactamente como la ve un verificador: sus pestañas, sus visitas por verificar (las suyas y las sin asignar), el tablero y sus verificaciones. Es solo de consulta: mientras esté en esa vista no se guarda ningún cambio.</div>
+    <label class="f">Verificador</label><select id="vcSel">${vs.map(p => `<option value="${p.id}" ${S.vcUlt === p.id ? 'selected' : ''}>${esc(p.nombre)}${p.pago_por_visita ? ' (externo)' : ''}</option>`).join('')}</select>
+    <label class="chk" style="margin-top:8px"><input type="checkbox" id="vcCel" ${S.vcCel !== false ? 'checked' : ''}> 📱 Mostrar en tamaño de celular</label>
+    <div class="btns"><button class="btn pri" id="vcIr" ${vs.length ? '' : 'disabled'}>Ver como este verificador</button></div></div>
+    <div class="card"><h4 class="sec" style="margin-top:0">Visitas por verificar ahora</h4>
+    <table class="t"><thead><tr><th>Verificador</th><th class="num">Asignadas</th><th class="num">En espera</th><th class="num">Efectivo a entregar</th><th></th></tr></thead><tbody>
+    ${vs.map(p => { const c = cuenta(p.id); return `<tr><td><b>${esc(p.nombre)}</b></td><td class="num">${c.n}</td><td class="num">${c.esp || ''}</td><td class="num">${c.ef ? L(c.ef) : '—'}</td><td style="text-align:right"><button class="btn sm ghost" data-vc="${p.id}">👁 Ver</button></td></tr>`; }).join('')}
+    <tr><td class="muted">Sin asignar (las ven todos)</td><td class="num">${sin}</td><td></td><td></td><td></td></tr></tbody></table></div>`;
+  const ir = id => entrarVerComo(id, $('#vcCel').checked);
+  $('#vcIr').onclick = () => ir($('#vcSel').value);
+  $('#main').querySelectorAll('[data-vc]').forEach(b => b.onclick = () => ir(b.dataset.vc));
+}
+function entrarVerComo(id, cel){
+  const p = S.perfiles[id]; if (!p || S.verComo) return;
+  S.vcUlt = id; S.vcCel = cel;
+  S.verComo = { admin:S.me };
+  S.me = { ...p, rol:'verificador' };
+  document.body.classList.add('ver-como'); document.body.classList.toggle('marco-cel', !!cel);
+  const bar = document.createElement('div'); bar.id = 'vcBar';
+  bar.innerHTML = `<span>👁 Viendo como <b>${esc(p.nombre)}</b> · verificador · solo consulta</span><button class="btn sm" id="vcSalir">Salir de la vista</button>`;
+  $('header.top').appendChild(bar); $('#vcSalir').onclick = salirVerComo;
+  $('#whoName').textContent = p.nombre; $('#whoRol').textContent = 'Verificador (vista)';
+  S.tab = 'verificar'; S.q = ''; S.vVerif = ''; S.vVista = 'lista';
+  pintarTabs(); pintar(); window.scrollTo(0, 0);
+}
+function salirVerComo(){
+  if (!S.verComo) return;
+  if (!$('#sheet').classList.contains('hidden')){ S.dirty = false; cerrarDetalle(); }
+  S.me = S.verComo.admin; S.verComo = null;
+  document.body.classList.remove('ver-como', 'marco-cel'); $('#vcBar')?.remove();
+  $('#whoName').textContent = S.me.nombre; $('#whoRol').textContent = ROL[S.me.rol];
+  S.tab = 'vercomo'; S.q = ''; S.vVerif = '';
+  pintarTabs(); pintar(); window.scrollTo(0, 0);
+}
+
+// ================== Novedades de la app ==================
+function mostrarNovedades(todas){
+  if (S.verComo || !S.me) return;
+  const k = 'vc_nov_' + (S.user?.id || S.me.id), visto = localStorage.getItem(k);
+  const ve = it => !it.r || rol() === 'admin' || it.r.includes(rol());
+  let l = todas ? NOVEDADES.slice(0, 5) : visto ? NOVEDADES.filter(n => n.v > visto) : NOVEDADES.slice(0, 2);
+  l = l.map(n => ({ ...n, items:n.items.filter(ve) })).filter(n => n.items.length);
+  try { localStorage.setItem(k, NOVEDADES[0].v); } catch(e){}
+  if (!l.length){ if (todas) toast('No hay novedades por ahora'); return; }
+  dialogo(`<div class="nov"><h3 style="margin:0 0 2px">✨ Novedades de VerifyCredit</h3>
+    <div class="small muted">${todas ? 'Últimas actualizaciones de la app' : 'La app se actualizó. Esto es lo nuevo:'}</div>
+    ${l.map(n => `<div class="nov-v"><div class="nov-f">${esc(n.f)}</div>${n.items.map(it => `<div class="nov-i"><span class="nov-e">${it.i || '•'}</span><div><b>${esc(it.t)}</b><div class="nov-d">${esc(it.d)}</div></div></div>`).join('')}</div>`).join('')}
+    <div class="btns"><button class="btn pri" data-close>Entendido</button></div></div>`);
+}
+$('#btnNov').onclick = () => mostrarNovedades(true);
+
 // ================== Arrastrar tarjetas del tablero (poner en espera / reanudar) ==================
 // Ratón: arrastrar. Celular: mantener presionada la tarjeta ~0.4 s y arrastrar. Al arrastrar aparece además
 // una barra abajo ("Suelte aquí…") para no tener que desplazarse hasta la última columna.
@@ -4300,7 +4436,11 @@ function activarArrastre(board){
   const wrap = board.parentElement;
   const objetivo = (x, y) => { const el = document.elementFromPoint(x, y); return el ? el.closest('#dropBar,[data-col]') : null; };
   const clave = t => t ? (t.dataset.drop || t.dataset.col) : null;
-  const valido = k => !d?.s ? false : d.s.en_espera ? (k && k !== 'esp' && k !== 'fin') : k === 'esp';
+  const revertible = (s, k) => { const c = COLS.find(x => x.k === k); return rol() === 'admin' && !!c && !c.espera && k !== 'fin' && destinosRegreso(s).some(e => c.est.includes(e)); };
+  const valido = k => { const s = d?.s; if (!s || !k) return false;
+    if (s.en_espera) return k !== 'esp' && k !== 'fin';
+    if (CERRADAS.includes(s.estado)) return revertible(s, k);
+    return k === 'esp' || revertible(s, k); };
   const marcar = () => {
     document.querySelectorAll('.col.drop,#dropBar.drop').forEach(e => e.classList.remove('drop'));
     const t = objetivo(d.x, d.y); d.sobre = valido(clave(t)) ? t : null;
@@ -4318,14 +4458,17 @@ function activarArrastre(board){
   const iniciar = () => {
     const s = S.sols.find(z => z.id === d.id);
     if (!s){ fin(); return; }
-    if (CERRADAS.includes(s.estado)){ toast('Las solicitudes cerradas no se pueden poner en espera', true); fin(); return; }
+    const cerrada = CERRADAS.includes(s.estado);
+    if (cerrada && rol() !== 'admin'){ toast('Las solicitudes cerradas no se pueden poner en espera', true); fin(); return; }
     d.s = s; d.activo = true;
     const r = d.card.getBoundingClientRect(); d.dx = d.x - r.left; d.dy = d.y - r.top;
     const g = d.card.cloneNode(true); g.classList.add('kc-ghost'); g.style.width = r.width + 'px';
     document.body.appendChild(g); d.ghost = g; d.card.classList.add('arrastrando');
-    const bar = document.createElement('div'); bar.id = 'dropBar'; bar.dataset.drop = s.en_espera ? 'reanudar' : 'esp';
-    bar.textContent = s.en_espera ? '▶ Suelte aquí para reanudar' : '⏸ Suelte aquí para poner en espera';
-    document.body.appendChild(bar); d.bar = bar;
+    if (!cerrada){
+      const bar = document.createElement('div'); bar.id = 'dropBar'; bar.dataset.drop = s.en_espera ? 'reanudar' : 'esp';
+      bar.textContent = s.en_espera ? '▶ Suelte aquí para reanudar' : '⏸ Suelte aquí para poner en espera';
+      document.body.appendChild(bar); d.bar = bar;
+    }
     document.body.classList.add('arrastrando-kc'); board.style.scrollSnapType = 'none';
     try { navigator.vibrate && navigator.vibrate(25); } catch(e){}
     mover(d.x, d.y); requestAnimationFrame(loop);
@@ -4373,6 +4516,9 @@ async function moverEspera(s, k){
       if (!m) return;
       await rpc('poner_en_espera', { p_id: s.id, p_motivo: m });
       toast('Solicitud en espera · no suma en las estadísticas');
+    } else if (!s.en_espera && rol() === 'admin' && COLS.some(c => c.k === k && !c.espera && k !== 'fin')){
+      const c = COLS.find(x => x.k === k);
+      return dialogoRegresar(s, destinosRegreso(s).filter(e => c.est.includes(e)));
     } else if (s.en_espera && k !== 'esp'){
       await rpc('reanudar', { p_id: s.id, p_nota: null });
       toast(`Reanudada · vuelve a ${PASO[s.estado]?.t || 'su paso'}`);
