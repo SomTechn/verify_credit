@@ -66,13 +66,24 @@ async function evento(ev: Record<string, any>) {
       { title: `💬 ${au?.nombre || 'Comentario'} en ${data.nombre_cliente}`, body: ev.texto || '', id: data.id });
   }
   const cli = `${sol.cliente} · ${TIPO[sol.tipo] || sol.tipo}${sol.codigo ? ' · ' + sol.codigo : ''}`;
+  if (ev.tabla === 'asignacion') {   // se asignó (o cambió) el verificador de una solicitud por verificar
+    const avisos = (ev.nuevos || []) as { id: string; lugar: string }[];
+    let n = 0;
+    for (const a of avisos) {
+      if (!a.id || a.id === ev.actor) continue;   // quien toma la visita no recibe su propio aviso
+      n += await enviar([a.id], { title: '🔎 Verificación asignada a usted', body: `${a.lugar ? a.lugar + ' · ' : ''}${cli}`, id: sol.id });
+    }
+    return n;
+  }
   let t = '', ids: string[] = [];
   switch (sol.estado) {
     case 'en_analisis': t = sol.antes === 'borrador' || !sol.antes ? '📥 Nueva solicitud en análisis' : '📥 Solicitud en análisis'; ids = analistas; break;
     case 'aprobada': t = '✅ Solicitud aprobada'; ids = [sol.asesor]; break;
     case 'denegada': t = '❌ Solicitud denegada'; ids = [sol.asesor]; break;
     case 'borrador': t = '↩️ Solicitud devuelta para corregir'; ids = [sol.asesor]; break;
-    case 'por_verificar': t = '🔎 Nueva verificación asignada'; ids = sol.verificador ? [sol.verificador] : por('verificador'); break;
+    // Solo al verificador asignado (domicilio y, si es otro, trabajo). Sin asignar: no se avisa a los verificadores;
+    // les llega el aviso cuando se les asigna en Por verificar (evento 'asignacion').
+    case 'por_verificar': t = '🔎 Nueva verificación asignada'; ids = [sol.verificador, sol.verificador_trabajo].filter(Boolean); break;
     case 'desembolso_pendiente': t = '💸 Desembolso por transferencia pendiente'; ids = analistas; break;
     case 'desembolsada': t = '💰 Solicitud desembolsada'; ids = [sol.asesor]; break;
     case 'rechazada_verificacion': t = '⚠️ Rechazada en verificación'; ids = [sol.asesor, ...analistas]; break;
