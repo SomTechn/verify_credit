@@ -343,6 +343,24 @@ main.wide.board-wide{max-width:1720px}
 #dropBar{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);z-index:9998;background:var(--ink);color:#fff;font:700 15px Poppins,Inter,sans-serif;padding:14px 22px;border-radius:999px;box-shadow:0 8px 24px rgba(0,0,0,.3);border:3px dashed transparent;white-space:nowrap}
 #dropBar.drop{background:var(--brand);border-color:#FFD400;transform:translateX(-50%) scale(1.06)}
 body.arrastrando-kc{cursor:grabbing}
+/* Desembolso por transferencia (tarjeta principal) */
+.dt-card{border:2px solid var(--r-desembolso,#f97316);margin-bottom:14px}
+.dt-cli{font:700 22px Poppins,Inter,sans-serif;color:var(--ink);margin:10px 0 8px}
+.dt-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:10px}
+.dt-box{border:1px solid var(--line);border-radius:12px;padding:12px;background:var(--card)}
+.dt-monto{font:800 30px Poppins,Inter,sans-serif;color:var(--brand-dk);line-height:1.15}
+.dt-des{width:100%;margin-top:8px;font-size:14px;border-collapse:collapse}
+.dt-des td{padding:3px 0}.dt-des .num{text-align:right;font-variant-numeric:tabular-nums}
+.dt-des tr.tot td{border-top:1.5px solid var(--line);padding-top:6px;font-weight:800;color:var(--brand-dk)}
+.dt-banco{font:700 18px Poppins,Inter,sans-serif}
+.dt-cta{font:700 20px Inter,sans-serif;letter-spacing:.5px}
+.dt-docs{margin-top:12px}
+.dt-cf{width:100%;max-height:360px;object-fit:contain;background:var(--gray-bg);border:1px solid var(--line);border-radius:10px;cursor:zoom-in;min-height:80px}
+.dt-equipo{margin-top:12px;display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:8px}
+.dt-p{display:flex;gap:10px;align-items:center;border:1px solid var(--line);border-radius:12px;padding:8px 10px}
+.dt-ic{font-size:20px}
+.dt-mas{margin-top:12px}.dt-mas summary{cursor:pointer}
+.ts-l{display:flex;gap:10px;align-items:baseline;flex-wrap:wrap;padding:4px 0}.ts-l > span:first-child{min-width:90px;color:var(--ink2)}
 /* Novedades */
 .nov-v{margin-top:12px}
 .nov-f{font:700 12px Inter,sans-serif;text-transform:uppercase;letter-spacing:.6px;color:var(--brand-dk);margin-bottom:6px}
@@ -563,11 +581,21 @@ body.marco-cel #sheet > *{max-width:430px;margin-left:auto;margin-right:auto}
 // App disponible sin señal (sw.js debe estar junto a index.html). Va primero para registrarse aunque falle otra cosa.
 if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) navigator.serviceWorker.register('sw.js').catch(() => {});
 // Versión de esta copia de la app: cambia en cada entrega. La app la compara con la publicada y se actualiza sola.
-const APP_VER = '2026-11-06.1400';
+const APP_VER = '2026-11-10.1600';
 // Novedades que ve cada usuario al abrir una versión nueva (la más reciente primero).
 // Al publicar cambios: subir APP_VER y agregar aquí una entrada con la misma versión.
 // r = roles que la ven (sin r = todos; el admin ve todo).
 const NOVEDADES = [
+  { v:'2026-11-10.1600', f:'10 de noviembre de 2026', items:[
+    { i:'🏦', t:'Desembolsos pendientes: todo en una tarjeta', r:['analista','asesor'],
+      d:'Al abrir una solicitud de la columna Desembolso, lo primero que aparece es una tarjeta con el nombre del cliente, el monto a transferir (en refinanciamientos con el desglose: préstamo nuevo − saldo de capital − saldo de intereses), el banco y el número de cuenta (se pueden copiar), la foto del contrato firmado y quién la trabajó: asesor, analista y verificador con la fecha y hora en que cada uno aprobó su paso.' },
+    { i:'✅', t:'Confirmar desembolso sin número de referencia', r:['analista'],
+      d:'El botón "Confirmar desembolso" ya no pide referencia de la transferencia. Antes de confirmar muestra el monto y la cuenta para revisar. El día en que cuenta la colocación sigue siendo Hoy y se puede cambiar en "📅 Día en que cuenta la colocación".' },
+    { i:'💲', t:'Tasa de interés fijada por el analista', r:['analista'],
+      d:'En el detalle hay una tarjeta "Tasa de interés". El sistema pone la tasa que corresponde, pero el analista puede elegir otra: nivelado 10%, 10.5%, 12%, 14%, 16% o 20%, y solo interés 10%, 16%, 18% o 20%, o escribir una personalizada. Las cuotas, el % del ingreso y los resúmenes usan la tasa fijada. Se puede volver a las automáticas.' },
+    { i:'💲', t:'Tasa fijada por el analista', r:['asesor','verificador'],
+      d:'Si el analista fija una tasa distinta, se ve en la tarjeta "Tasa de interés" del detalle y en la tabla de cuotas, marcada como "fijada por el analista".' }
+  ]},
   { v:'2026-11-06.1400', f:'6 de noviembre de 2026 · tarde', items:[
     { i:'🚀', t:'"Enviar a verificar" sin escoger verificador', r:['asesor'],
       d:'En Completar datos el botón ahora dice "Enviar a verificar" (o "Enviar a desembolso" si es transferencia sin visita). Ya no se escoge el verificador ahí: al enviar, la app lo lleva a la pantalla Por verificar para asignarlo.' },
@@ -685,8 +713,8 @@ const lsSet = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } ca
 const outbox = () => lsGet(OB_KEY(), []), fallidos = () => lsGet(OBF_KEY(), []);
 // Acciones que se pueden hacer sin señal (las de administración requieren conexión)
 const COLA = new Set(['crear_solicitud','enviar_analisis','dictaminar','completar_solicitud','guardar_item','finalizar_verificacion','marcar_desembolsada','desistir',
-  'poner_en_espera','reanudar','guardar_ubicacion','asignar_verificador','actualizar_datos_refi','actualizar_datos_analisis','registrar_reconocimiento','regresar_a_revisadas','guardar_origen','guardar_origen_cliente']);
-const OB_DESC = { crear_solicitud:'Crear solicitud', enviar_analisis:'Enviar a análisis', dictaminar:'Dictamen', completar_solicitud:'Completar con el cliente',
+  'poner_en_espera','reanudar','guardar_ubicacion','asignar_verificador','actualizar_datos_refi','actualizar_datos_analisis','registrar_reconocimiento','regresar_a_revisadas','guardar_origen','guardar_origen_cliente','fijar_tasa']);
+const OB_DESC = { fijar_tasa:'Fijar tasa de interés', crear_solicitud:'Crear solicitud', enviar_analisis:'Enviar a análisis', dictaminar:'Dictamen', completar_solicitud:'Completar con el cliente',
   guardar_item:'Verificación', finalizar_verificacion:'Cerrar verificación', marcar_desembolsada:'Marcar desembolsada', desistir:'Cerrar (desistió)',
   poner_en_espera:'Poner en espera', reanudar:'Reanudar', guardar_ubicacion:'Ubicación', asignar_verificador:'Asignar verificador',
   actualizar_datos_refi:'Datos del préstamo', actualizar_datos_analisis:'Datos de análisis', registrar_reconocimiento:'Contrato de línea de crédito',
@@ -781,6 +809,7 @@ function aplicarOp(op, nuevo){
       Object.assign(s, { [k + '_lat']:a.p_lat, [k + '_lng']:a.p_lng, [k + '_sector']:a.p_sector || null, [k + '_ciudad']:a.p_ciudad || null, [k + '_ref']:a.p_ref || null, _pend:true }); return; }
     case 'asignar_verificador': if (s) Object.assign(s, { verificador_id:a.p_verificador, _pend:true }); return;
     case 'actualizar_datos_refi': if (s) Object.assign(s, a.p_datos || {}, { _pend:true }); return;
+    case 'fijar_tasa': if (s) Object.assign(s, { tasa_nivelado:a.p_nivelado, tasa_solo_interes:a.p_solo_interes, _pend:true }); return;
     case 'actualizar_datos_analisis': if (s) Object.assign(s, { tipo_pago:a.p_tipo_pago, rubro_especial:a.p_rubro_especial }, a.p_nombre ? { nombre_cliente:a.p_nombre } : {}, a.p_telefono != null ? { telefono:a.p_telefono } : {}, { _pend:true }); return;
     default: return;
   }
@@ -2269,6 +2298,7 @@ function renderDetalle(){
         ${s.saldo_capital != null ? `<dt>Saldo capital</dt><dd>${L(s.saldo_capital)}</dd>` : ''}
         ${s.saldo_intereses != null ? `<dt>Saldo intereses</dt><dd>${L(s.saldo_intereses)}</dd>` : ''}
         ${libre != null && s.tipo !== 'nuevo' ? `<dt>Monto libre</dt><dd>${L(libre)}</dd>` : ''}
+        ${s.tasa_nivelado != null || s.tasa_solo_interes != null ? `<dt>Tasa fijada</dt><dd><b>${s.tasa_nivelado != null ? pctT(s.tasa_nivelado) + ' nivelado' : 'nivelado automática'} · ${s.tasa_solo_interes != null ? pctT(s.tasa_solo_interes) + ' solo interés' : 'solo interés automática'}</b></dd>` : ''}
         ${s.politica_b ? `<dt>Política</dt><dd><b>Tipo B</b> · ${+((S.params.tipob_tasa ?? 0.2) * 100).toFixed(2)}% nivelado · ${(S.params.tipob_plazo ?? 3)} meses</dd>` : s.tasa_preferencial ? `<dt>Tasa</dt><dd>Preferencial</dd>` : ''}
         ${s.dictamen_nota ? `<dt>Nota</dt><dd>${esc(s.dictamen_nota)}</dd>` : ''}
       </dl></div>`;
@@ -2339,11 +2369,12 @@ function renderDetalle(){
         ${dictamenBoxHTML(s, true)}
       </div>
       ${s.dictamen_en && s.monto_solicitado && +s.monto_solicitado !== +s.monto_aprobado ? `<div class="alert info small" style="margin-top:10px">El cliente toma <b>${L(s.monto_solicitado)}</b> de ${L(s.monto_aprobado)} aprobados.</div>` : ''}
-      ${cuotasPlazoHTML(s.dictamen_en && s.monto_aprobado ? +(s.monto_solicitado || s.monto_aprobado) : (limNuevo(s, c) || 0), s.dictamen_en && s.tasa_preferencial != null ? !!s.tasa_preferencial : c.tasaPref, s.tipo_pago, c.promedio, null, c.tipoB || s.politica_b ? { tasa: S.params.tipob_tasa ?? 0.2, plazo: S.params.tipob_plazo ?? 3 } : null)}
+      ${cuotasPlazoHTML(s.dictamen_en && s.monto_aprobado ? +(s.monto_solicitado || s.monto_aprobado) : (limNuevo(s, c) || 0), s.dictamen_en && s.tasa_preferencial != null ? !!s.tasa_preferencial : c.tasaPref, s.tipo_pago, c.promedio, null, c.tipoB || s.politica_b ? { tasa: S.params.tipob_tasa ?? 0.2, plazo: S.params.tipob_plazo ?? 3 } : null, s)}
       </div>`}`;
   }
   // Análisis de refinanciamiento / reingreso (antigüedad, comportamiento de pago, cuotas)
   if (s.tipo !== 'nuevo') h += refiHTML(s, c, editIng);
+  h += mk('m') + tasaHTML(s, c);
 
   // Datos del cliente (completados)
   if (Object.keys(d).length || s.forma_desembolso) h += datosClienteHTML(s);
@@ -2368,7 +2399,8 @@ function renderDetalle(){
   $('#sheetTitle').textContent = s.nombre_cliente; $('#sheetCopy').dataset.cpy = s.nombre_cliente; $('#sheetCopy').innerHTML = ICO_COPIAR; $('#sheetChip').innerHTML = chip(s.estado);
   let n = 0; const col = { m:'', s:'' };
   h.split('\u0001').forEach(p => { const html = p.slice(1).trim(); if (html) col[p[0]] += `<div class="det-it" style="order:${++n}">${html}</div>`; });
-  $('#sheetBody').innerHTML = `<div class="det-cols"><div class="det-col det-main">${col.m}</div><div class="det-col det-side">${col.s}</div></div>`;
+  const arriba = s.estado === 'desembolso_pendiente' ? desembolsoTopHTML(s, evs) : '';
+  $('#sheetBody').innerHTML = `${arriba}<div class="det-cols"><div class="det-col det-main">${col.m}</div><div class="det-col det-side">${col.s}</div></div>`;
   plegarSecciones();
   enlazarDetalle(s, c);
 }
@@ -2564,17 +2596,6 @@ function accionesHTML(s, c){
       <div>Cuenta en la meta y las estadísticas del <b>${fc ? fDate(fc + 'T12:00') : '—'}</b>${real && real !== fc ? `<div class="small muted">Se desembolsó el ${fDate(real + 'T12:00')}</div>` : ''}</div>
       ${es('analista') ? `<div class="btns"><button class="btn ghost sm" id="fcCambiar">Cambiar el día</button></div>` : ''}</div>`;
   }
-  if (s.estado === 'desembolso_pendiente' && es('analista')){
-    const libre = montoLibre(s);
-    h += `<div class="card"><h4 class="sec" style="margin-top:0">Desembolso por transferencia</h4>
-      <dl class="kv"><dt>Cuenta</dt><dd>${esc(s.cuenta_banco||'—')}</dd>
-      <dt>Monto crédito</dt><dd>${L(s.monto_solicitado || s.monto_aprobado)}</dd>
-      ${s.tipo !== 'nuevo' ? `<dt>A transferir (libre)</dt><dd><b>${L(libre)}</b></dd>` : ''}</dl>
-      <label class="f">Referencia / N.º de transferencia</label><input id="tRef">
-      ${fechaColocHTML(s, 'tFc')}
-      <div class="btns"><button class="btn ok" id="tOk">Marcar como desembolsada</button></div>
-      <div class="btns" style="margin-top:6px"><button class="btn ghost sm" id="tBack">↩ Regresar al asesor</button></div></div>`;
-  }
   if (s.estado === 'por_verificar' && es('analista') && rol() !== 'verificador'){
     h += `<div class="btns"><button class="btn ghost sm" id="tBack">↩ Regresar a revisadas del asesor</button></div>`;
   }
@@ -2733,10 +2754,11 @@ function enlazarDetalle(s, c){
     $('#docPdf').onclick = e => run(e.target, async () => { const t = e.target.textContent; e.target.textContent = 'Generando…'; try { await imprimirDocs(S.detData.s, marcados(), 'pdf'); } finally { e.target.textContent = t; } });
   }
   if ($('#cfSubir')) $('#cfSubir').onclick = () => abrirContratoFirmado(S.detData.s);
-  if ($('#cfThumb') || $('#cfDescargar')) (async () => {
+  if ($('#cfThumb') || $('#cfDescargar') || $('#sheetBody img.dt-cf')) (async () => {
     const cs = S.detData.s, path = cs.contrato_firmado_path; let url = null;
     try { const { data } = await sb.storage.from('evidencias').createSignedUrl(path, 3600); url = data?.signedUrl; } catch(e){}
-    const th = $('#cfThumb'); if (th && url){ th.src = url; th.onclick = () => window.open(url, '_blank'); }
+    if (url) document.querySelectorAll('#sheetBody img[data-cf]').forEach(im => { im.src = url; im.onclick = () => window.open(url, '_blank'); });
+    else document.querySelectorAll('#sheetBody img.dt-cf').forEach(im => im.replaceWith(Object.assign(document.createElement('div'), { className:'small muted', textContent:'(Se necesita conexión para ver la foto del contrato)' })));
     const dl = $('#cfDescargar');
     if (dl) dl.onclick = () => run(dl, async () => {
       if (!url) throw new Error('Se necesita conexión para descargar la foto guardada');
@@ -2804,7 +2826,15 @@ function enlazarDetalle(s, c){
       await rpc('cambiar_fecha_colocacion', { p_id: s.id, p_fecha: fc, p_nota: w.querySelector('#fcNota').value || null });
       cerrarDialogo(w); toast(`Cuenta para el ${fDate(fc + 'T12:00')}`); await refrescar(); });
   };
-  if ($('#tOk')) $('#tOk').onclick = e => run(e.target, async () => { const fc = leerFechaColoc(s, 'tFc'); await rpc('marcar_desembolsada', { p_id: s.id, p_referencia: $('#tRef').value, p_fecha: fc }); toast(fc === hoyHN() ? 'Desembolsada' : `Desembolsada · cuenta para el ${fDate(fc + 'T12:00')}`); await refrescar(); });
+  if ($('#tFc')) $('#tFc').addEventListener('input', () => { const v = $('#tFc').value; $('#tFcTxt').textContent = v === hoyHN() ? 'Hoy' : v ? fDate(v + 'T12:00') : '—'; });
+  if ($('#dtSubirCf')) $('#dtSubirCf').onclick = () => abrirContratoFirmado(S.detData.s);
+  enlazarTasa(s);
+  if ($('#tOk')) $('#tOk').onclick = e => {
+    const monto = s.tipo !== 'nuevo' ? montoLibre(s) : +(s.monto_solicitado || s.monto_aprobado || 0);
+    let fc; try { fc = leerFechaColoc(s, 'tFc'); } catch(err){ return toast(err.message, true); }
+    if (!confirm(`¿Confirma que ya transfirió ${L(monto)} a ${s.nombre_cliente}?${s.cuenta_banco ? `\n\nCuenta: ${s.cuenta_banco}` : ''}${fc !== hoyHN() ? `\nCuenta para el ${fDate(fc + 'T12:00')}` : ''}${s.contrato_firmado_path ? '' : '\n\n⚠ Aún no se ha subido el contrato firmado.'}`)) return;
+    run(e.target, async () => { await rpc('marcar_desembolsada', { p_id: s.id, p_referencia: null, p_fecha: fc }); toast(fc === hoyHN() ? 'Desembolso confirmado' : `Desembolso confirmado · cuenta para el ${fDate(fc + 'T12:00')}`); await refrescar(); });
+  };
   if ($('#tBack')) $('#tBack').onclick = async e => { const n = await pedirTexto('Regresar al asesor', 'Qué debe corregir', 'Regresar'); if (n) run(e.target, async () => { await rpc('regresar_a_revisadas', { p_id: s.id, p_nota: n }); await refrescar(); }); };
   if ($('#admEditar')) $('#admEditar').onclick = () => editorAdmin(S.detData.s, refrescar);
   if ($('#admRegresar')) $('#admRegresar').onclick = () => dialogoRegresar(s);
@@ -3183,7 +3213,7 @@ function calcRefi(s, c){
   const prefMotivo = yaPref ? (tard3 <= 2 ? 'Mantiene la preferencial que ya tenía' : `Pierde la preferencial: ${tard3} pagos tardíos (máx. 2)`) : '';
   // Después del dictamen manda lo que quedó autorizado (puede haberse ajustado manualmente)
   const pref = politicaB ? false : s.dictamen_en && s.tasa_preferencial != null ? !!s.tasa_preferencial : prefCalc;
-  const tasaNiv = politicaB ? B.tasa : pref ? 0.105 : 0.14, tasaSI = pref ? 0.16 : 0.20;
+  const T = tasasSol(s, pref, politicaB ? B : null), tasaNiv = T.n, tasaSI = T.si, tMan = T.man;
   const tasaNueva = politicaB ? B.tasa : s.plan_pago === 'solo_interes' ? tasaSI : tasaNiv;
   const plazos = politicaB ? [B.plazo] : [3, 6, 8, 10, 12];
   const cuotas = plazos.map(n => { const q = limAprob / n + limAprob * tasaNiv; return { plazo: `${n} meses`, cuota: q, pct: prom ? q / prom : null }; });
@@ -3210,7 +3240,7 @@ function calcRefi(s, c){
   const proxLim = bloqueado && !politicaB ? null : Math.min(P.techo_refi || 30000, mround(prom * (r2 < 0.4 ? 0.5 : r2 < 0.7 ? 0.8 : 1), 1000));
   const peldano = (antig == null || antig < 90) ? '50% (menos de 90 días)' : diasAum < 90 ? 'Se mantiene (último aumento hace menos de 90 días)' : `${Math.round(factor * 100)}%`;
   return { elegido, limCalc, autorizado, prefCalc, yaPref, prefMotivo, prom, antig, diasAum: diasAum === 99999 ? null : diasAum, limAct, factor, peldano, sugerido, pagos, tard3, tard7, total, manual, pctAprob, penTxt, basePen,
-    limAprob, disponible, pref, tasaNueva, cuotas, plazoMin, dictamen, politicaB, ingresoB, sugB, maxDif, B, limB, motivos, proxAum, proxLim, techo, sinFecha: !s.fecha_ingreso };
+    limAprob, disponible, pref, tasaNueva, tMan, cuotas, plazoMin, dictamen, politicaB, ingresoB, sugB, maxDif, B, limB, motivos, proxAum, proxLim, techo, sinFecha: !s.fecha_ingreso };
 }
 // Recuadro con la decisión del analista y su nota (aprobación o rechazo)
 function dictamenBoxHTML(s, full, sinNota){
@@ -3247,7 +3277,7 @@ function resumenWhatsApp(s, r){
     `Ingreso promedio mensual: ${L(r.prom)}`, `Antigüedad: ${r.antig == null ? '—' : aniosMeses(s.fecha_ingreso)}`, `Límite sugerido: ${L(r.sugerido)}`,
     `*Límite aprobado: ${L(r.limAprob)}*${r.autorizado && r.limCalc !== r.limAprob ? ` (calculado ${L(r.limCalc)})` : ''}`,
     `Saldo actual: capital ${L(+s.saldo_capital || 0)} · intereses ${L(+s.saldo_intereses || 0)}`, `Disponible: ${L(r.disponible)}`, `Pagos tardíos >3/≥7: ${r.tard3}/${r.tard7} de ${r.total}`,
-    `Tasa: ${pct(r.tasaNueva)} ${r.politicaB ? 'política tipo B (nivelado, ' + r.B.plazo + ' meses)' : r.pref ? 'preferencial' : 'normal'}`, `Dictamen: ${s.dictamen_en ? (s.estado === 'denegada' ? 'DENEGADA' : 'APROBADA') + ' por ' + nombre(s.analista_id) + (s.dictamen_nota ? ' · ' + s.dictamen_nota : '') + (!r.dictamen.startsWith('APROBADO') && s.estado !== 'denegada' ? ` (sugerido: ${r.dictamen})` : '') : r.dictamen}`].join('\n');
+    `Tasa: ${pct(r.tasaNueva)} ${r.tMan ? 'fijada por el analista' + (r.politicaB ? ' · política tipo B (nivelado, ' + r.B.plazo + ' meses)' : '') : r.politicaB ? 'política tipo B (nivelado, ' + r.B.plazo + ' meses)' : r.pref ? 'preferencial' : 'normal'}`, `Dictamen: ${s.dictamen_en ? (s.estado === 'denegada' ? 'DENEGADA' : 'APROBADA') + ' por ' + nombre(s.analista_id) + (s.dictamen_nota ? ' · ' + s.dictamen_nota : '') + (!r.dictamen.startsWith('APROBADO') && s.estado !== 'denegada' ? ` (sugerido: ${r.dictamen})` : '') : r.dictamen}`].join('\n');
 }
 const FREC = { Semanal: 4.33, Quincenal: 2, Mensual: 1 };
 function ingresosResumenHTML(ing){
@@ -3259,13 +3289,132 @@ function ingresosResumenHTML(ing){
     </tbody></table></div>`;
 }
 // Cuota nivelada (flat mensual) = monto/plazo + monto × tasa; por pago según la frecuencia del cliente
-function cuotasPlazoHTML(monto, pref, tipoPago, prom, plan, B){
+// Tasas de una solicitud (automáticas según su análisis + las fijadas por el analista)
+function tasaDe(s, c){
+  if (s.tipo === 'nuevo'){
+    const pref = s.dictamen_en && s.tasa_preferencial != null ? !!s.tasa_preferencial : !!c.tasaPref;
+    return tasasSol(s, pref, c.tipoB || s.politica_b ? { tasa: S.params.tipob_tasa ?? 0.2 } : null);
+  }
+  const r = calcRefi(s, c);
+  return tasasSol(s, r.pref, r.politicaB ? r.B : null);
+}
+const puedeTasa = s => es('analista') && ['en_analisis','aprobada','por_verificar','desembolso_pendiente'].includes(s.estado) && s.id > 0;
+function tasaHTML(s, c){
+  if (s.estado === 'borrador' && !s.tasa_nivelado && !s.tasa_solo_interes) return '';
+  const T = tasaDe(s, c), edit = puedeTasa(s);
+  const ult = [...((S.detData && S.detData.s.id === s.id ? S.detData.evs : []) || [])].reverse().find(e => e.accion === 'ajuste_tasa');
+  const igual = (a, b) => Math.abs(+a - +b) < 1e-9;
+  const sel = (id, lista, man, val, auto) => `<select id="${id}" class="ts-sel">
+      <option value="" ${man ? '' : 'selected'}>Automática · ${pctT(auto)}</option>
+      ${lista.map(x => `<option value="${x}" ${man && igual(val, x) ? 'selected' : ''}>${pctT(x)}</option>`).join('')}
+      <option value="otra" ${man && !lista.some(x => igual(val, x)) ? 'selected' : ''}>Personalizada…</option></select>
+    <div class="ts-otra ${man && !lista.some(x => igual(val, x)) ? '' : 'hidden'}" style="margin-top:6px;display:flex;gap:6px;align-items:center">
+      <input id="${id}O" inputmode="decimal" placeholder="Ej. 13.5" value="${man && !lista.some(x => igual(val, x)) ? +(val * 100).toFixed(4) : ''}" style="max-width:120px"> <b>% mensual</b></div>`;
+  const linea = (lbl, v, man, auto) => `<div class="ts-l"><span>${lbl}</span><b>${pctT(v)}</b><span class="small ${man ? '' : 'muted'}" style="${man ? 'color:var(--brand);font-weight:600' : ''}">${man ? `fijada por el analista (automática ${pctT(auto)})` : 'automática'}</span></div>`;
+  return `<div class="card" id="tsCard"${T.man ? ' style="border:1.5px solid var(--brand)"' : ''}><h4 class="sec" style="margin-top:0">💲 Tasa de interés</h4>
+    ${edit ? `<div class="small muted" style="margin:-4px 0 8px">El sistema pone la tasa que corresponde al cliente. Si el caso lo amerita, elija otra: las cuotas y los cálculos usan la tasa fijada.</div>
+      <div class="grid2">
+        <div><label class="f">Nivelado (mensual)</label>${sel('tsN', TASAS_NIV, T.manN, T.n, T.autoN)}</div>
+        <div><label class="f">Solo interés (mensual)</label>${sel('tsS', TASAS_SI, T.manSI, T.si, T.autoSI)}</div>
+      </div>
+      <div class="btns"><button class="btn pri sm" id="tsGuardar">Guardar tasa</button>${T.man ? '<button class="btn ghost sm" id="tsAuto">Volver a las automáticas</button>' : ''}</div>`
+    : `${linea('Nivelado', T.n, T.manN, T.autoN)}${linea('Solo interés', T.si, T.manSI, T.autoSI)}`}
+    ${ult ? `<div class="small muted" style="margin-top:6px">Último cambio: ${esc(nombre(ult.usuario_id))} · ${fDT(ult.creado_en)}</div>` : ''}</div>`;
+}
+function enlazarTasa(s){
+  if (!$('#tsCard') || !$('#tsGuardar')) return;
+  $('#tsCard').querySelectorAll('.ts-sel').forEach(el => el.onchange = () => {
+    const o = el.parentElement.querySelector('.ts-otra'); o.classList.toggle('hidden', el.value !== 'otra');
+    if (el.value === 'otra') o.querySelector('input').focus();
+  });
+  const leer = (id, lbl) => {
+    const v = $('#' + id).value;
+    if (v === '') return null;
+    if (v !== 'otra') return +v;
+    const n = num($('#' + id + 'O').value);
+    if (n == null || !(n > 0) || n > 50) throw new Error(`Escriba la tasa ${lbl} personalizada (entre 0.01 y 50 %)`);
+    return +(n / 100).toFixed(6);
+  };
+  const guardar = (btn, n, si) => run(btn, async () => {
+    await rpc('fijar_tasa', { p_id: s.id, p_nivelado: n, p_solo_interes: si });
+    Object.assign(S.detData.s, { tasa_nivelado: n, tasa_solo_interes: si });
+    const l = S.sols.find(x => x.id === s.id); if (l) Object.assign(l, { tasa_nivelado: n, tasa_solo_interes: si });
+    S.detData.evs = [...(S.detData.evs || []), { accion:'ajuste_tasa', usuario_id: S.me.id, creado_en: new Date().toISOString() }];
+    toast(n == null && si == null ? 'Tasas automáticas' : `Tasa guardada · ${n != null ? pctT(n) : 'auto'} nivelado / ${si != null ? pctT(si) : 'auto'} solo interés`);
+    renderDetalleParcial();
+  });
+  $('#tsGuardar').onclick = e => { let n, si; try { n = leer('tsN', 'nivelada'); si = leer('tsS', 'de solo interés'); } catch(err){ return toast(err.message, true); } guardar(e.target, n, si); };
+  if ($('#tsAuto')) $('#tsAuto').onclick = e => guardar(e.target, null, null);
+}
+
+// ================== Desembolso por transferencia: tarjeta principal del detalle ==================
+function partirCuenta(txt){
+  const t = String(txt || '').trim(), m = t.match(/^(.*?)(\d[\d\s-]{3,}\d)(.*)$/);
+  if (!m) return { banco: t, cuenta: '', extra: '' };
+  return { banco: m[1].replace(/[\s:#,-]+$/, '').trim(), cuenta: m[2].replace(/[\s-]/g, ''), extra: m[3].replace(/^[\s,.-]+/, '').trim() };
+}
+function desembolsoTopHTML(s, evs){
+  const monto = +(s.monto_solicitado || s.monto_aprobado || 0), libre = montoLibre(s), refi = s.tipo !== 'nuevo';
+  const ct = partirCuenta(s.cuenta_banco);
+  const ult = (...acc) => [...(evs || [])].reverse().find(e => acc.includes(e.accion));
+  const eA = ult('enviada_desembolso','enviada_verificacion'), eN = ult('dictamen_aprobada'), eV = ult('verificacion_ok');
+  const fila = (ic, rolTxt, quien, acc, cuando) => `<div class="dt-p"><span class="dt-ic">${ic}</span><div style="flex:1;min-width:0"><div class="small muted">${rolTxt}</div><b>${quien}</b></div>
+    <div style="text-align:right"><div class="small muted">${acc}</div><b class="small">${cuando || '—'}</b></div></div>`;
+  return `<div class="card dt-card">
+    <div class="row" style="gap:8px;flex-wrap:wrap;align-items:center"><span style="font-size:22px">🏦</span><b style="font:700 16px Poppins,Inter,sans-serif">Desembolso por transferencia pendiente</b><span class="spacer"></span>${tipoChip(s.tipo)}<span class="small muted">${esc(s.codigo)}</span></div>
+    <div class="dt-cli">${conCopiar(s.nombre_cliente)}${s.dni ? `<div class="small muted">DNI ${esc(s.dni)}</div>` : ''}</div>
+    <div class="dt-grid">
+      <div class="dt-box">
+        <div class="small muted">Monto a transferir</div>
+        <div class="dt-monto">${L(refi ? libre : monto)}</div>
+        ${refi ? `<table class="dt-des"><tr><td>Préstamo nuevo</td><td class="num">${L(monto)}</td></tr>
+          <tr><td>− Saldo de capital</td><td class="num">${L(+s.saldo_capital || 0)}</td></tr>
+          <tr><td>− Saldo de intereses</td><td class="num">${L(+s.saldo_intereses || 0)}</td></tr>
+          <tr class="tot"><td>= A transferir (monto libre)</td><td class="num">${L(libre)}</td></tr></table>` : `<div class="small muted">Préstamo nuevo · ${esc(TIPO[s.tipo] || s.tipo)}</div>`}
+      </div>
+      <div class="dt-box">
+        <div class="small muted">Banco</div><div class="dt-banco">${esc(ct.banco || '—')}</div>
+        <div class="small muted" style="margin-top:6px">Número de cuenta</div>
+        <div class="dt-cta">${ct.cuenta ? conCopiar(ct.cuenta) : '<span class="muted">—</span>'}</div>
+        ${ct.extra ? `<div class="small">${esc(ct.extra)}</div>` : ''}
+        ${s.cuenta_banco && (!ct.cuenta || ct.banco === '') ? `<div class="small muted">Dato registrado: ${esc(s.cuenta_banco)}</div>` : ''}
+      </div>
+    </div>
+    <div class="dt-docs">
+      <div class="small muted" style="margin-bottom:6px">📸 Documentos firmados</div>
+      ${s.contrato_firmado_path ? `<img data-cf="${esc(s.contrato_firmado_path)}" class="dt-cf" alt="Contrato firmado">
+        <div class="small muted">Contrato firmado · subido por ${esc(nombre(s.contrato_firmado_por))} · ${fDT(s.contrato_firmado_en)} · toque la imagen para verla completa</div>`
+        : `<div class="alert warn small" style="margin:0">⚠ Todavía no se han subido las fotos del contrato firmado.${['asesor','analista','admin'].includes(rol()) ? ' <button class="btn sm ok" id="dtSubirCf" style="margin-left:6px">📸 Subir fotos firmadas</button>' : ''}</div>`}
+    </div>
+    <div class="dt-equipo">
+      ${fila('👤', 'Asesor', esc(nombre(eA?.usuario_id || s.asesor_id)), 'Completó y envió', eA ? fDT(eA.creado_en) : s.enviado_verificar_en ? fDT(s.enviado_verificar_en) : '')}
+      ${fila('🧮', 'Analista', esc(nombre(eN?.usuario_id || s.analista_id) || '—'), 'Aprobó', s.dictamen_en ? fDT(s.dictamen_en) : eN ? fDT(eN.creado_en) : '')}
+      ${eV || s.verificado_en ? fila('🔎', 'Verificador', esc(nombre(eV?.usuario_id || s.verificador_id) || '—'), 'Verificó', eV ? fDT(eV.creado_en) : fDT(s.verificado_en))
+        : fila('🔎', 'Verificador', '<span class="muted">No requirió verificación</span>', '', '')}
+    </div>
+    ${es('analista') ? `<details class="dt-mas"><summary class="small">📅 Día en que cuenta la colocación: <b id="tFcTxt">Hoy</b> (cambiar)</summary>${fechaColocHTML(s, 'tFc')}</details>
+      <div class="btns"><button class="btn ok" id="tOk" style="font-size:17px;padding:14px 22px;flex:1">✅ Confirmar desembolso · ${L(refi ? libre : monto)}</button></div>
+      <div class="btns" style="margin-top:6px"><button class="btn ghost sm" id="tBack">↩ Regresar al asesor</button></div>`
+      : `<div class="small muted" style="margin-top:8px">El analista confirma el desembolso cuando haga la transferencia.</div>`}
+  </div>`;
+}
+
+// Tasas que se usan en los cálculos: las fijadas por el analista o, si no, las automáticas
+const TASAS_NIV = [0.10, 0.105, 0.12, 0.14, 0.16, 0.20], TASAS_SI = [0.10, 0.16, 0.18, 0.20];
+const pctT = t => +(+t * 100).toFixed(2) + '%';
+function tasasSol(s, pref, B){
+  const autoN = B ? B.tasa : pref ? 0.105 : 0.14, autoSI = pref ? 0.16 : 0.20;
+  const mn = s && s.tasa_nivelado != null && s.tasa_nivelado !== '' ? +s.tasa_nivelado : null;
+  const ms = s && s.tasa_solo_interes != null && s.tasa_solo_interes !== '' ? +s.tasa_solo_interes : null;
+  return { n: mn ?? autoN, si: ms ?? autoSI, autoN, autoSI, manN: mn != null, manSI: ms != null, man: mn != null || ms != null };
+}
+function cuotasPlazoHTML(monto, pref, tipoPago, prom, plan, B, sol){
   if (!(monto > 0)) return '';
-  const tN = B ? B.tasa : pref ? 0.105 : 0.14, tSI = pref ? 0.16 : 0.20, f = FREC[tipoPago] || 1;
+  const T = tasasSol(sol, pref, B), tN = T.n, tSI = T.si, f = FREC[tipoPago] || 1;
   const filas = (B ? [B.plazo] : [3,6,8,10,12]).map(n => ({ plazo:`${n} meses`, mes: monto / n + monto * tN, pagos: Math.round(n * f) }));
   if (!B) filas.push({ plazo:'Solo interés', mes: monto * tSI, pagos: null });
   const lblF = { Semanal:'semanal', Quincenal:'quincenal', Mensual:'mensual' }[tipoPago] || 'mensual';
-  return `<label class="f" style="margin-top:14px">Cuotas para ${L(monto)} · ${B ? `política tipo B (${+(tN*100).toFixed(2)}% mensual, solo nivelado)` : `tasa ${pref ? 'preferencial' : 'normal'} (${+(tN*100).toFixed(2)}% nivelado / ${+(tSI*100).toFixed(2)}% solo interés)`}${B ? '' : plan ? ' · plan ' + (plan === 'solo_interes' ? 'solo interés' : 'nivelado') : ''}</label>
+  return `<label class="f" style="margin-top:14px">Cuotas para ${L(monto)} · ${B ? `política tipo B (${pctT(tN)} mensual${T.manN ? ', fijada por el analista' : ''}, solo nivelado)` : `tasa ${T.man ? 'fijada por el analista' : pref ? 'preferencial' : 'normal'} (${pctT(tN)} nivelado / ${pctT(tSI)} solo interés)`}${B ? '' : plan ? ' · plan ' + (plan === 'solo_interes' ? 'solo interés' : 'nivelado') : ''}</label>
     <div style="overflow-x:auto"><table class="t"><thead><tr><th>Plazo</th><th class="num">Cuota mensual</th>${tipoPago !== 'Mensual' ? `<th class="num">Cuota ${lblF}</th><th class="num"># pagos</th>` : `<th class="num"># pagos</th>`}<th class="num">% ingreso</th><th>Viabilidad</th></tr></thead><tbody>
     ${filas.map(q => { const pct = prom ? q.mes / prom : null; return `<tr><td>${q.plazo}</td><td class="num">${L(q.mes.toFixed(2))}</td>${tipoPago !== 'Mensual' ? `<td class="num"><b>${L((q.mes / f).toFixed(2))}</b></td>` : ''}<td class="num">${q.pagos ?? '—'}</td>
       <td class="num">${pct == null ? '—' : (pct * 100).toFixed(1) + '%'}</td><td>${pct == null ? '—' : pct <= 0.25 ? '<span class="dif-ok">Viable</span>' : '<span class="dif-b">Alto</span>'}</td></tr>`; }).join('')}
@@ -3307,7 +3456,7 @@ function resumenNuevoWA(s, c){
   const aut = s.dictamen_en && s.monto_aprobado;
   return [`*${s.nombre_cliente}*`, `${s.codigo} · Nuevo`, `Solicitud: ${fFechaHora(s.creado_en)}`, `Asesor: ${nombre(s.asesor_id)}`, '',
     `Promedio mensual: ${L(c.promedio)} (${s.tipo_pago})`, `Límite calculado: ${c.limite == null ? 'Ingresos insuficientes' : L(c.limite)}`,
-    aut ? `*Límite aprobado: ${L(s.monto_aprobado)}*` : null, `Tasa: ${(s.dictamen_en && s.tasa_preferencial != null ? s.tasa_preferencial : c.tasaPref) ? 'preferencial' : 'normal'}`,
+    aut ? `*Límite aprobado: ${L(s.monto_aprobado)}*` : null, (() => { const T = tasaDe(s, c); return T.man ? `Tasa: ${pctT(T.n)} nivelado / ${pctT(T.si)} solo interés (fijada por el analista)` : `Tasa: ${(s.dictamen_en && s.tasa_preferencial != null ? s.tasa_preferencial : c.tasaPref) ? 'preferencial' : 'normal'}`; })(),
     `Dictamen: ${s.dictamen_en ? (s.estado === 'denegada' ? 'DENEGADA' : 'APROBADA') + ' por ' + nombre(s.analista_id) : 'en proceso'}`].filter(x => x != null).join('\n');
 }
 function refiResHTML(s, r){
@@ -3324,7 +3473,7 @@ function refiResHTML(s, r){
         ${r.autorizado ? `<div class="small" style="font-weight:600;color:var(--brand)">${autorizadoPor(s, 'ajuste_monto')}</div>${r.limCalc !== r.limAprob ? `<div class="small muted">Calculado: ${L(r.limCalc)}</div>` : ''}` : ''}</div>
       <div class="box" style="${r.disponible < (S.params.disponible_minimo ?? 2000) ? 'background:var(--red-bg)' : ''}"><div class="l">Disponible (monto libre)</div><div class="v">${L(r.disponible)}</div>${r.elegido != null && r.elegido !== r.limAprob ? `<div class="small" style="font-weight:600;color:var(--brand)">Cliente toma ${L(r.elegido)}</div>` : ''}</div>
       <div class="box"><div class="l">Pagos tardíos &gt;3 / ≥7 días</div><div class="v">${r.tard3} / ${r.tard7}</div><div class="small muted">de ${r.total} pagos</div></div>
-      <div class="box"><div class="l">Tasa ${r.politicaB ? 'política tipo B' : r.pref ? 'preferencial' : 'nueva'}</div><div class="v">${(r.tasaNueva * 100).toFixed(1).replace('.0','')}%</div><div class="small muted">${s.tasa_actual != null ? 'actual ' + (+s.tasa_actual * 100).toFixed(1).replace('.0','') + '%' + (r.yaPref ? ' (preferencial)' : '') : ''}${r.politicaB ? ' · tipo B' : r.pref ? ' · preferencial' : ' · normal'}</div>
+      <div class="box"${r.tMan ? ' style="border:1.5px solid var(--brand)"' : ''}><div class="l">Tasa ${r.tMan ? 'fijada por el analista' : r.politicaB ? 'política tipo B' : r.pref ? 'preferencial' : 'nueva'}</div><div class="v">${pctT(r.tasaNueva)}</div><div class="small muted">${s.tasa_actual != null ? 'actual ' + (+s.tasa_actual * 100).toFixed(1).replace('.0','') + '%' + (r.yaPref ? ' (preferencial)' : '') : ''}${r.politicaB ? ' · tipo B' : r.pref ? ' · preferencial' : ' · normal'}</div>
         ${r.prefMotivo ? `<div class="small" style="font-weight:600;color:${r.prefCalc ? 'var(--green)' : 'var(--red)'}">${r.prefMotivo}</div>` : ''}
         ${s.dictamen_en ? `<div class="small" style="font-weight:600;color:var(--brand)">${autorizadoPor(s, 'ajuste_tasa')}</div>${r.prefCalc !== r.pref ? `<div class="small muted">Calculada: ${r.prefCalc ? 'preferencial' : 'normal'}</div>` : ''}` : ''}</div>
       <div class="box"><div class="l">Próximo aumento</div><div class="v" style="font-size:15px">${r.proxAum}</div></div>
@@ -3335,7 +3484,7 @@ function refiResHTML(s, r){
     </div>
     ${politicaBHTML(s, r)}
     ${dictamenRefiHTML(r, s)}
-    ${cuotasPlazoHTML(r.elegido ?? r.limAprob, r.pref, s.tipo_pago, r.prom, s.plan_pago, r.politicaB ? { tasa: r.B.tasa, plazo: r.B.plazo } : null)}`;
+    ${cuotasPlazoHTML(r.elegido ?? r.limAprob, r.pref, s.tipo_pago, r.prom, s.plan_pago, r.politicaB ? { tasa: r.B.tasa, plazo: r.B.plazo } : null, s)}`;
 }
 // Nuevo: límite con tipo B (automático por ingreso o aplicado por el analista)
 function limNuevo(s, c){
