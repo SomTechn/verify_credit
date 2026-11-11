@@ -616,11 +616,14 @@ body.marco-cel #sheet > *{max-width:430px;margin-left:auto;margin-right:auto}
 // App disponible sin señal (sw.js debe estar junto a index.html). Va primero para registrarse aunque falle otra cosa.
 if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) navigator.serviceWorker.register('sw.js').catch(() => {});
 // Versión de esta copia de la app: cambia en cada entrega. La app la compara con la publicada y se actualiza sola.
-const APP_VER = '2026-11-11.1100';
+const APP_VER = '2026-11-11.1600';
 // Novedades que ve cada usuario al abrir una versión nueva (la más reciente primero).
 // Al publicar cambios: subir APP_VER y agregar aquí una entrada con la misma versión.
 // r = roles que la ven (sin r = todos; el admin ve todo).
 const NOVEDADES = [
+  { v:'2026-11-11.1600', f:'11 de noviembre de 2026', items:[
+    { i:'📅', t:'Desembolsos de solicitudes del mes anterior: hay que elegir el día real',
+      d:'Si una solicitud se creó en el mes contable anterior (antes del día 9) y el desembolso se registra después, la app ya no pone "Hoy" por defecto: pide elegir el día en que realmente se entregó el dinero. Así el préstamo cuenta en el mes que corresponde en la meta y en todas las estadísticas.' } ] },
   { v:'2026-11-11.1100', f:'11 de noviembre de 2026', items:[
     { i:'📅', t:'Reprogramar el seguimiento de una solicitud',
       d:'Cuando el cliente dice que no puede atender hasta otra hora u otro día, abra la solicitud y toque "📅 Reprogramar seguimiento": elija la fecha y la hora (hay opciones rápidas como "En 1 hora" o "Mañana 9:00 a. m.") y, si quiere, una nota. La solicitud queda en espera y, cuando llega la hora, le llega una notificación y la tarjeta se pone amarilla hasta que marque "Ya lo contacté" o la reprograme.' },
@@ -3568,7 +3571,7 @@ function desembolsoTopHTML(s, evs){
       ${eV || s.verificado_en ? fila('🔎', 'Verificador', esc(nombre(eV?.usuario_id || s.verificador_id) || '—'), 'Verificó', eV ? fDT(eV.creado_en) : fDT(s.verificado_en))
         : fila('🔎', 'Verificador', '<span class="muted">No requirió verificación</span>', '', '')}
     </div>
-    ${es('analista') ? `<details class="dt-mas"><summary class="small">📅 Día en que cuenta la colocación: <b id="tFcTxt">Hoy</b> (cambiar)</summary>${fechaColocHTML(s, 'tFc')}</details>
+    ${es('analista') ? `<details class="dt-mas"${diaHN(s.creado_en) < inicioMesContable() ? ' open' : ''}><summary class="small">📅 Día en que cuenta la colocación: <b id="tFcTxt">${diaHN(s.creado_en) < inicioMesContable() ? 'elija el día real' : 'Hoy'}</b> (cambiar)</summary>${fechaColocHTML(s, 'tFc')}</details>
       <div class="btns"><button class="btn ok" id="tOk" style="font-size:17px;padding:14px 22px;flex:1">✅ Confirmar desembolso · ${L(refi ? libre : monto)}</button></div>
       <div class="btns" style="margin-top:6px"><button class="btn ghost sm" id="tBack">↩ Regresar al asesor</button></div>`
       : `<div class="small muted" style="margin-top:8px">El analista confirma el desembolso cuando haga la transferencia.</div>`}
@@ -4649,12 +4652,14 @@ function cardK(s, dia){
     <div class="tm">${tm}</div></div>`;
 }
 // ================== Día de colocación (selector al desembolsar) ==================
+// Inicio del mes contable en curso (del 9 al 8)
+const inicioMesContable = () => { const [y, m, d] = hoyHN().split('-').map(Number); return new Date(Date.UTC(y, m - 1 - (d < 9 ? 1 : 0), 9)).toISOString().slice(0, 10); };
 function fechaColocHTML(s, id, valor){
-  const hoy = hoyHN(), ini = diaHN(s.creado_en) || hoy, v = valor || hoy;
+  const hoy = hoyHN(), ini = diaHN(s.creado_en) || hoy, mesAnt = ini < inicioMesContable(), v = valor || (mesAnt ? '' : hoy);
   const d = new Date(hoy + 'T12:00'); d.setDate(d.getDate() - 1); const ayer = d.toLocaleDateString('en-CA');
   const corta = f => fDate(f + 'T12:00').replace(/\s*(de\s*)?\d{4}$/, '');
   const op = [[hoy, 'Hoy'], ...(ayer >= ini ? [[ayer, 'Ayer']] : []), ...(ini < ayer ? [[ini, 'Día de la solicitud · ' + corta(ini)]] : [])];
-  return `<label class="f">📅 Cuenta en la colocación del día</label>
+  return `${mesAnt ? `<div class="alert warn small" style="margin-bottom:6px">⚠️ Esta solicitud se creó el <b>${corta(ini)}</b>, en el mes contable anterior. Elija el día en que <b>realmente se entregó</b> el dinero: si fue antes del 9, cuenta en el mes anterior.</div>` : ''}<label class="f">📅 Cuenta en la colocación del día</label>
     <div class="fcol"><input type="date" id="${id}" value="${v}" min="${ini}" max="${hoy}">
     ${op.map(([f, t]) => `<button type="button" class="btn sm ${f === v ? 'pri' : 'ghost'}" data-fc="${id}" data-v="${f}">${t}</button>`).join('')}</div>
     <div class="small muted">Si el desembolso tocaba otro día y se hace después, elija ese día: la meta y las estadísticas lo cuentan ahí.</div>`;
@@ -4667,7 +4672,7 @@ function enlazarFechaColoc(root){
 }
 function leerFechaColoc(s, id){
   const v = document.getElementById(id)?.value, hoy = hoyHN(), ini = diaHN(s.creado_en);
-  if (!v) throw new Error('Elija el día en que cuenta la colocación');
+  if (!v) throw new Error('Elija el día en que realmente se entregó (día de colocación)');
   if (v > hoy) throw new Error('El día de colocación no puede ser futuro');
   if (ini && v < ini) throw new Error('El día de colocación no puede ser anterior a la solicitud');
   return v;
