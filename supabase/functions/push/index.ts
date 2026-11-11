@@ -49,10 +49,14 @@ async function enviar(ids: string[], msg: { title: string; body: string; id?: nu
 }
 
 async function evento(ev: Record<string, any>) {
-  const { data: perf } = await sb.from('perfiles').select('id, rol').eq('activo', true);
+  const { data: perf } = await sb.from('perfiles').select('id, rol, avisos').eq('activo', true);
   const por = (...r: string[]) => (perf || []).filter((p) => r.includes(p.rol)).map((p) => p.id as string);
   const admins = por('admin'), analistas = por('analista', 'admin');
   const sin = (ids: string[]) => ids.filter((id) => id && id !== ev.actor);   // quien hizo el cambio no recibe su propio aviso
+  // Personas configuradas para recibir SOLO las transferencias por confirmar (gerente): no reciben los demás avisos de solicitudes
+  const soloTransf = new Set((perf || []).filter((p) => p.avisos === 'transferencias').map((p) => p.id as string));
+  const gerentes = [...soloTransf];
+  const normales = (ids: string[]) => ids.filter((id) => !soloTransf.has(id));
   let sol = ev;
   if (ev.tabla === 'meta') {   // meta diaria alcanzada: se avisa a todo el equipo
     const L = (n: number) => 'L ' + Math.round(n).toLocaleString('es-HN');
@@ -62,7 +66,7 @@ async function evento(ev: Record<string, any>) {
     const { data } = await sb.from('solicitudes').select('id, codigo, nombre_cliente, asesor_id, analista_id, verificador_id').eq('id', ev.solicitud).maybeSingle();
     if (!data) return 0;
     const { data: au } = await sb.from('perfiles').select('nombre').eq('id', ev.autor).maybeSingle();
-    return enviar(sin([data.asesor_id, data.analista_id, data.verificador_id, ...admins].filter((id) => id !== ev.autor)),
+    return enviar(normales(sin([data.asesor_id, data.analista_id, data.verificador_id, ...admins].filter((id) => id !== ev.autor))),
       { title: `💬 ${au?.nombre || 'Comentario'} en ${data.nombre_cliente}`, body: ev.texto || '', id: data.id });
   }
   const cli = `${sol.cliente} · ${TIPO[sol.tipo] || sol.tipo}${sol.codigo ? ' · ' + sol.codigo : ''}`;
@@ -84,14 +88,16 @@ async function evento(ev: Record<string, any>) {
     // Solo al verificador asignado (domicilio y, si es otro, trabajo). Sin asignar: no se avisa a los verificadores;
     // les llega el aviso cuando se les asigna en Por verificar (evento 'asignacion').
     case 'por_verificar': t = '🔎 Nueva verificación asignada'; ids = [sol.verificador, sol.verificador_trabajo].filter(Boolean); break;
-    case 'desembolso_pendiente': t = '💸 Desembolso por transferencia pendiente'; ids = analistas; break;
+    // Transferencia por confirmar: al gerente (quien tenga avisos = 'transferencias'); si nadie está configurado, a los analistas
+    case 'desembolso_pendiente': t = '💸 Transferencia por confirmar'; ids = gerentes.length ? gerentes : analistas; break;
     case 'desembolsada': t = '💰 Solicitud desembolsada'; ids = [sol.asesor]; break;
     case 'rechazada_verificacion': t = '⚠️ Rechazada en verificación'; ids = [sol.asesor, ...analistas]; break;
     case 'desistida': t = '🚫 Cliente desistió'; ids = [sol.asesor, ...analistas]; break;
     default: t = `Solicitud: ${EST[sol.estado] || sol.estado}`;
   }
   // El administrador se entera de todos los cambios
-  return enviar(sin([...ids, ...admins]), { title: t, body: cli, id: sol.id });
+  const dest = sin([...ids, ...admins]);
+  return enviar(sol.estado === 'desembolso_pendiente' ? dest : normales(dest), { title: t, body: cli, id: sol.id });
 }
 
 Deno.serve(async (req) => {

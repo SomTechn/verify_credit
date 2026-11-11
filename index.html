@@ -606,11 +606,14 @@ body.marco-cel #sheet > *{max-width:430px;margin-left:auto;margin-right:auto}
 // App disponible sin señal (sw.js debe estar junto a index.html). Va primero para registrarse aunque falle otra cosa.
 if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) navigator.serviceWorker.register('sw.js').catch(() => {});
 // Versión de esta copia de la app: cambia en cada entrega. La app la compara con la publicada y se actualiza sola.
-const APP_VER = '2026-11-11.0840';
+const APP_VER = '2026-11-11.0900';
 // Novedades que ve cada usuario al abrir una versión nueva (la más reciente primero).
 // Al publicar cambios: subir APP_VER y agregar aquí una entrada con la misma versión.
 // r = roles que la ven (sin r = todos; el admin ve todo).
 const NOVEDADES = [
+  { v:'2026-11-11.0900', f:'11 de noviembre de 2026', items:[
+    { i:'💸', t:'Transferencias por confirmar: el aviso le llega al gerente', r:['admin'],
+      d:'En Usuarios → Editar hay una opción nueva, "Notificaciones": "Las de su rol" o "Solo transferencias por confirmar (gerente)". Quien tenga la segunda recibe únicamente el aviso cuando una solicitud queda lista para transferir, y los analistas dejan de recibirlo (el administrador sigue recibiendo todo). Si nadie la tiene, el aviso sigue llegando a los analistas como antes.' } ] },
   { v:'2026-11-11.0840', f:'11 de noviembre de 2026', items:[
     { i:'🔔', t:'Notificaciones: aviso para activarlas y se reactivan solas',
       d:'Cada cambio de paso le avisa a quien le toca: al analista cuando el asesor envía a análisis, al asesor cuando se aprueba (para completar datos), al verificador cuando se le asigna la visita y al analista cuando hay una transferencia por confirmar. Si en su teléfono no están activadas, ahora aparece una franja arriba con el botón "Activar". Además, si ya las había permitido, se vuelven a activar solas al iniciar sesión (antes se perdían al cerrar sesión).' },
@@ -5476,7 +5479,7 @@ async function pintarEmpleados(){
 function pintarUsuarios(){
   const us = Object.values(S.perfiles);
   $('#main').innerHTML = `<div class="btns" style="margin:0 0 10px"><button class="btn pri" id="uNuevo">＋ Nuevo usuario</button></div>
-    ${us.map(u => `<div class="card row">${av(u.id)}<div style="flex:1;min-width:0"><b>${esc(u.nombre)}</b> ${u.activo ? '' : '<span class="chip c-red">Inactivo</span>'}<div class="small muted">${esc(u.email||'')} · ${ROL[u.rol]}</div><div class="small" data-pn="${u.id}"></div></div><button class="btn sm ghost" data-u="${u.id}">Editar</button></div>`).join('')}`;
+    ${us.map(u => `<div class="card row">${av(u.id)}<div style="flex:1;min-width:0"><b>${esc(u.nombre)}</b> ${u.activo ? '' : '<span class="chip c-red">Inactivo</span>'}<div class="small muted">${esc(u.email||'')} · ${ROL[u.rol] || u.rol}${u.avisos === 'transferencias' ? ' · 💸 recibe las transferencias por confirmar' : ''}</div><div class="small" data-pn="${u.id}"></div></div><button class="btn sm ghost" data-u="${u.id}">Editar</button></div>`).join('')}`;
   rpc('push_estado_usuarios').then(d => { const m = {}; (d || []).forEach(x => m[x.user_id] = x);
     document.querySelectorAll('[data-pn]').forEach(el => { const x = m[el.dataset.pn], u = S.perfiles[el.dataset.pn]; if (!u || !u.activo) return;
       el.innerHTML = x ? `<span style="color:var(--green)">🔔 Notificaciones activas · ${x.dispositivos} dispositivo${x.dispositivos > 1 ? 's' : ''} · ${fDT(x.ultimo)}</span>` : '<span style="color:var(--red);font-weight:600">🔕 Sin notificaciones: no recibe avisos</span>'; }); }).catch(() => {});
@@ -5487,10 +5490,15 @@ function pintarUsuarios(){
       <label class="f">Nombre</label><input id="uN"><label class="f">Correo</label><input id="uE" type="email">
       <label class="f">Contraseña (mín. 6)</label><input id="uP" type="text">
       <label class="f">Rol</label><select id="uR">${Object.entries(ROL).map(([k,v]) => `<option value="${k}">${v}</option>`).join('')}</select>
+      <label class="f">Notificaciones</label><select id="uAv"><option value="rol">Las de su rol</option><option value="transferencias">Solo transferencias por confirmar (gerente)</option></select>
       <div class="btns"><button class="btn ghost" data-close>Cancelar</button><button class="btn pri" id="uOk">Crear</button></div>`);
     w.querySelector('#uOk').onclick = e => run(e.target, async () => {
+      const correo = $('#uE').value.trim().toLowerCase(), av = $('#uAv').value;
       await fnUsuarios({ accion:'crear', nombre: $('#uN').value, email: $('#uE').value, password: $('#uP').value, rol: $('#uR').value });
-      cerrarDialogo(w); await cargarPerfiles(); pintarUsuarios(); toast('Usuario creado');
+      cerrarDialogo(w); await cargarPerfiles();
+      if (av !== 'rol'){ const nu = Object.values(S.perfiles).find(x => (x.email || '').toLowerCase() === correo);
+        if (nu){ await rpc('fijar_avisos', { p_id: nu.id, p_avisos: av }); await cargarPerfiles(); } else toast('Usuario creado. Abra Editar para elegir sus notificaciones.', true); }
+      pintarUsuarios(); toast('Usuario creado');
     });
   };
   $('#main').querySelectorAll('[data-u]').forEach(b => b.onclick = () => {
@@ -5498,11 +5506,13 @@ function pintarUsuarios(){
     const w = dialogo(`<h3>${esc(u.nombre)}</h3>
       <label class="f">Nombre</label><input id="eN" value="${esc(u.nombre)}">
       <label class="f">Rol</label><select id="eR">${Object.entries(ROL).map(([k,v]) => `<option value="${k}" ${u.rol===k?'selected':''}>${v}</option>`).join('')}</select>
+      <label class="f">Notificaciones</label><select id="eAv"><option value="rol"${u.avisos !== 'transferencias' ? ' selected' : ''}>Las de su rol</option><option value="transferencias"${u.avisos === 'transferencias' ? ' selected' : ''}>Solo transferencias por confirmar (gerente)</option></select>
       <label class="chk" style="margin-top:10px"><input type="checkbox" id="eA" ${u.activo?'checked':''}> Activo</label>
       <label class="f">Nueva contraseña (opcional)</label><input id="eP" type="text" placeholder="Dejar vacío para no cambiar">
       <div class="btns"><button class="btn ghost" data-close>Cancelar</button><button class="btn pri" id="eOk">Guardar</button></div>`);
     w.querySelector('#eOk').onclick = e => run(e.target, async () => {
       await rpc('actualizar_perfil', { p_id: u.id, p_nombre: $('#eN').value, p_rol: $('#eR').value, p_activo: $('#eA').checked });
+      if ($('#eAv').value !== (u.avisos || 'rol')) await rpc('fijar_avisos', { p_id: u.id, p_avisos: $('#eAv').value });
       if ($('#eP').value) await fnUsuarios({ accion:'password', user_id: u.id, password: $('#eP').value });
       cerrarDialogo(w); await cargarPerfiles(); pintarUsuarios(); toast('Guardado');
     });
