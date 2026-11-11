@@ -327,9 +327,24 @@ table.ht td.nota{max-width:220px;overflow:hidden;text-overflow:ellipsis;color:va
 .bd-cap .hero .bar i{display:block;height:100%;background:#FFD400;border-radius:4px}
 .bd-cap .sec .v{font-size:19px;color:var(--ink2)}
 .bd-sum .kpi.prom .v{color:var(--green)}
-.board{display:grid;grid-template-columns:repeat(6,minmax(262px,1fr));gap:12px;align-items:start}
+.board{display:grid;grid-template-columns:repeat(7,minmax(238px,1fr));gap:10px;align-items:start}
+.bd-nav{display:flex;gap:6px;overflow-x:auto;padding:2px 0 10px;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+.bd-nav::-webkit-scrollbar{display:none}
+.bd-nav button{flex:0 0 auto;display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);background:var(--card);color:var(--ink2);border-radius:999px;padding:7px 12px;font:600 12.5px Inter,system-ui,sans-serif;cursor:pointer;min-height:36px}
+.bd-nav button i{width:9px;height:9px;border-radius:50%;background:var(--cc)}
+.bd-nav button b{color:var(--ink);font-variant-numeric:tabular-nums}
+.tarde{color:var(--red);font-weight:700}
+.bd-nav .tarde{background:var(--red-bg);border-radius:999px;padding:1px 7px;font-size:11.5px}
+.col-x{font-size:11.5px;font-weight:650;color:var(--ink2);margin-top:2px;font-variant-numeric:tabular-nums}
+.esp-ops{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+@media (max-width:520px){.esp-ops{grid-template-columns:1fr}}
+.esp-op{display:flex;align-items:center;gap:8px;text-align:left;border:1.5px solid var(--line);background:var(--card);color:var(--ink);border-radius:10px;padding:10px 11px;font:600 13.5px Inter,system-ui,sans-serif;cursor:pointer;min-height:44px}
+.esp-op.on{border-color:var(--brand);background:var(--brand2)}
+.stp.sub{font-size:12.5px;color:var(--ink2);padding:4px 0} .stp.sub > i{width:8px;height:8px;margin:5px 2px 0}
+.dt-box{display:grid;grid-template-columns:repeat(3,1fr);gap:8px} @media (max-width:620px){.dt-box{grid-template-columns:1fr}}
+.dt-share{display:flex;height:26px;border-radius:8px;overflow:hidden;margin:4px 0 10px} .dt-share i{display:block;min-width:2px}
 /* Tablero: 6 columnas sin achicar las tarjetas; la pantalla se amplía y, si no cabe, se desplaza a los lados */
-main.wide.board-wide{max-width:1720px}
+main.wide.board-wide{max-width:1860px}
 @media (min-width:981px){.board-wrap{overflow-x:auto;padding-bottom:6px}}
 @media (max-width:980px){.board{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;margin:0 -16px;padding:0 16px 8px;-webkit-overflow-scrolling:touch}
   .board .col{flex:0 0 84vw;max-width:360px;scroll-snap-align:start}}
@@ -581,11 +596,20 @@ body.marco-cel #sheet > *{max-width:430px;margin-left:auto;margin-right:auto}
 // App disponible sin señal (sw.js debe estar junto a index.html). Va primero para registrarse aunque falle otra cosa.
 if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) navigator.serviceWorker.register('sw.js').catch(() => {});
 // Versión de esta copia de la app: cambia en cada entrega. La app la compara con la publicada y se actualiza sola.
-const APP_VER = '2026-11-10.1600';
+const APP_VER = '2026-11-11.0100';
 // Novedades que ve cada usuario al abrir una versión nueva (la más reciente primero).
 // Al publicar cambios: subir APP_VER y agregar aquí una entrada con la misma versión.
 // r = roles que la ven (sin r = todos; el admin ve todo).
 const NOVEDADES = [
+  { v:'2026-11-11.0100', f:'11 de noviembre de 2026', items:[
+    { i:'🗂️', t:'Tablero reorganizado: una columna por paso',
+      d:'El tablero ahora sigue el recorrido real de la solicitud, de izquierda a derecha: Captura → Análisis → Completar datos → Verificación → Desembolso → Cerradas del día, y al final En espera. Arriba hay botones con la cantidad de cada paso para saltar directo a esa columna. Cada columna muestra el monto que tiene y cuántas solicitudes ya pasaron el tiempo meta.' },
+    { i:'🚦', t:'Semáforo de tiempo en cada tarjeta',
+      d:'Cada tarjeta muestra cuánto lleva en el paso actual: verde si va bien, amarillo si está por pasarse y rojo si ya pasó el tiempo meta del paso. Las solicitudes por verificar que no tienen verificador se marcan con "Sin verificador".' },
+    { i:'⏸', t:'En espera: ahora se elige el motivo de una lista',
+      d:'Al poner una solicitud en espera se elige el motivo (faltan documentos, cliente no contesta, esperando autorización, etc.) y, si hace falta, se agrega un detalle. Así se sabe cuánto tiempo depende del cliente y cuánto del equipo.' },
+    { i:'⏱', t:'Nuevo reporte: ¿Dónde se va el tiempo?', r:['analista','asesor'],
+      d:'En Estadísticas hay una sección nueva con el tiempo normal y el de las solicitudes lentas en cada paso, las horas totales que consume cada uno, la verificación separada en tramos (sin asignar, asignada hasta la visita, visita hasta el cierre), las esperas por motivo, el tiempo perdido en solicitudes desistidas y las 10 más lentas del período.' } ] },
   { v:'2026-11-10.1600', f:'10 de noviembre de 2026', items:[
     { i:'🏦', t:'Desembolsos pendientes: todo en una tarjeta', r:['analista','asesor'],
       d:'Al abrir una solicitud de la columna Desembolso, lo primero que aparece es una tarjeta con el nombre del cliente, el monto a transferir (en refinanciamientos con el desglose: préstamo nuevo − saldo de capital − saldo de intereses), el banco y el número de cuenta (se pueden copiar), la foto del contrato firmado y quién la trabajó: asesor, analista y verificador con la fecha y hora en que cada uno aprobó su paso.' },
@@ -665,7 +689,7 @@ const chip = e => `<span class="chip c-${EST[e]?.c||'gray'}">${esc(EST[e]?.t||e)
 const tipoChip = t => `<span class="chip ${t==='nuevo'?'c-blue':t==='reingreso'?'c-teal':t==='refinanciamiento'?'c-violet':'c-amber'}">${TIPO[t]||esc(t)}</span>`;
 const nombre = id => S.perfiles[id]?.nombre || '—';
 const pendChip = s => s._pend ? '<span class="chip c-amber" title="Hecho sin señal; se enviará al volver la conexión">⟳ por enviar</span>' : '';
-const esperaChip = s => s.en_espera ? `<span class="chip c-gray" title="${esc(s.espera_motivo||'')}" style="border:1px solid var(--gray)">⏸ En espera</span>` : '';
+const esperaChip = s => s.en_espera ? `<span class="chip c-gray" title="${esc(s.espera_motivo||'')}" style="border:1px solid var(--gray)">⏸ En espera${ESP_CAT[s.espera_categoria] && ESP_CAT[s.espera_categoria].q !== 'otro' ? ' · ' + ESP_QUIEN[ESP_CAT[s.espera_categoria].q].toLowerCase() : ''}</span>` : '';
 const iniciales = n => (n||'?').split(/\s+/).filter(Boolean).slice(0,2).map(w => w[0]).join('').toUpperCase();
 const AVC = ['#2a78d6','#eb6834','#1baf7a','#c98500','#d55181','#6a3fb5','#0e7c6b','#b42318'];
 const avColor = id => AVC[[...String(id)].reduce((a,c) => a + c.charCodeAt(0), 0) % AVC.length];
@@ -803,8 +827,8 @@ function aplicarOp(op, nuevo){
       evento(a.p_id, 'desembolsada', s?.estado, 'desembolsada', a.p_referencia); est(s, 'desembolsada', { desembolso_referencia:a.p_referencia, desembolsado_en:op.ts, fecha_colocacion:a.p_fecha || diaHN(op.ts) }); return;
     case 'desistir': evento(a.p_id, 'desistida', s?.estado, 'desistida', a.p_motivo); est(s, 'desistida', { motivo_cierre:a.p_motivo, en_espera:false }); return;
     case 'regresar_a_revisadas': evento(a.p_id, 'regresada_revisadas', s?.estado, 'aprobada', a.p_nota); est(s, 'aprobada'); return;
-    case 'poner_en_espera': if (s) Object.assign(s, { en_espera:true, espera_motivo:a.p_motivo, espera_desde:op.ts, espera_por:S.me.id, _pend:true }); evento(a.p_id, 'en_espera', null, null, a.p_motivo); return;
-    case 'reanudar': if (s) Object.assign(s, { en_espera:false, espera_motivo:null, espera_desde:null, _pend:true }); evento(a.p_id, 'reanudada', null, null, null); return;
+    case 'poner_en_espera': if (s) Object.assign(s, { en_espera:true, espera_motivo:a.p_motivo, espera_categoria:a.p_categoria || null, espera_desde:op.ts, espera_por:S.me.id, _pend:true }); evento(a.p_id, 'en_espera', null, null, a.p_motivo); return;
+    case 'reanudar': if (s) Object.assign(s, { en_espera:false, espera_motivo:null, espera_categoria:null, espera_desde:null, _pend:true }); evento(a.p_id, 'reanudada', null, null, null); return;
     case 'guardar_ubicacion': { if (!s) return; const k = a.p_lugar === 'domicilio' ? 'dom' : 'trab';
       Object.assign(s, { [k + '_lat']:a.p_lat, [k + '_lng']:a.p_lng, [k + '_sector']:a.p_sector || null, [k + '_ciudad']:a.p_ciudad || null, [k + '_ref']:a.p_ref || null, _pend:true }); return; }
     case 'asignar_verificador': if (s) Object.assign(s, { verificador_id:a.p_verificador, _pend:true }); return;
@@ -2186,6 +2210,32 @@ function pedirTexto(titulo, placeholder, okTxt, cls='pri'){
   });
 }
 
+// ================== Motivos de espera (lista fija) ==================
+const ESP_CAT = {
+  documentos:{ t:'Faltan documentos o comprobantes', i:'📄', q:'cliente' }, no_contesta:{ t:'Cliente no contesta', i:'📵', q:'cliente' },
+  cliente_decide:{ t:'Cliente lo está pensando', i:'🤔', q:'cliente' }, cliente_ausente:{ t:'Cliente no está / vuelve después', i:'🧳', q:'cliente' },
+  autorizacion:{ t:'Esperando autorización interna', i:'🔐', q:'equipo' }, fondos:{ t:'Esperando fondos o banco', i:'🏦', q:'equipo' },
+  sin_verificador:{ t:'Sin verificador disponible', i:'🛵', q:'equipo' }, otro:{ t:'Otro motivo', i:'✏️', q:'otro' },
+  sin_clasificar:{ t:'Sin clasificar (anteriores)', i:'❔', q:'otro' } };
+const ESP_QUIEN = { cliente:'Cliente', equipo:'Equipo', otro:'Otro' };
+function pedirEspera(titulo){
+  return new Promise(res => {
+    const grupo = (q, t) => `<div class="small muted" style="margin:10px 0 4px;font-weight:700">${t}</div><div class="esp-ops">${Object.entries(ESP_CAT).filter(([k, c]) => c.q === q && k !== 'sin_clasificar').map(([k, c]) => `<button type="button" class="esp-op" data-cat="${k}"><span>${c.i}</span>${esc(c.t)}</button>`).join('')}</div>`;
+    const w = dialogo(`<h3>${esc(titulo)}</h3><div class="small muted">Elija por qué se detiene. Sirve para medir en qué se va el tiempo.</div>
+      ${grupo('cliente', 'Depende del cliente')}${grupo('equipo', 'Depende del equipo')}${grupo('otro', 'Otro')}
+      <textarea id="peT" rows="2" placeholder="Detalle (opcional)" style="margin-top:10px"></textarea>
+      <div class="btns"><button class="btn ghost" data-close>Cancelar</button><button class="btn pri" id="peOk">Poner en espera</button></div>`);
+    let cat = null;
+    w.querySelectorAll('.esp-op').forEach(b => b.onclick = () => { cat = b.dataset.cat; w.querySelectorAll('.esp-op').forEach(x => x.classList.toggle('on', x === b));
+      w.querySelector('#peT').placeholder = cat === 'otro' ? 'Escriba el motivo' : 'Detalle (opcional)'; if (cat === 'otro') w.querySelector('#peT').focus(); });
+    w.querySelector('#peOk').onclick = () => { const d = w.querySelector('#peT').value.trim();
+      if (!cat) return toast('Elija un motivo', true);
+      if (cat === 'otro' && !d) return toast('Escriba el motivo', true);
+      cerrarDialogo(w); res({ cat, motivo: cat === 'otro' ? d : ESP_CAT[cat].t + (d ? ' · ' + d : '') }); };
+    const obs = new MutationObserver(() => { if (!w.isConnected){ obs.disconnect(); res(null); } }); obs.observe(document.body, { childList:true });
+  });
+}
+
 // ================== Coincidencias ==================
 const norm = s => (s||'').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase().replace(/\s+/g,' ').trim();
 function coincidencias(s){
@@ -2847,7 +2897,7 @@ function enlazarDetalle(s, c){
       S.dirty = false; await cerrarDetalle(); await cargarSolicitudes(); pintarTabs(); pintar(); toast('Solicitud eliminada');
     });
   };
-  if ($('#ePoner')) $('#ePoner').onclick = async e => { const n = await pedirTexto('Poner en espera', 'Motivo (ej. cliente enviará documentos mañana)', 'Poner en espera'); if (n) run(e.target, async () => { await rpc('poner_en_espera', { p_id: s.id, p_motivo: n }); toast('Solicitud en espera'); await refrescar(); }); };
+  if ($('#ePoner')) $('#ePoner').onclick = async e => { const n = await pedirEspera('Poner en espera'); if (n) run(e.target, async () => { await rpc('poner_en_espera', { p_id: s.id, p_motivo: n.motivo, p_categoria: n.cat }); toast('Solicitud en espera'); await refrescar(); }); };
   if ($('#eReanudar')) $('#eReanudar').onclick = e => run(e.target, async () => { await rpc('reanudar', { p_id: s.id, p_nota: null }); toast('Solicitud reanudada'); await refrescar(); });
   if ($('#aRepetir')) $('#aRepetir').onclick = e => repetirSolicitud(s, e.target);
   if ($('#aDesistir')) $('#aDesistir').onclick = async e => { const n = await pedirTexto('Cerrar solicitud', 'Motivo (ej. el cliente ya no lo necesita)', 'Cerrar solicitud', 'bad'); if (n) run(e.target, async () => { await rpc('desistir', { p_id: s.id, p_motivo: n }); toast('Solicitud cerrada'); await refrescar(); }); };
@@ -4321,7 +4371,7 @@ function pasosHTML(s){
 }
 function clsMeta(segHab, metaMin){ if (!metaMin) return ''; const r = segHab / (metaMin * 60); return r >= 1 ? 'late' : r >= .75 ? 'warn' : ''; }
 function tiemposHTML(s, evs){
-  const pasos = evs.filter(e => e.de_estado);
+  const pasos = evs.filter(e => e.de_estado || ['en_espera','reanudada','verificador_asignado'].includes(e.accion));
   const cerrada = CERRADAS.includes(s.estado);
   const ahora = new Date();
   const totHab = cerrada ? s.duracion_total_habil_seg : segHabiles(s.creado_en, ahora);
@@ -4335,6 +4385,7 @@ function tiemposHTML(s, evs){
     <div class="steps" style="margin-top:8px">
     <div class="stp" style="${rcVars('asesor')}"><i></i><div><b>${esc(nombre(creada?.usuario_id || s.asesor_id))}</b> creó la solicitud<br><small class="muted">${fDT(s.creado_en)}</small></div><div class="d"></div></div>`;
   pasos.forEach(e => {
+    if (!e.de_estado){ h += `<div class="stp sub" style="--rc:var(--gray)"><i></i><div><b>${esc(nombre(e.usuario_id))}</b> ${e.accion === 'en_espera' ? '⏸ puso en espera' : e.accion === 'reanudada' ? '▶ reanudó' : '🛵 asignó verificador'}${e.nota ? `: <span class="nota">${esc(e.nota)}</span>` : ''}<br><small class="muted">${fDT(e.creado_en)}</small></div><div class="d"></div></div>`; return; }
     const pr = PASO[e.de_estado];
     h += `<div class="stp" style="${rcVars(pr ? pr.c : 'cerrada')}"><i></i><div><span class="pn">${pr ? pr.t + ' · ' + RC[pr.r].t : (EST[e.de_estado]?.t || e.de_estado)}</span><br><b>${esc(nombre(e.usuario_id))}</b> ${esc((ACC[e.accion]||e.accion).toLowerCase())}${e.nota ? `: <span class="nota">${esc(e.nota)}</span>` : ''}<br><small class="muted">${fDT(e.creado_en)}</small></div>
       <div class="d">${fmtDur(e.duracion_habil_seg)}<small>${fmtDur(e.duracion_seg)} cal.</small></div></div>`;
@@ -4350,13 +4401,16 @@ function hh(x){ if (x == null) return '—'; const h = Math.floor(x), m = Math.r
 
 // ================== Tablero kanban ==================
 const COLS = [
-  { k:'ase', t:'Asesor',      sub:'Captura · completar datos', est:['borrador','aprobada'], c:'var(--r-asesor)' },
-  { k:'ana', t:'Analista',    sub:'Análisis',                  est:['en_analisis'], c:'var(--r-analista)' },
-  { k:'ver', t:'Verificador', sub:'Verificación en campo',     est:['por_verificar'], c:'var(--r-verificador)' },
-  { k:'des', t:'Desembolso',  sub:'Transferencia pendiente',   est:['desembolso_pendiente'], c:'var(--r-desembolso)' },
-  { k:'fin', t:'Finalizadas / Canceladas / Rechazadas', sub:'Cerradas del día', est:['desembolsada','denegada','rechazada_verificacion','desistida'], c:'var(--r-finalizada)' },
+  { k:'cap', t:'Captura',         sub:'Asesor · ingresos y datos',        est:['borrador'], c:'var(--r-asesor)' },
+  { k:'ana', t:'Análisis',        sub:'Analista · dictamen',              est:['en_analisis'], c:'var(--r-analista)' },
+  { k:'com', t:'Completar datos', sub:'Asesor · con el cliente',          est:['aprobada'], c:'var(--r-completar)', monto:true },
+  { k:'ver', t:'Verificación',    sub:'Verificador · visita en campo',    est:['por_verificar'], c:'var(--r-verificador)', monto:true },
+  { k:'des', t:'Desembolso',      sub:'Transferencia por confirmar',      est:['desembolso_pendiente'], c:'var(--r-desembolso)', monto:true },
+  { k:'fin', t:'Cerradas del día', sub:'Desembolsadas · canceladas · rechazadas', est:['desembolsada','denegada','rechazada_verificacion','desistida'], c:'var(--r-finalizada)' },
   { k:'esp', t:'⏸ En espera', sub:'Pausadas · no suman en estadísticas', est:['borrador','en_analisis','aprobada','por_verificar','desembolso_pendiente'], c:'var(--gray)', espera:true }
 ];
+// Semáforo del tiempo en el paso actual (verde / amarillo / rojo según la meta por paso)
+const semPaso = seg => clsMeta(seg, S.params.meta_paso_min) || 'good';
 // Día en que un desembolso cuenta para la meta y las estadísticas (se puede elegir al desembolsar)
 const diaColoc = s => s.fecha_colocacion || diaHN(s.desembolsado_en || s.cerrado_en);
 const diaHN = d => d ? new Date(d).toLocaleDateString('en-CA', { timeZone: TZ }) : null;
@@ -4374,7 +4428,7 @@ function pintarTablero(){
     abiertas(s) ? (esHoy ? diaHN(s.creado_en) <= dia : diaHN(s.creado_en) === dia) : (s.estado === 'desembolsada' ? diaColoc(s) : diaHN(s.cerrado_en || s.actualizado_en)) === dia)
     .sort((a,b) => c.espera ? new Date(b.espera_desde || 0) - new Date(a.espera_desde || 0)
                  : abiertas(a) ? (ORDEN_PASOS.indexOf(a.estado) - ORDEN_PASOS.indexOf(b.estado)) || (new Date(a.estado_desde || a.actualizado_en) - new Date(b.estado_desde || b.actualizado_en))
-                                : new Date(b.cerrado_en || b.actualizado_en) - new Date(a.cerrado_en || a.actualizado_en));
+                                : ((b.estado === 'desembolsada') - (a.estado === 'desembolsada')) || (new Date(b.cerrado_en || b.actualizado_en) - new Date(a.cerrado_en || a.actualizado_en)));
   const creadasDia = base.filter(s => diaHN(s.creado_en) === dia && !(abiertas(s) && s.en_espera));
   const desDia = base.filter(s => s.estado === 'desembolsada' && diaColoc(s) === dia);
   const cicloProm = desDia.length ? desDia.reduce((a,s) => a + (s.duracion_total_habil_seg ?? segHabiles(s.creado_en, s.desembolsado_en)), 0) / desDia.length : null;
@@ -4412,16 +4466,22 @@ function pintarTablero(){
       <div class="kpi"><div class="l">Ciclo promedio (hábil)</div><div class="v">${fmtDur(cicloProm)}</div><div class="s">meta ${fmtDur((S.params.meta_total_min||0)*60)}</div></div>
       <div class="kpi"><div class="l">En proceso ahora</div><div class="v">${base.filter(s => abiertas(s) && !s.en_espera).length}</div><div class="s">${base.filter(s => abiertas(s) && !s.en_espera && diaHN(s.creado_en) < hoy).length} de días anteriores${base.some(s => abiertas(s) && s.en_espera) ? ` · ${base.filter(s => abiertas(s) && s.en_espera).length} en espera aparte` : ''}</div></div>
     </div>
-    ${leyendaHTML()}
-    <div class="board-wrap"><div class="board">${COLS.map(c => { const l = enCol(c); return `
-      <section class="col${c.espera ? ' col-esp' : ''}" data-col="${c.k}"><div class="col-h" style="--cc:${c.c}"><div><b>${c.t}</b><div class="small muted" style="font-weight:500">${c.sub}</div></div><span class="cnt">${l.length}</span></div>
+    ${(() => { const ahoraB = new Date(), listas = COLS.map(c => [c, enCol(c)]);
+      const tarde = l => l.filter(s => abiertas(s) && !s.en_espera && semPaso(segHabiles(s.estado_desde || s.actualizado_en, ahoraB)) === 'late').length;
+      return `<div class="bd-nav">${listas.map(([c, l]) => { const t = c.espera || c.k === 'fin' ? 0 : tarde(l); return `<button type="button" data-ir="${c.k}" style="--cc:${c.c}"><i></i>${c.t.replace('⏸ ', '')} <b>${l.length}</b>${t ? `<span class="tarde" title="Pasaron el tiempo meta del paso">${t} ⏰</span>` : ''}</button>`; }).join('')}</div>
+    <div class="board-wrap"><div class="board">${listas.map(([c, l]) => { const t = c.espera || c.k === 'fin' ? 0 : tarde(l);
+      const cap = c.k === 'fin' ? l.filter(s => s.estado === 'desembolsada').reduce((a, s) => a + capitalColocado(s), 0) : c.monto ? l.reduce((a, s) => a + capitalColocado(s), 0) : 0;
+      const extra = [c.k === 'fin' && l.length ? `${l.filter(s => s.estado === 'desembolsada').length} desembolsada(s)` : '', cap ? L(cap) : '', t ? `<span class="tarde">${t} fuera de tiempo</span>` : ''].filter(Boolean).join(' · ');
+      return `
+      <section class="col${c.espera ? ' col-esp' : ''}" data-col="${c.k}"><div class="col-h" style="--cc:${c.c}"><div><b>${c.t}</b><div class="small muted" style="font-weight:500">${c.sub}</div>${extra ? `<div class="col-x">${extra}</div>` : ''}</div><span class="cnt">${l.length}</span></div>
       <div class="col-body">${l.length ? l.map(s => cardK(s, dia)).join('') : `<div class="empty">${c.espera ? 'Arrastre aquí una solicitud para ponerla en espera' : 'Sin solicitudes'}</div>`}</div></section>`; }).join('')}
-    </div></div>
+    </div></div>`; })()}
     <div class="small muted" style="margin-top:6px">✋ Arrastre una tarjeta a <b>En espera</b> para pausarla (en el celular: mantenga presionada la tarjeta). Arrástrela de vuelta a cualquier columna para reanudarla.</div>`;
   $('#main').querySelectorAll('[data-dd]').forEach(b => b.onclick = () => {
     const n = +b.dataset.dd; if (!n){ S.boardDay = hoy; } else { const d = new Date(S.boardDay + 'T12:00'); d.setDate(d.getDate() + n); S.boardDay = d.toLocaleDateString('en-CA'); }
     pintarTablero(); });
   $('#main').querySelectorAll('[data-bt]').forEach(b => b.onclick = () => { S.boardTodos = b.dataset.bt === '1'; pintarTablero(); });
+  $('#main').querySelectorAll('[data-ir]').forEach(b => b.onclick = () => { const c = $('#main').querySelector(`[data-col="${b.dataset.ir}"]`); if (c) c.scrollIntoView({ behavior:'smooth', inline:'start', block:'nearest' }); });
   if ($('#kProc')) $('#kProc').onclick = () => {
     const w = dialogo(`<h3>En proceso de colocación</h3><div class="small muted">Solicitudes aprobadas que aún no se desembolsan (completar datos, verificación o transferencia pendiente). Capital nuevo = monto que toma el cliente − saldo de capital anterior.</div>
       ${enColoc.length ? `<table class="t" style="margin-top:8px"><thead><tr><th>Cliente</th><th>Paso</th><th class="num">Monto</th><th class="num">Capital nuevo</th></tr></thead><tbody>
@@ -4444,7 +4504,7 @@ function cardK(s, dia){
   let tm = '';
   if (ab){
     const pHab = segHabiles(desde, ahora), tHab = segHabiles(s.creado_en, ahora);
-    tm = `<span class="${clsMeta(tHab, S.params.meta_total_min)}" data-live-tot="${s.creado_en}" title="Tiempo hábil total desde que se creó">⏱ ${fmtDur(tHab)}</span>`;
+    tm = (s.en_espera ? '' : `<span class="${semPaso(pHab)}" data-live-kp="${desde}" title="Tiempo hábil en este paso · meta ${fmtDur((S.params.meta_paso_min||0)*60)}">● En este paso ${fmtDur(pHab)}</span>`) + `<span class="${clsMeta(tHab, S.params.meta_total_min)}" data-live-tot="${s.creado_en}" title="Tiempo hábil total desde que se creó">⏱ ${fmtDur(tHab)}</span>`;
   } else {
     const t = s.duracion_total_habil_seg;
     tm = `<span class="${s.estado === 'desembolsada' ? (t != null && t <= (S.params.meta_total_min||0)*60 ? 'good' : 'warn') : ''}" title="Tiempo hábil total">⏱ ${fmtDur(t)}</span><span>${fDT(s.cerrado_en || s.actualizado_en).split(',').pop().trim()}</span>`;
@@ -4453,9 +4513,9 @@ function cardK(s, dia){
   return `<div class="kc${s.en_espera ? ' espera' : ''}" data-id="${s.id}" style="${rcVars(colorDe(s.estado))}">
     <div class="rolbar">${rolPill(s)}${previo}</div>
     <div class="nm">${conCopiar(s.nombre_cliente)}</div>
-    <div class="ln">${chip(s.estado)}${tipoChip(s.tipo)}${esperaChip(s)}${pendChip(s)}</div>
-    ${s.en_espera ? `<div class="ln" style="color:var(--gray)">⏸ ${esc(s.espera_motivo||'')} · ${hace(s.espera_desde)}</div>` : ''}
-    <div class="ln"><span>${esc(s.codigo)}</span><span>👤 ${esc(nombre(s.asesor_id).split(' ')[0])}</span>${ab && !s.en_espera ? `<span>Espera: <b>${esc(responsable(s) || ESPERA[s.estado])}</b></span>` : ''}${monto ? `<b style="color:var(--ink)">${monto}</b>` : ''}${S.com[s.id] ? `<span>💬 ${S.com[s.id]}</span>` : ''}</div>
+    <div class="ln">${ab && !s.en_espera ? '' : chip(s.estado)}${tipoChip(s.tipo)}${esperaChip(s)}${pendChip(s)}${s.estado === 'por_verificar' && !s.verificador_id && !s.en_espera ? '<span class="chip c-red">⚠ Sin verificador</span>' : ''}</div>
+    ${s.en_espera ? `<div class="ln" style="color:var(--gray)">${ESP_CAT[s.espera_categoria]?.i || '⏸'} ${esc(s.espera_motivo||'')} · ${hace(s.espera_desde)}</div>` : ''}
+    <div class="ln"><span>${esc(s.codigo)}</span><span>👤 ${esc(nombre(s.asesor_id).split(' ')[0])}</span>${monto ? `<b style="color:var(--ink)">${monto}</b>` : ''}${S.com[s.id] ? `<span>💬 ${S.com[s.id]}</span>` : ''}</div>
     ${['aprobada','por_verificar'].includes(s.estado) && (sectorDe(s) || ciudadDe(s)) ? `<div class="ln">📍 ${esc([sectorDe(s), ciudadDe(s)].filter(Boolean).join(' · '))}</div>` : ''}
     ${entregaHTML(s, true)}
     <div class="tm">${tm}</div></div>`;
@@ -4661,9 +4721,9 @@ function activarArrastre(board){
 async function moverEspera(s, k){
   try {
     if (!s.en_espera && k === 'esp'){
-      const m = await pedirTexto(`Poner en espera · ${s.nombre_cliente}`, 'Motivo (ej. cliente enviará documentos mañana)', 'Poner en espera');
+      const m = await pedirEspera(`Poner en espera · ${s.nombre_cliente}`);
       if (!m) return;
-      await rpc('poner_en_espera', { p_id: s.id, p_motivo: m });
+      await rpc('poner_en_espera', { p_id: s.id, p_motivo: m.motivo, p_categoria: m.cat });
       toast('Solicitud en espera · no suma en las estadísticas');
     } else if (!s.en_espera && rol() === 'admin' && COLS.some(c => c.k === k && !c.espera && k !== 'fin')){
       const c = COLS.find(x => x.k === k);
@@ -4686,6 +4746,7 @@ setInterval(() => {
     if (small) el.firstChild.textContent = fmtDur(v);
     else { el.textContent = '⏱ ' + fmtDur(v); if (el.closest('.kc')) el.className = clsMeta(v, S.params.meta_paso_min); }
   });
+  document.querySelectorAll('[data-live-kp]').forEach(el => { const v = segHabiles(el.dataset.liveKp, ahora); el.textContent = '● En este paso ' + fmtDur(v); el.className = semPaso(v); });
   document.querySelectorAll('[data-live-acc]').forEach(el => {
     const v = +el.dataset.liveAcc + segHabiles(el.dataset.desde, ahora);
     el.textContent = el.dataset.lbl + ' ⏱ ' + fmtDur(v);
@@ -4852,9 +4913,9 @@ async function pintarStats(){
   // Comparación: el mismo período un mes antes (a la misma fecha)
   const mesAntes = iso => { const x = new Date(iso + 'T12:00'), dia = x.getDate(); x.setDate(1); x.setMonth(x.getMonth() - 1); x.setDate(Math.min(dia, new Date(x.getFullYear(), x.getMonth() + 1, 0).getDate())); return x.toLocaleDateString('en-CA'); };
   const p0 = mesAntes(d0), p1 = mesAntes(d1);
-  let r, rt, rp = null, rtp = null;
-  try { [r, rt, rp, rtp] = await Promise.all([rpc('estadisticas', { p_desde: d0, p_hasta: d1 }), rpc('estadisticas_tiempos', { p_desde: d0, p_hasta: d1 }),
-    rpc('estadisticas', { p_desde: p0, p_hasta: p1 }).catch(() => null), rpc('estadisticas_tiempos', { p_desde: p0, p_hasta: p1 }).catch(() => null)]); }
+  let r, rt, rp = null, rtp = null, rd = null;
+  try { [r, rt, rp, rtp, rd] = await Promise.all([rpc('estadisticas', { p_desde: d0, p_hasta: d1 }), rpc('estadisticas_tiempos', { p_desde: d0, p_hasta: d1 }),
+    rpc('estadisticas', { p_desde: p0, p_hasta: p1 }).catch(() => null), rpc('estadisticas_tiempos', { p_desde: p0, p_hasta: p1 }).catch(() => null), rpc('reporte_tiempos', { p_desde: d0, p_hasta: d1 }).catch(() => null)]); }
   catch(e){ return $('#stBody').innerHTML = `<div class="alert err">${esc(errMsg(e))}</div>`; }
   // Indicador de cambio vs el mes anterior: ▲/▼ %, valor anterior; malo = true cuando subir es malo (denegadas, ciclo)
   const cmp = (act, ant, fmt = v => String(v), malo = false) => {
@@ -4910,6 +4971,7 @@ async function pintarStats(){
   <h4 class="sec">Mapa de verificaciones</h4><div class="card"><div id="vMapStats" style="height:420px;border-radius:10px;overflow:hidden;background:var(--bg2,#eef)"></div><div class="small muted" id="vMapInfo" style="margin-top:6px">Cargando visitas…</div></div>` : ''}
   <h4 class="sec">Cartera en proceso ahora</h4>
   <div class="pipe">${['borrador','en_analisis','aprobada','por_verificar','desembolso_pendiente'].map(k => `<div class="st"><b>${pe[k]||0}</b><span class="small">${EST[k].t}</span></div>`).join('')}</div>
+  ${dondeTiempoHTML(rd)}
   <h4 class="sec">Tiempo promedio por paso (hábil)</h4>
   <div class="card">${rt.por_paso.length ? leyendaHTML().replace(/<span class="rol" style="--rc:var\(--r-(finalizada|cerrada)\)[^<]*<\/span>/g,'').replace(/<span class="rol" style="--rc:var\(--gray\)[^<]*<\/span>/,'') + barras(rt.por_paso.map(x => [`${PASO[x.estado]?.t || x.estado} (${RC[PASO[x.estado]?.r]?.t || ''})`, x.prom_habil_seg || 0, `${fmtDur(x.prom_habil_seg)} · ${x.n}`, `var(--r-${PASO[x.estado]?.c})`])) + `<div class="small muted" style="margin-top:6px">Tiempo que cada solicitud pasa en cada etapa antes de avanzar (promedio · cantidad de pasos).</div>` : '<div class="muted small">Sin datos</div>'}</div>
   <h4 class="sec">Gestiones por persona</h4>
@@ -4922,6 +4984,7 @@ async function pintarStats(){
   ${canalesHTML(d0, d1)}
   ${r.motivos_denegacion.length ? `<h4 class="sec">Motivos de denegación</h4><div class="card">${barras(r.motivos_denegacion.map(m => [m.nota || 'Sin nota', m.n, m.n]))}</div>` : ''}`;
   $('#stBody').innerHTML = h;
+  $('#stBody').querySelectorAll('[data-lenta]').forEach(tr => tr.onclick = () => abrirDetalle(+tr.dataset.lenta));
   const activos = r.por_dia.filter(x => x.desembolsadas > 0);
   const fd = x => `${+x.dia.slice(8)}/${+x.dia.slice(5,7)}`;
   graficoBarras($('#chSem'), r.semanas.map(w => ({ l: String(w.semana), v: +w.capital, t: L(Math.round(w.capital)), tip: `Semana ${w.semana} (desde ${fDate(w.ini + 'T12:00')})<br>${L(w.capital)} · ${w.n} desembolso(s)` })));
@@ -5278,6 +5341,41 @@ async function pintarCAC(d0, d1, admin){
     toast('Gasto registrado'); pintarReferidos(); });
   box.querySelectorAll('[data-ganular]').forEach(a => a.onclick = ev => { ev.preventDefault(); if (!confirm('¿Anular este gasto?')) return; run(a, async () => {
     await rpc('guardar_gasto_publicidad', { p_id: +a.dataset.ganular, p_fecha: null, p_canal: null, p_monto: null, p_descripcion: null, p_anular: true }); toast('Gasto anulado'); pintarReferidos(); }); });
+}
+// Reporte "¿Dónde se va el tiempo?" (RPC reporte_tiempos)
+function dondeTiempoHTML(d){
+  if (!d || !(d.por_paso || []).length) return '';
+  const hrs = seg => { const h = (seg || 0) / 3600; return (h >= 10 ? Math.round(h) : Math.round(h * 10) / 10).toLocaleString('es-HN') + ' h'; };
+  const tot = d.por_paso.reduce((a, x) => a + (+x.total_seg || 0), 0) || 1;
+  const pn = k => PASO[k]?.t || EST[k]?.t || k, pc = k => `var(--r-${PASO[k]?.c || 'cerrada'})`;
+  const peor = d.por_paso.slice().sort((a, b) => b.total_seg - a.total_seg)[0];
+  const v = d.verificacion || {}, vt = (+v.asignar_total || 0) + (+v.ruta_total || 0) + (+v.cierre_total || 0) || 1;
+  const caja = (t, med, total, nota) => `<div class="box"><div class="l">${t}</div><div class="v">${fmtDur(med)}</div><div class="small muted">${Math.round((total || 0) / vt * 100)}% del tiempo · ${hrs(total)}${nota ? '<br>' + nota : ''}</div></div>`;
+  const espTot = (d.esperas || []).reduce((a, x) => a + (+x.total_seg || 0), 0);
+  const espQ = q => (d.esperas || []).filter(x => x.quien === q).reduce((a, x) => a + (+x.total_seg || 0), 0);
+  const perdido = (d.desistidas || []).reduce((a, x) => a + (+x.total_seg || 0), 0), nDes = (d.desistidas || []).reduce((a, x) => a + x.n, 0);
+  return `<h4 class="sec">⏱ ¿Dónde se va el tiempo?</h4>
+  <div class="card">
+    <div class="small muted">Horas hábiles que las solicitudes pasaron en cada paso durante el período. El paso que más tiempo consume: <b style="color:var(--ink)">${pn(peor.estado)}</b> (${Math.round(peor.total_seg / tot * 100)}%).</div>
+    <div class="dt-share">${d.por_paso.map(x => `<i style="width:${x.total_seg / tot * 100}%;background:${pc(x.estado)}" title="${pn(x.estado)} · ${hrs(x.total_seg)}"></i>`).join('')}</div>
+    <div style="overflow-x:auto"><table class="t"><thead><tr><th>Paso</th><th class="num">Solicitudes</th><th class="num">Lo normal</th><th class="num">Las lentas</th><th class="num">Horas totales</th><th class="num">% del tiempo</th><th class="num">Fuera de meta</th></tr></thead><tbody>
+    ${d.por_paso.map(x => `<tr><td><span class="rol" style="${rcVars(PASO[x.estado]?.c || 'cerrada')}">${pn(x.estado)}</span></td><td class="num">${x.n}</td><td class="num"><b>${fmtDur(x.mediana_seg)}</b></td><td class="num">${fmtDur(x.p90_seg)}</td><td class="num">${hrs(x.total_seg)}</td><td class="num">${Math.round(x.total_seg / tot * 100)}%</td><td class="num">${x.fuera_meta} <span class="muted">(${Math.round(x.fuera_meta / x.n * 100)}%)</span></td></tr>`).join('')}</tbody></table></div>
+    <div class="small muted" style="margin-top:6px">Lo normal = la mitad de las solicitudes tarda eso o menos. Las lentas = 1 de cada 10 tarda eso o más. Meta por paso: ${fmtDur((d.meta_paso_min || 0) * 60)}.</div>
+  </div>
+  ${v.n ? `<div class="card"><b>🛵 Verificación por tramos</b> <span class="small muted">· ${v.n} verificaciones · normal ${fmtDur(v.total_mediana)}</span>
+    <div class="res dt-box" style="margin:8px 0 0">${caja('1 · Sin verificador asignado', v.asignar_mediana, v.asignar_total)}${caja('2 · Asignada → primera visita', v.ruta_mediana, v.ruta_total, 'cola y traslado del verificador')}${caja('3 · Visita → cierre', v.cierre_mediana, v.cierre_total)}</div></div>` : ''}
+  <div class="card"><b>⏸ Esperas por motivo</b> <span class="small muted">· ${hrs(espTot)} hábiles en espera${espTot ? ` · cliente ${Math.round(espQ('cliente') / espTot * 100)}% · equipo ${Math.round(espQ('equipo') / espTot * 100)}% · otro/sin clasificar ${Math.round(espQ('otro') / espTot * 100)}%` : ''}</span>
+    ${(d.esperas || []).length ? `<div style="overflow-x:auto;margin-top:6px"><table class="t"><thead><tr><th>Motivo</th><th>Depende de</th><th class="num">Veces</th><th class="num">Lo normal</th><th class="num">Horas totales</th><th class="num">Siguen en espera</th></tr></thead><tbody>
+    ${d.esperas.map(x => { const c = ESP_CAT[x.categoria] || ESP_CAT.sin_clasificar; return `<tr><td>${c.i} ${esc(c.t)}</td><td>${ESP_QUIEN[x.quien] || '—'}</td><td class="num">${x.n}</td><td class="num">${fmtDur(x.mediana_seg)}</td><td class="num"><b>${hrs(x.total_seg)}</b></td><td class="num">${x.abiertas || ''}</td></tr>`; }).join('')}</tbody></table></div>` : '<div class="muted small" style="margin-top:6px">Sin esperas en el período</div>'}
+    <div class="small muted" style="margin-top:6px">El tiempo en espera está incluido en el tiempo del paso donde se pausó.</div></div>
+  ${nDes ? `<div class="card"><b>🚫 Tiempo en solicitudes que se desistieron</b> <span class="small muted">· ${nDes} solicitudes · ${hrs(perdido)} hábiles</span>
+    ${barras(d.desistidas.map(x => [`Se cayó en ${pn(x.estado)}`, +x.total_seg || 0, `${x.n} · normal ${fmtDur(x.mediana_seg)}`, pc(x.estado)]))}</div>` : ''}
+  ${es('analista') ? `<div class="card" style="overflow-x:auto"><b>👤 Por persona</b>
+    ${(d.por_asesor || []).length ? `<table class="t" style="margin-top:6px"><thead><tr><th>Asesor</th><th class="num">Capturas</th><th class="num">Captura normal</th><th class="num">Captura lenta</th><th class="num">Completar datos</th></tr></thead><tbody>${d.por_asesor.map(x => `<tr><td>${esc(x.nombre)}</td><td class="num">${x.n}</td><td class="num"><b>${fmtDur(x.captura_mediana_seg)}</b></td><td class="num">${fmtDur(x.captura_p90_seg)}</td><td class="num">${fmtDur(x.completar_mediana_seg)}</td></tr>`).join('')}</tbody></table>` : ''}
+    ${(d.por_analista || []).length ? `<table class="t" style="margin-top:10px"><thead><tr><th>Analista</th><th>Paso</th><th class="num">Gestiones</th><th class="num">Normal</th><th class="num">Lentas</th></tr></thead><tbody>${d.por_analista.map(x => `<tr><td>${esc(x.nombre)}</td><td>${pn(x.estado)}</td><td class="num">${x.n}</td><td class="num"><b>${fmtDur(x.mediana_seg)}</b></td><td class="num">${fmtDur(x.p90_seg)}</td></tr>`).join('')}</tbody></table>` : ''}
+    ${(d.por_verificador || []).length ? `<table class="t" style="margin-top:10px"><thead><tr><th>Verificador</th><th class="num">Verificaciones</th><th class="num">Normal</th><th class="num">Asignada → visita</th><th class="num">Lentas</th></tr></thead><tbody>${d.por_verificador.map(x => `<tr><td>${esc(x.nombre)}</td><td class="num">${x.n}</td><td class="num"><b>${fmtDur(x.mediana_seg)}</b></td><td class="num">${fmtDur(x.ruta_mediana_seg)}</td><td class="num">${fmtDur(x.p90_seg)}</td></tr>`).join('')}</tbody></table>` : ''}</div>` : ''}
+  ${(d.lentas || []).length ? `<div class="card" style="overflow-x:auto"><b>🐢 Las 10 más lentas del período</b>
+    <table class="t" style="margin-top:6px"><tbody>${d.lentas.map(x => `<tr data-lenta="${x.id}" style="cursor:pointer"><td><b>${esc(x.cliente)}</b><div class="small muted">${esc(x.codigo)}</div></td><td><span class="rol" style="${rcVars(PASO[x.estado]?.c || 'cerrada')}">${pn(x.estado)}</span></td><td class="num"><b>${fmtDur(x.seg)}</b></td></tr>`).join('')}</tbody></table></div>` : ''}`;
 }
 function barras(rows){
   const max = Math.max(1, ...rows.map(r => r[1]));
