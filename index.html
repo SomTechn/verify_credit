@@ -68,6 +68,8 @@ header.top .who{min-width:0;flex:0 1 auto;overflow:hidden;white-space:nowrap} he
 .netpill.err{background:#fde8e6;color:#b42318}
 .netbar{background:#FFF4C2;color:#6b4e00;font-size:12.5px;padding:6px 16px;text-align:center;border-bottom:1px solid #f0d66a}
 .netbar b{color:#0A2A66}
+.pushbar{background:#E7F0FF;color:#0A2A66;font-size:13px;padding:8px 12px;border-bottom:1px solid #c5d9fb;display:flex;align-items:center;gap:8px}
+.pushbar span{flex:1;min-width:0} .pushbar button{flex:0 0 auto;border:0;border-radius:999px;padding:8px 14px;font:700 13px Inter,sans-serif;cursor:pointer;background:#1877F2;color:#fff;min-height:36px} .pushbar button.x{background:transparent;color:#0A2A66;padding:8px 8px;font-size:15px}
 .ob-item{border:1px solid var(--line);border-radius:10px;padding:8px 10px;margin:6px 0;font-size:13px}
 .ob-item.err{border-color:var(--red);background:var(--red-bg)}
 .iconbtn{background:rgba(255,255,255,.14);border:0;color:#fff;border-radius:10px;padding:7px 10px;font-size:14px}
@@ -590,6 +592,7 @@ body.marco-cel #sheet > *{max-width:430px;margin-left:auto;margin-right:auto}
     <nav class="tabs" id="tabs"></nav>
   </header>
   <div class="netbar hidden" id="netBar"></div>
+  <div class="pushbar hidden" id="pushBar"></div>
   <main id="main"></main>
   <button class="fab hidden" id="fab">＋ Nueva solicitud</button>
 </div>
@@ -603,11 +606,16 @@ body.marco-cel #sheet > *{max-width:430px;margin-left:auto;margin-right:auto}
 // App disponible sin señal (sw.js debe estar junto a index.html). Va primero para registrarse aunque falle otra cosa.
 if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) navigator.serviceWorker.register('sw.js').catch(() => {});
 // Versión de esta copia de la app: cambia en cada entrega. La app la compara con la publicada y se actualiza sola.
-const APP_VER = '2026-11-11.0110';
+const APP_VER = '2026-11-11.0840';
 // Novedades que ve cada usuario al abrir una versión nueva (la más reciente primero).
 // Al publicar cambios: subir APP_VER y agregar aquí una entrada con la misma versión.
 // r = roles que la ven (sin r = todos; el admin ve todo).
 const NOVEDADES = [
+  { v:'2026-11-11.0840', f:'11 de noviembre de 2026', items:[
+    { i:'🔔', t:'Notificaciones: aviso para activarlas y se reactivan solas',
+      d:'Cada cambio de paso le avisa a quien le toca: al analista cuando el asesor envía a análisis, al asesor cuando se aprueba (para completar datos), al verificador cuando se le asigna la visita y al analista cuando hay una transferencia por confirmar. Si en su teléfono no están activadas, ahora aparece una franja arriba con el botón "Activar". Además, si ya las había permitido, se vuelven a activar solas al iniciar sesión (antes se perdían al cerrar sesión).' },
+    { i:'👥', t:'Usuarios: quién tiene las notificaciones activas', r:['admin'],
+      d:'En Usuarios cada persona muestra si tiene notificaciones activas, en cuántos dispositivos y desde cuándo, para saber a quién hay que pedirle que las active.' } ] },
   { v:'2026-11-11.0110', f:'11 de noviembre de 2026', items:[
     { i:'📱', t:'Corregido: la pantalla se salía en celulares angostos',
       d:'En algunos teléfonos los botones del encabezado no cabían y empujaban toda la app hacia la derecha: el detalle de la solicitud se veía cortado. Ahora el encabezado se ajusta al ancho del teléfono y nada se sale de la pantalla.' } ] },
@@ -1138,7 +1146,8 @@ async function pushGuardar(sub){
 async function pushActivar(){
   if (!pushSoportado()) throw new Error(esIOS() && !instalada() ? 'En iPhone primero instale la app (Compartir → Agregar a pantalla de inicio) y ábrala desde el ícono.' : 'Este navegador no soporta notificaciones push.');
   const p = await Notification.requestPermission();
-  if (p !== 'granted') throw new Error('Las notificaciones están bloqueadas. Permítalas en la configuración del navegador para este sitio (ícono del candado junto a la dirección).');
+  if (p !== 'granted'){ pintarAvisoPush(); throw new Error('Las notificaciones están bloqueadas. Permítalas en la configuración del navegador para este sitio (ícono del candado junto a la dirección).'); }
+  localStorage.removeItem('vc_push_off');
   const reg = await navigator.serviceWorker.ready;
   let sub = await reg.pushManager.getSubscription();
   if (!sub){
@@ -1154,10 +1163,28 @@ async function pushDesactivar(){
   PUSH.on = false; pintarBell();
 }
 // Al entrar: si este dispositivo ya estaba suscrito, renueva el registro (queda a nombre del usuario actual)
+// Si el permiso ya estaba dado pero el dispositivo quedó sin suscripción (p. ej. al cerrar sesión), se vuelve a activar solo.
 async function pushRevisar(){
-  try { const sub = await pushSub(); if (sub && Notification.permission === 'granted') await pushGuardar(sub); else { PUSH.on = false; pintarBell(); } } catch(e){}
+  try { const sub = await pushSub();
+    if (sub && Notification.permission === 'granted') await pushGuardar(sub);
+    else if (!sub && pushSoportado() && Notification.permission === 'granted' && navigator.onLine && localStorage.getItem('vc_push_off') !== '1') await pushActivar();
+    else { PUSH.on = false; pintarBell(); } } catch(e){ pintarAvisoPush(); }
 }
-function pintarBell(){ const b = $('#btnBell'); if (b){ b.textContent = PUSH.on ? '🔔' : '🔕'; b.title = PUSH.on ? 'Notificaciones activadas' : 'Activar notificaciones'; } }
+function pintarBell(){ const b = $('#btnBell'); if (b){ b.textContent = PUSH.on ? '🔔' : '🔕'; b.title = PUSH.on ? 'Notificaciones activadas' : 'Activar notificaciones'; } pintarAvisoPush(); }
+// Franja bajo el encabezado cuando este dispositivo no recibe avisos
+function pintarAvisoPush(){
+  const b = $('#pushBar'); if (!b) return;
+  const hoy = new Date().toDateString(), ocultar = () => { b.classList.add('hidden'); b.innerHTML = ''; };
+  if (PUSH.on || !S.me || localStorage.getItem('vc_pushbar_x') === hoy || localStorage.getItem('vc_push_off') === '1') return ocultar();
+  let txt = '', btn = '';
+  if (!pushSoportado()){ if (esIOS() && !instalada()) txt = '📲 Para recibir avisos en iPhone, instale la app: Compartir → Agregar a pantalla de inicio.'; else return ocultar(); }
+  else if (Notification.permission === 'denied'){ txt = '🔕 Las notificaciones están bloqueadas en este dispositivo: no le avisará cuando le toque una solicitud.'; btn = '<button id="pbrComo">Cómo activarlas</button>'; }
+  else { txt = '🔔 Active las notificaciones para enterarse al instante cuando le toque una solicitud.'; btn = '<button id="pbrOn">Activar</button>'; }
+  b.innerHTML = `<span>${txt}</span>${btn}<button class="x" id="pbrX" title="Ocultar por hoy" aria-label="Ocultar por hoy">✕</button>`; b.classList.remove('hidden');
+  $('#pbrX').onclick = () => { localStorage.setItem('vc_pushbar_x', hoy); ocultar(); };
+  if ($('#pbrOn')) $('#pbrOn').onclick = e => run(e.target, async () => { await pushActivar(); toast('🔔 Notificaciones activadas en este dispositivo'); });
+  if ($('#pbrComo')) $('#pbrComo').onclick = () => dialogo(`<h3>🔕 Notificaciones bloqueadas</h3><div class="small">En el teléfono: toque el <b>candado</b> (o los controles) junto a la dirección de la página → <b>Permisos</b> → <b>Notificaciones</b> → <b>Permitir</b>. Si usa la app instalada: mantenga presionado el ícono → <b>Información de la app</b> → <b>Notificaciones</b> → activar. Luego vuelva a abrir VerifyCredit.</div><div class="btns"><button class="btn pri" data-close>Entendido</button></div>`);
+}
 $('#btnBell').onclick = () => {
   const w = dialogo(`<h3>🔔 Notificaciones</h3>
     <div class="small muted">Reciba un aviso en este dispositivo (computadora o teléfono) cuando entre una solicitud nueva, cambie de estado o le comenten, <b>aunque la app esté cerrada</b>. Al tocar el aviso se abre la solicitud.</div>
@@ -1175,7 +1202,7 @@ $('#btnBell').onclick = () => {
   w.querySelector('#avVoz').addEventListener('change', e => { localStorage.setItem('vc_aviso_voz', e.target.checked ? '1' : '0'); });
   w.querySelector('#avProbar').addEventListener('click', () => { audioDesbloquear(); sonarAviso('✅ Solicitud aprobada', 'Juan Pérez · Nuevo'); });
   w.querySelector('#pbOn')?.addEventListener('click', e => run(e.target, async () => { await pushActivar(); await cerrarDialogo(w); toast('🔔 Notificaciones activadas en este dispositivo'); $('#btnBell').onclick(); }));
-  w.querySelector('#pbOff')?.addEventListener('click', e => run(e.target, async () => { await pushDesactivar(); await cerrarDialogo(w); toast('Notificaciones desactivadas en este dispositivo'); }));
+  w.querySelector('#pbOff')?.addEventListener('click', e => run(e.target, async () => { await pushDesactivar(); localStorage.setItem('vc_push_off', '1'); pintarAvisoPush(); await cerrarDialogo(w); toast('Notificaciones desactivadas en este dispositivo'); }));
   // Muestra un aviso sin pasar por el servidor: si este no aparece, el bloqueo está en el sistema (Windows/Android), no en la app
   w.querySelector('#pbLocal')?.addEventListener('click', e => run(e.target, async () => {
     const reg = await navigator.serviceWorker.ready;
@@ -5449,7 +5476,10 @@ async function pintarEmpleados(){
 function pintarUsuarios(){
   const us = Object.values(S.perfiles);
   $('#main').innerHTML = `<div class="btns" style="margin:0 0 10px"><button class="btn pri" id="uNuevo">＋ Nuevo usuario</button></div>
-    ${us.map(u => `<div class="card row">${av(u.id)}<div style="flex:1;min-width:0"><b>${esc(u.nombre)}</b> ${u.activo ? '' : '<span class="chip c-red">Inactivo</span>'}<div class="small muted">${esc(u.email||'')} · ${ROL[u.rol]}</div></div><button class="btn sm ghost" data-u="${u.id}">Editar</button></div>`).join('')}`;
+    ${us.map(u => `<div class="card row">${av(u.id)}<div style="flex:1;min-width:0"><b>${esc(u.nombre)}</b> ${u.activo ? '' : '<span class="chip c-red">Inactivo</span>'}<div class="small muted">${esc(u.email||'')} · ${ROL[u.rol]}</div><div class="small" data-pn="${u.id}"></div></div><button class="btn sm ghost" data-u="${u.id}">Editar</button></div>`).join('')}`;
+  rpc('push_estado_usuarios').then(d => { const m = {}; (d || []).forEach(x => m[x.user_id] = x);
+    document.querySelectorAll('[data-pn]').forEach(el => { const x = m[el.dataset.pn], u = S.perfiles[el.dataset.pn]; if (!u || !u.activo) return;
+      el.innerHTML = x ? `<span style="color:var(--green)">🔔 Notificaciones activas · ${x.dispositivos} dispositivo${x.dispositivos > 1 ? 's' : ''} · ${fDT(x.ultimo)}</span>` : '<span style="color:var(--red);font-weight:600">🔕 Sin notificaciones: no recibe avisos</span>'; }); }).catch(() => {});
   $('#main').insertAdjacentHTML('beforeend', `<h4 class="sec">👥 Empleados de Más Pisto (para referidos)</h4><div class="card" id="empAdmin"><div class="muted small">Cargando…</div></div>`);
   pintarEmpleados();
   $('#uNuevo').onclick = () => {
