@@ -343,6 +343,16 @@ table.ht td.nota{max-width:220px;overflow:hidden;text-overflow:ellipsis;color:va
 .bd-nav button i{width:9px;height:9px;border-radius:50%;background:var(--cc)}
 .bd-nav button b{color:var(--ink);font-variant-numeric:tabular-nums}
 .tarde{color:var(--red);font-weight:700}
+/* Alerta: tarjeta completa en amarillo (igual en modo claro y oscuro) */
+.kc.alerta,.card.sol.alerta{--card:#FFE477;--ink:#2b2100;--ink2:#5a4700;--gray:#5a4700;--line:#D9A800;background:#FFE477!important;color:#2b2100;border-color:#D9A800!important;box-shadow:0 0 0 2px #FFD400,var(--shadow);opacity:1!important;filter:none!important}
+.kc.alerta .nm,.card.sol.alerta .name{color:#2b2100}
+.al-ln{margin-top:5px;font-size:12.5px;font-weight:700;color:#7a1f00}
+.seg-ln{margin-top:5px;font-size:12.5px;font-weight:600;color:var(--blue)}
+.al-btns{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px} .al-btns .btn{min-height:38px;width:auto;flex:1 1 auto;white-space:nowrap}
+.esp-ops.sg-ops{grid-template-columns:1fr 1fr} .sg-ops .esp-op{font-size:13px;padding:9px 10px}
+.al-box{background:#FFE477;color:#2b2100;border:2px solid #D9A800;border-radius:14px;padding:12px 14px;margin:0 0 12px} .al-box .small{color:#5a4700;margin-top:2px}
+.seg-box{background:var(--blue-bg);color:var(--ink);border:1px solid var(--blue);border-radius:14px;padding:10px 14px;margin:0 0 12px}
+.al-band{display:flex;align-items:center;gap:6px;width:100%;text-align:left;background:#FFE477;color:#2b2100;border:2px solid #D9A800;border-radius:12px;padding:10px 12px;margin:0 0 10px;font:600 13.5px Inter,system-ui,sans-serif;cursor:pointer;min-height:44px} .al-band span{margin-left:auto;font-weight:700;white-space:nowrap}
 .bd-nav .tarde{background:var(--red-bg);border-radius:999px;padding:1px 7px;font-size:11.5px}
 .col-x{font-size:11.5px;font-weight:650;color:var(--ink2);margin-top:2px;font-variant-numeric:tabular-nums}
 .esp-ops{display:grid;grid-template-columns:1fr 1fr;gap:6px}
@@ -606,11 +616,16 @@ body.marco-cel #sheet > *{max-width:430px;margin-left:auto;margin-right:auto}
 // App disponible sin señal (sw.js debe estar junto a index.html). Va primero para registrarse aunque falle otra cosa.
 if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) navigator.serviceWorker.register('sw.js').catch(() => {});
 // Versión de esta copia de la app: cambia en cada entrega. La app la compara con la publicada y se actualiza sola.
-const APP_VER = '2026-11-11.0900';
+const APP_VER = '2026-11-11.1100';
 // Novedades que ve cada usuario al abrir una versión nueva (la más reciente primero).
 // Al publicar cambios: subir APP_VER y agregar aquí una entrada con la misma versión.
 // r = roles que la ven (sin r = todos; el admin ve todo).
 const NOVEDADES = [
+  { v:'2026-11-11.1100', f:'11 de noviembre de 2026', items:[
+    { i:'📅', t:'Reprogramar el seguimiento de una solicitud',
+      d:'Cuando el cliente dice que no puede atender hasta otra hora u otro día, abra la solicitud y toque "📅 Reprogramar seguimiento": elija la fecha y la hora (hay opciones rápidas como "En 1 hora" o "Mañana 9:00 a. m.") y, si quiere, una nota. La solicitud queda en espera y, cuando llega la hora, le llega una notificación y la tarjeta se pone amarilla hasta que marque "Ya lo contacté" o la reprograme.' },
+    { i:'⚠️', t:'Nueva pestaña Alertas: solicitudes con más de 48 horas',
+      d:'Las solicitudes que llevan más de 48 horas desde que se crearon y siguen pendientes (aunque estén en espera) aparecen en la pestaña Alertas y su tarjeta se ve amarilla en todas las listas y en el tablero. El asesor confirma con un toque: "Sí continúa" (se vuelve a preguntar en 48 horas), "Reprogramar" (no vuelve a alertar hasta esa fecha) o "No se realizará" (se cierra). Cada mañana llega un aviso con cuántas tiene pendientes de confirmar.' } ] },
   { v:'2026-11-11.0900', f:'11 de noviembre de 2026', items:[
     { i:'💸', t:'Transferencias por confirmar: el aviso le llega al gerente', r:['admin'],
       d:'En Usuarios → Editar hay una opción nueva, "Notificaciones": "Las de su rol" o "Solo transferencias por confirmar (gerente)". Quien tenga la segunda recibe únicamente el aviso cuando una solicitud queda lista para transferir, y los analistas dejan de recibirlo (el administrador sigue recibiendo todo). Si nadie la tiene, el aviso sigue llegando a los analistas como antes.' } ] },
@@ -682,7 +697,7 @@ const TIPO = { nuevo:'Nuevo', reingreso:'Reingreso', refinanciamiento:'Refinanci
 const ROL = { asesor:'Asesor', analista:'Analista', verificador:'Verificador', admin:'Administrador' };
 const ITEM = { domicilio:'Visita a domicilio', trabajo:'Visita a trabajo', foto_perfil:'Foto de perfil del cliente',
   referencias:'Referencias familiares', entrega_efectivo:'Entrega de efectivo' };
-const ACC = { creada:'Creó la solicitud', enviada_analisis:'Envió a análisis', devuelta_asesor:'Devolvió al asesor',
+const ACC = { seguimiento_programado:'Programó seguimiento', seguimiento_hecho:'Hizo el seguimiento', confirmada_vigente:'Confirmó que continúa', creada:'Creó la solicitud', enviada_analisis:'Envió a análisis', devuelta_asesor:'Devolvió al asesor',
   dictamen_aprobada:'Aprobó', dictamen_denegada:'Denegó', enviada_verificacion:'Envió a verificación',
   enviada_desembolso:'Envió a desembolso por transferencia', verificacion_ok:'Verificación exitosa',
   verificacion_rechazada:'Rechazó en verificación', desembolsada:'Marcó como desembolsada', desistida:'Cliente desistió',
@@ -1409,13 +1424,14 @@ function tabsRol(){
     todas:['todas','Todas', s => true],
     historial:['historial','Historial'],
     tablero:['tablero','Tablero', s => false],
+    alertas:['alertas','⚠️ Alertas', s => mio(s) && !!alertaDe(s)],
     refi:['refi','Refinanciar'],
     stats:['stats','Estadísticas'], referidos:['referidos','Referidos'], usuarios:['usuarios','Usuarios'], params:['params','Parámetros'], pagos:['pagos','Pago verificadores'], vercomo:['vercomo','👁 Vista verificador']
   };
-  const m = { asesor:['tablero','solicitudes','revisadas','proceso','verificar','todas','refi','historial','stats'],
-    analista:['tablero','analisis','desembolsos','todas','refi','referidos','historial','stats'],
+  const m = { asesor:['tablero','alertas','solicitudes','revisadas','proceso','verificar','todas','refi','historial','stats'],
+    analista:['tablero','alertas','analisis','desembolsos','todas','refi','referidos','historial','stats'],
     verificador:['verificar','tablero','verificadas','historial','stats'],
-    admin:['tablero','solicitudes','revisadas','analisis','verificar','desembolsos','todas','refi','referidos','historial','stats','pagos','vercomo','usuarios','params'] };
+    admin:['tablero','alertas','solicitudes','revisadas','analisis','verificar','desembolsos','todas','refi','referidos','historial','stats','pagos','vercomo','usuarios','params'] };
   return m[rol()].map(k => T[k]);
 }
 function pintarTabs(){
@@ -1885,6 +1901,10 @@ function pintar(){
     if (es('analista')) extra += `<div class="btns" style="margin:0 0 8px"><button class="btn ghost sm" id="irCtrlVis">📋 Control de visitas por verificador</button></div>`;
     if (ef.length) extra += `<div class="alert ok" style="font-size:15px">💵 Efectivo a entregar: <b style="font:800 22px Poppins,Inter,sans-serif">${L(tot)}</b> en ${ef.length} solicitud(es)${lista.some(s => s.en_espera && s.forma_desembolso === 'efectivo') ? ' · no incluye las que están en espera' : ''}</div>`;
   }
+  if (S.tab === 'alertas'){
+    extra = `<div class="alert info small">Solicitudes abiertas con más de <b>${ALERTA_H()} horas</b> desde que se crearon, o con un seguimiento cuya hora ya llegó. Confirme si continúan, reprograme el seguimiento o ciérrelas. Las reprogramadas no aparecen aquí hasta que llegue su fecha.</div>`;
+    lista.sort((a, b) => new Date(a.creado_en) - new Date(b.creado_en));
+  }
   if (S.tab === 'revisadas'){
     const ap = lista.filter(s => s.estado === 'aprobada').length, dn = lista.length - ap;
     extra = `<div class="alert info small">${ap} aprobada(s) por completar con el cliente · ${dn} denegada(s) en los últimos 15 días</div>`;
@@ -2131,13 +2151,15 @@ function cardSol(s, ctx){
   const fecha = CERRADAS.includes(s.estado) ? hace(s.cerrado_en || s.estado_desde || s.creado_en) : s.en_espera ? `En espera ${hace(s.espera_desde).replace(/^hace /,'')}` : `En este paso ${hace(s.estado_desde || s.creado_en).replace(/^hace /,'')}`;
   let extra = '';
   if (s.estado === 'desembolso_pendiente' || s.forma_desembolso) extra = `<span>${s.forma_desembolso === 'transferencia' ? '🏦 Transferencia' : s.forma_desembolso === 'efectivo' ? '💵 Efectivo' : ''}</span>`;
-  return `<div class="card sol${s.en_espera ? ' espera' : ''}" data-id="${s.id}" style="${rcVars(colorDe(s.estado))}">
+  const al = alertaDe(s);
+  return `<div class="card sol${s.en_espera ? ' espera' : ''}${al ? ' alerta' : ''}" data-id="${s.id}" style="${rcVars(colorDe(s.estado))}">
     <div class="main">
       <div style="margin-bottom:4px">${rolPill(s)}</div>
       <div class="name-row"><div class="name">${esc(s.nombre_cliente)}</div>${cpyBtn(s.nombre_cliente)}</div>
       <div class="sub"><span>${esc(s.codigo)}</span>${tipoChip(s.tipo)}${pendChip(s)}<span>👤 ${esc(nombre(s.asesor_id))}</span>${extra}${c}</div>
       ${entregaHTML(s)}
       ${s.en_espera && s.espera_motivo ? `<div class="small" style="color:var(--gray);margin-top:3px">⏸ ${esc(s.espera_motivo)}</div>` : ''}
+      ${segLinea(s)}${al && S.tab === 'alertas' ? alBtns(s, al) : ''}
       ${ctx && ctx.asignar && s.estado === 'por_verificar' ? `<button class="btn sm ok" data-wa="${s.id}" data-stop style="margin-top:6px">💬 WhatsApp al cliente</button>` : ''}
       ${ctx ? locHTML(s, ctx.parada ? `<span class="parada">${ctx.parada}</span>${ctx.d != null ? `<span class="km">${fKm(ctx.d)}</span>` : ''}` : ctx.d != null ? `<span class="km">a ${fKm(ctx.d)}</span>` : '') + (ctx.asignar ? asignarHTML(s) : '') : ''}
     </div>
@@ -2249,6 +2271,70 @@ function pedirTexto(titulo, placeholder, okTxt, cls='pri'){
     const obs = new MutationObserver(() => { if (!w.isConnected){ obs.disconnect(); res(null); } }); obs.observe(document.body, { childList:true });
   });
 }
+
+// ================== Seguimiento reprogramado y alertas ==================
+const ALERTA_H = () => +S.params.alerta_horas || 48;
+// Alerta de una solicitud abierta: seguimiento cuya hora ya llegó, o más de N horas desde que se creó sin confirmar.
+// Con un seguimiento programado a futuro no alerta.
+function alertaDe(s){
+  if (!s || s.importado || CERRADAS.includes(s.estado)) return null;
+  const ah = Date.now();
+  if (s.seguimiento_en) return new Date(s.seguimiento_en).getTime() <= ah ? { k:'seg', t:'Seguimiento pendiente' } : null;
+  const lim = ALERTA_H() * 3600e3;
+  if (ah - new Date(s.creado_en).getTime() > lim && (!s.vigente_en || ah - new Date(s.vigente_en).getTime() > lim)) return { k:'vieja', t:`Más de ${ALERTA_H()} h pendiente` };
+  return null;
+}
+const segLinea = s => { const a = alertaDe(s);
+  if (a) return `<div class="al-ln">⚠️ ${a.t}${a.k === 'seg' ? ' · era ' + fDT(s.seguimiento_en) : ' · creada ' + hace(s.creado_en)}${s.seguimiento_nota ? ' · ' + esc(s.seguimiento_nota) : ''}</div>`;
+  return s.seguimiento_en && !CERRADAS.includes(s.estado) ? `<div class="seg-ln">📅 Seguimiento ${fDT(s.seguimiento_en)}${s.seguimiento_nota ? ' · ' + esc(s.seguimiento_nota) : ''}</div>` : ''; };
+const alBtns = (s, a, sm = true) => { const c = `class="btn ${sm ? 'sm ' : ''}`, d = `data-sid="${s.id}" data-stop`, puede = es('asesor', 'analista');
+  return `<div class="al-btns">${a.k === 'seg' ? `<button ${c}ok" data-al="hecho" ${d}>✔ Ya lo contacté</button>` : puede ? `<button ${c}ok" data-al="si" ${d}>✅ Sí continúa</button>` : ''}<button ${c}pri" data-al="rep" ${d}>📅 Reprogramar</button>${puede ? `<button ${c}ghost" data-al="no" ${d} style="color:var(--red)">🚫 No se realizará</button>` : ''}</div>`; };
+function seguimientoTopHTML(s){
+  if (CERRADAS.includes(s.estado) || s.importado) return '';
+  const a = alertaDe(s);
+  if (a) return `<div class="al-box"><b>⚠️ ${a.k === 'seg' ? 'Llegó la hora del seguimiento' : `Lleva más de ${ALERTA_H()} horas pendiente`}</b>
+    <div class="small">${a.k === 'seg' ? `Programado para ${fDT(s.seguimiento_en)}${s.seguimiento_nota ? ' · ' + esc(s.seguimiento_nota) : ''}. Contacte al cliente y marque el resultado.` : `Se creó ${hace(s.creado_en)}. Confirme si se va a realizar, reprograme el seguimiento o ciérrela.`}</div>${alBtns(s, a, false)}</div>`;
+  if (s.seguimiento_en) return `<div class="seg-box"><b>📅 Seguimiento programado · ${fDT(s.seguimiento_en)}</b>${s.seguimiento_nota ? `<div class="small">${esc(s.seguimiento_nota)}</div>` : ''}
+    <div class="al-btns"><button class="btn sm ok" data-al="hecho" data-sid="${s.id}">✔ Ya lo contacté</button><button class="btn sm ghost" data-al="rep" data-sid="${s.id}">Cambiar fecha</button></div></div>`;
+  return '';
+}
+function pedirSeguimiento(s){
+  return new Promise(res => {
+    const pad = n => String(n).padStart(2, '0'), loc = d => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+    const en = (dias, h) => { const d = new Date(); d.setDate(d.getDate() + dias); d.setHours(h, 0, 0, 0); return d; }, ah = Date.now();
+    const ops = [['En 1 hora', new Date(ah + 3600e3)], ['En 2 horas', new Date(ah + 7200e3)], ['Hoy 2:00 p. m.', en(0, 14)], ['Hoy 4:00 p. m.', en(0, 16)], ['Mañana 9:00 a. m.', en(1, 9)], ['Mañana 2:00 p. m.', en(1, 14)], ['Pasado mañana 9:00 a. m.', en(2, 9)]]
+      .filter(([t, d]) => d.getTime() > ah + 20 * 60e3 && (t.startsWith('En ') || d.getDay() !== 0));
+    const w = dialogo(`<h3>📅 Reprogramar seguimiento</h3><div class="small muted">${esc(s.nombre_cliente)} · ¿cuándo hay que volver a contactarlo? Le llegará un aviso a esa hora.</div>
+      <div class="esp-ops sg-ops" style="margin-top:10px">${ops.map(([t, d], i) => `<button type="button" class="esp-op" data-i="${i}">${t}</button>`).join('')}</div>
+      <label class="f">O elija fecha y hora</label><input type="datetime-local" id="sgF" min="${loc(new Date())}" value="${s.seguimiento_en && new Date(s.seguimiento_en).getTime() > ah ? loc(new Date(s.seguimiento_en)) : ''}">
+      <label class="f">Nota (opcional)</label><textarea id="sgN" rows="2" placeholder="Ej. sale de trabajar a las 5, llamarle después">${esc(s.seguimiento_nota || '')}</textarea>
+      ${s.en_espera ? '' : '<label class="chk" style="margin-top:8px"><input type="checkbox" id="sgE" checked> ⏸ Dejarla en espera hasta entonces</label>'}
+      <div class="btns"><button class="btn ghost" data-close>Cancelar</button><button class="btn pri" id="sgOk">Guardar seguimiento</button></div>`);
+    w.querySelectorAll('.esp-op').forEach(b => b.onclick = () => { w.querySelector('#sgF').value = loc(ops[+b.dataset.i][1]); w.querySelectorAll('.esp-op').forEach(x => x.classList.toggle('on', x === b)); });
+    w.querySelector('#sgF').addEventListener('input', () => w.querySelectorAll('.esp-op').forEach(x => x.classList.remove('on')));
+    w.querySelector('#sgOk').onclick = () => { const v = w.querySelector('#sgF').value, d = v ? new Date(v) : null;
+      if (!d || isNaN(d)) return toast('Elija la fecha y la hora', true);
+      if (d.getTime() <= Date.now()) return toast('Elija una hora que todavía no haya pasado', true);
+      const r = { cuando: d.toISOString(), nota: w.querySelector('#sgN').value.trim() || null, espera: w.querySelector('#sgE') ? w.querySelector('#sgE').checked : false };
+      cerrarDialogo(w); res(r); };
+    const obs = new MutationObserver(() => { if (!w.isConnected){ obs.disconnect(); res(null); } }); obs.observe(document.body, { childList:true });
+  });
+}
+// Botones de alerta / seguimiento (en tarjetas, listas y detalle): un solo manejador para toda la app
+document.addEventListener('click', async e => {
+  const b = e.target.closest && e.target.closest('[data-al]'); if (!b) return;
+  e.preventDefault(); e.stopPropagation();
+  const s = S.sols.find(x => x.id === +b.dataset.sid); if (!s) return;
+  const tras = async msg => { toast(msg); await cargarSolicitudes(); pintarTabs();
+    if (!$('#sheet').classList.contains('hidden')){ S.dirty = false; if (S.sols.find(x => x.id === s.id && !CERRADAS.includes(x.estado))) await abrirDetalle(s.id, true); else { await cerrarDetalle(); pintar(); } } else pintar(); };
+  const k = b.dataset.al;
+  if (k === 'si') return run(b, async () => { await rpc('confirmar_vigente', { p_id: s.id, p_nota: null }); await tras(`Confirmada: se volverá a preguntar en ${ALERTA_H()} horas`); });
+  if (k === 'hecho') return run(b, async () => { await rpc('seguimiento_hecho', { p_id: s.id, p_nota: null }); if (s.en_espera && s.espera_categoria === 'cliente_ausente') await rpc('reanudar', { p_id: s.id, p_nota: 'Seguimiento realizado' }); await tras('Seguimiento realizado'); });
+  if (k === 'rep'){ const r = await pedirSeguimiento(s); if (!r) return;
+    return run(b, async () => { await rpc('programar_seguimiento', { p_id: s.id, p_cuando: r.cuando, p_nota: r.nota, p_espera: r.espera }); await tras('📅 Seguimiento programado para ' + fDT(r.cuando)); }); }
+  if (k === 'no'){ const m = await pedirTexto('No se realizará · cerrar solicitud', 'Motivo (ej. el cliente ya no lo necesita)', 'Cerrar solicitud', 'bad'); if (!m) return;
+    return run(b, async () => { await rpc('desistir', { p_id: s.id, p_motivo: m }); await tras('Solicitud cerrada'); }); }
+}, true);
 
 // ================== Motivos de espera (lista fija) ==================
 const ESP_CAT = {
@@ -2489,7 +2575,7 @@ function renderDetalle(){
   $('#sheetTitle').textContent = s.nombre_cliente; $('#sheetCopy').dataset.cpy = s.nombre_cliente; $('#sheetCopy').innerHTML = ICO_COPIAR; $('#sheetChip').innerHTML = chip(s.estado);
   let n = 0; const col = { m:'', s:'' };
   h.split('\u0001').forEach(p => { const html = p.slice(1).trim(); if (html) col[p[0]] += `<div class="det-it" style="order:${++n}">${html}</div>`; });
-  const arriba = s.estado === 'desembolso_pendiente' ? desembolsoTopHTML(s, evs) : '';
+  const arriba = seguimientoTopHTML(s) + (s.estado === 'desembolso_pendiente' ? desembolsoTopHTML(s, evs) : '');
   $('#sheetBody').innerHTML = `${arriba}<div class="det-cols"><div class="det-col det-main">${col.m}</div><div class="det-col det-side">${col.s}</div></div>`;
   plegarSecciones();
   enlazarDetalle(s, c);
@@ -2690,7 +2776,7 @@ function accionesHTML(s, c){
     h += `<div class="btns"><button class="btn ghost sm" id="tBack">↩ Regresar a revisadas del asesor</button></div>`;
   }
   if (abierta && !s.en_espera)
-    h += `<div class="btns"><button class="btn ghost sm" id="ePoner" style="color:var(--gray)">⏸ Poner en espera</button></div>`;
+    h += `<div class="btns"><button class="btn ghost sm" data-al="rep" data-sid="${s.id}">📅 Reprogramar seguimiento</button><button class="btn ghost sm" id="ePoner" style="color:var(--gray)">⏸ Poner en espera</button></div>`;
   if (abierta && es('asesor','analista') && s.estado !== 'desembolso_pendiente')
     h += `<div class="btns"><button class="btn ghost sm" id="aDesistir" style="color:var(--red)">Cliente desistió / cerrar</button></div>`;
   if (puedeRepetir(s))
@@ -4508,7 +4594,8 @@ function pintarTablero(){
     </div>
     ${(() => { const ahoraB = new Date(), listas = COLS.map(c => [c, enCol(c)]);
       const tarde = l => l.filter(s => abiertas(s) && !s.en_espera && semPaso(segHabiles(s.estado_desde || s.actualizado_en, ahoraB)) === 'late').length;
-      return `<div class="bd-nav">${listas.map(([c, l]) => { const t = c.espera || c.k === 'fin' ? 0 : tarde(l); return `<button type="button" data-ir="${c.k}" style="--cc:${c.c}"><i></i>${c.t.replace('⏸ ', '')} <b>${l.length}</b>${t ? `<span class="tarde" title="Pasaron el tiempo meta del paso">${t} ⏰</span>` : ''}</button>`; }).join('')}</div>
+      const nAl = esHoy ? base.filter(s => alertaDe(s)).length : 0;
+      return `${nAl ? `<button type="button" class="al-band" id="irAlertas">⚠️ <b>${nAl}</b> solicitud${nAl > 1 ? 'es requieren' : ' requiere'} confirmación o seguimiento <span>Ver alertas ›</span></button>` : ''}<div class="bd-nav">${listas.map(([c, l]) => { const t = c.espera || c.k === 'fin' ? 0 : tarde(l); return `<button type="button" data-ir="${c.k}" style="--cc:${c.c}"><i></i>${c.t.replace('⏸ ', '')} <b>${l.length}</b>${t ? `<span class="tarde" title="Pasaron el tiempo meta del paso">${t} ⏰</span>` : ''}</button>`; }).join('')}</div>
     <div class="board-wrap"><div class="board">${listas.map(([c, l]) => { const t = c.espera || c.k === 'fin' ? 0 : tarde(l);
       const cap = c.k === 'fin' ? l.filter(s => s.estado === 'desembolsada').reduce((a, s) => a + capitalColocado(s), 0) : c.monto ? l.reduce((a, s) => a + capitalColocado(s), 0) : 0;
       const extra = [c.k === 'fin' && l.length ? `${l.filter(s => s.estado === 'desembolsada').length} desembolsada(s)` : '', cap ? L(cap) : '', t ? `<span class="tarde">${t} fuera de tiempo</span>` : ''].filter(Boolean).join(' · ');
@@ -4521,6 +4608,7 @@ function pintarTablero(){
     const n = +b.dataset.dd; if (!n){ S.boardDay = hoy; } else { const d = new Date(S.boardDay + 'T12:00'); d.setDate(d.getDate() + n); S.boardDay = d.toLocaleDateString('en-CA'); }
     pintarTablero(); });
   $('#main').querySelectorAll('[data-bt]').forEach(b => b.onclick = () => { S.boardTodos = b.dataset.bt === '1'; pintarTablero(); });
+  if ($('#irAlertas')) $('#irAlertas').onclick = () => { S.tab = 'alertas'; S.q = ''; pintarTabs(); pintar(); window.scrollTo(0, 0); };
   $('#main').querySelectorAll('[data-ir]').forEach(b => b.onclick = () => { const c = $('#main').querySelector(`[data-col="${b.dataset.ir}"]`); if (c) c.scrollIntoView({ behavior:'smooth', inline:'start', block:'nearest' }); });
   if ($('#kProc')) $('#kProc').onclick = () => {
     const w = dialogo(`<h3>En proceso de colocación</h3><div class="small muted">Solicitudes aprobadas que aún no se desembolsan (completar datos, verificación o transferencia pendiente). Capital nuevo = monto que toma el cliente − saldo de capital anterior.</div>
@@ -4550,14 +4638,14 @@ function cardK(s, dia){
     tm = `<span class="${s.estado === 'desembolsada' ? (t != null && t <= (S.params.meta_total_min||0)*60 ? 'good' : 'warn') : ''}" title="Tiempo hábil total">⏱ ${fmtDur(t)}</span><span>${fDT(s.cerrado_en || s.actualizado_en).split(',').pop().trim()}</span>`;
   }
   const previo = ab && diaHN(s.creado_en) < dia ? `<span class="chip c-gray">desde ${fDate(s.creado_en).replace(/ de \d{4}$/,'')}</span>` : '';
-  return `<div class="kc${s.en_espera ? ' espera' : ''}" data-id="${s.id}" style="${rcVars(colorDe(s.estado))}">
+  return `<div class="kc${s.en_espera ? ' espera' : ''}${alertaDe(s) ? ' alerta' : ''}" data-id="${s.id}" style="${rcVars(colorDe(s.estado))}">
     <div class="rolbar">${rolPill(s)}${previo}</div>
     <div class="nm">${conCopiar(s.nombre_cliente)}</div>
     <div class="ln">${ab && !s.en_espera ? '' : chip(s.estado)}${tipoChip(s.tipo)}${esperaChip(s)}${pendChip(s)}${s.estado === 'por_verificar' && !s.verificador_id && !s.en_espera ? '<span class="chip c-red">⚠ Sin verificador</span>' : ''}</div>
     ${s.en_espera ? `<div class="ln" style="color:var(--gray)">${ESP_CAT[s.espera_categoria]?.i || '⏸'} ${esc(s.espera_motivo||'')} · ${hace(s.espera_desde)}</div>` : ''}
     <div class="ln"><span>${esc(s.codigo)}</span><span>👤 ${esc(nombre(s.asesor_id).split(' ')[0])}</span>${monto ? `<b style="color:var(--ink)">${monto}</b>` : ''}${S.com[s.id] ? `<span>💬 ${S.com[s.id]}</span>` : ''}</div>
     ${['aprobada','por_verificar'].includes(s.estado) && (sectorDe(s) || ciudadDe(s)) ? `<div class="ln">📍 ${esc([sectorDe(s), ciudadDe(s)].filter(Boolean).join(' · '))}</div>` : ''}
-    ${entregaHTML(s, true)}
+    ${entregaHTML(s, true)}${segLinea(s)}
     <div class="tm">${tm}</div></div>`;
 }
 // ================== Día de colocación (selector al desembolsar) ==================

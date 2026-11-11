@@ -62,6 +62,11 @@ async function evento(ev: Record<string, any>) {
     const L = (n: number) => 'L ' + Math.round(n).toLocaleString('es-HN');
     return enviar((perf || []).map((p) => p.id as string), { title: '🎉 ¡Meta del día alcanzada!', body: `Colocado ${L(ev.monto)} de ${L(ev.meta)}. ¡Excelente trabajo, equipo!` });
   }
+  if (ev.tabla === 'directo') {   // aviso armado por la base (seguimientos, alertas): va solo a las personas indicadas
+    const activos = new Set((perf || []).map((p) => p.id as string));
+    const ids = (Array.isArray(ev.ids) ? ev.ids : []).filter((id: string) => activos.has(id));
+    return enviar(ids, { title: String(ev.titulo || 'VerifyCredit').slice(0, 80), body: String(ev.cuerpo || '').slice(0, 300), id: ev.id || undefined, k: ev.k || undefined });
+  }
   if (ev.tabla === 'comentarios') {
     const { data } = await sb.from('solicitudes').select('id, codigo, nombre_cliente, asesor_id, analista_id, verificador_id').eq('id', ev.solicitud).maybeSingle();
     if (!data) return 0;
