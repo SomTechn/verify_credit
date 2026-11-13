@@ -343,6 +343,9 @@ table.ht td.nota{max-width:220px;overflow:hidden;text-overflow:ellipsis;color:va
 .bd-nav button i{width:9px;height:9px;border-radius:50%;background:var(--cc)}
 .bd-nav button b{color:var(--ink);font-variant-numeric:tabular-nums}
 .tarde{color:var(--red);font-weight:700}
+.fc-top{display:flex;align-items:center;gap:10px;justify-content:space-between;flex-wrap:wrap;background:var(--green-bg);border:1px solid var(--green);border-radius:14px;padding:10px 14px;margin:0 0 12px}
+.fc-top b{font:700 17px Poppins,Inter,sans-serif;color:var(--ink)}
+.fc-ed{display:inline-block;margin-top:3px;border:1px solid var(--line);background:var(--card);color:var(--blue);border-radius:999px;padding:3px 9px;font:600 11.5px Inter,sans-serif;cursor:pointer;white-space:nowrap}
 /* Alerta: tarjeta completa en amarillo (igual en modo claro y oscuro) */
 .kc.alerta,.card.sol.alerta{--card:#FFE477;--ink:#2b2100;--ink2:#5a4700;--gray:#5a4700;--line:#D9A800;background:#FFE477!important;color:#2b2100;border-color:#D9A800!important;box-shadow:0 0 0 2px #FFD400,var(--shadow);opacity:1!important;filter:none!important}
 .kc.alerta .nm,.card.sol.alerta .name{color:#2b2100}
@@ -616,11 +619,16 @@ body.marco-cel #sheet > *{max-width:430px;margin-left:auto;margin-right:auto}
 // App disponible sin señal (sw.js debe estar junto a index.html). Va primero para registrarse aunque falle otra cosa.
 if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) navigator.serviceWorker.register('sw.js').catch(() => {});
 // Versión de esta copia de la app: cambia en cada entrega. La app la compara con la publicada y se actualiza sola.
-const APP_VER = '2026-11-11.1600';
+const APP_VER = '2026-11-13.1500';
 // Novedades que ve cada usuario al abrir una versión nueva (la más reciente primero).
 // Al publicar cambios: subir APP_VER y agregar aquí una entrada con la misma versión.
 // r = roles que la ven (sin r = todos; el admin ve todo).
 const NOVEDADES = [
+  { v:'2026-11-13.1500', f:'13 de noviembre de 2026', items:[
+    { i:'✏️', t:'Cambiar la fecha de un desembolso es más fácil', r:['analista'],
+      d:'En las solicitudes desembolsadas, la fecha en que cuenta el desembolso aparece arriba de todo en el detalle, con el botón "✏️ Cambiar fecha". También puede cambiarla directo desde el Historial con el botón "✏️ Cambiar" debajo de la fecha. El cambio se refleja en la meta, el tablero, las estadísticas y el Historial.' },
+    { i:'🛵', t:'Recordatorio: el asesor reasigna verificadores desde Por verificar', r:['asesor'],
+      d:'En la pestaña "Por verificar", cada tarjeta tiene el selector "Verificador" (y "Trabajo" si lo visita otro). Cambie el nombre y queda reasignada; al nuevo verificador le llega la notificación. También puede hacerlo desde la vista Mapa.' } ] },
   { v:'2026-11-11.1600', f:'11 de noviembre de 2026', items:[
     { i:'📅', t:'Desembolsos de solicitudes del mes anterior: hay que elegir el día real',
       d:'Si una solicitud se creó en el mes contable anterior (antes del día 9) y el desembolso se registra después, la app ya no pone "Hoy" por defecto: pide elegir el día en que realmente se entregó el dinero. Así el préstamo cuenta en el mes que corresponde en la meta y en todas las estadísticas.' } ] },
@@ -1431,7 +1439,7 @@ function tabsRol(){
     refi:['refi','Refinanciar'],
     stats:['stats','Estadísticas'], referidos:['referidos','Referidos'], usuarios:['usuarios','Usuarios'], params:['params','Parámetros'], pagos:['pagos','Pago verificadores'], vercomo:['vercomo','👁 Vista verificador']
   };
-  const m = { asesor:['tablero','alertas','solicitudes','revisadas','proceso','verificar','todas','refi','historial','stats'],
+  const m = { asesor:['tablero','alertas','solicitudes','revisadas','proceso','verificar',...(asesorDesembolsa() ? ['desembolsos'] : []),'todas','refi','historial','stats'],
     analista:['tablero','alertas','analisis','desembolsos','todas','refi','referidos','historial','stats'],
     verificador:['verificar','tablero','verificadas','historial','stats'],
     admin:['tablero','alertas','solicitudes','revisadas','analisis','verificar','desembolsos','todas','refi','referidos','historial','stats','pagos','vercomo','usuarios','params'] };
@@ -1877,6 +1885,8 @@ function pintarSuave(){
   const r = pintar(); if (r && typeof r.then === 'function') r.then(fin, fin); else { fin(); requestAnimationFrame(fin); }
 }
 function pintar(){
+  // Si la pestaña actual ya no está disponible para este usuario (p. ej. cambió un permiso), vuelve a la primera
+  if (!tabsRol().some(t => t[0] === S.tab) && !['tutoriales'].includes(S.tab)){ S.tab = tabsRol()[0][0]; pintarTabs(); }
   const tab = tabsRol().find(t => t[0] === S.tab);
   $('#main').classList.toggle('wide', ['tablero','historial','referidos'].includes(S.tab));
   $('#main').classList.toggle('board-wide', S.tab === 'tablero');
@@ -2277,6 +2287,8 @@ function pedirTexto(titulo, placeholder, okTxt, cls='pri'){
 
 // ================== Seguimiento reprogramado y alertas ==================
 const ALERTA_H = () => +S.params.alerta_horas || 48;
+const asesorDesembolsa = () => +S.params.asesor_desembolsa === 1;
+const puedeDesembolsar = () => es('analista') || (rol() === 'asesor' && asesorDesembolsa());
 // Alerta de una solicitud abierta: seguimiento cuya hora ya llegó, o más de N horas desde que se creó sin confirmar.
 // Con un seguimiento programado a futuro no alerta.
 function alertaDe(s){
@@ -2292,6 +2304,31 @@ const segLinea = s => { const a = alertaDe(s);
   return s.seguimiento_en && !CERRADAS.includes(s.estado) ? `<div class="seg-ln">📅 Seguimiento ${fDT(s.seguimiento_en)}${s.seguimiento_nota ? ' · ' + esc(s.seguimiento_nota) : ''}</div>` : ''; };
 const alBtns = (s, a, sm = true) => { const c = `class="btn ${sm ? 'sm ' : ''}`, d = `data-sid="${s.id}" data-stop`, puede = es('asesor', 'analista');
   return `<div class="al-btns">${a.k === 'seg' ? `<button ${c}ok" data-al="hecho" ${d}>✔ Ya lo contacté</button>` : puede ? `<button ${c}ok" data-al="si" ${d}>✅ Sí continúa</button>` : ''}<button ${c}pri" data-al="rep" ${d}>📅 Reprogramar</button>${puede ? `<button ${c}ghost" data-al="no" ${d} style="color:var(--red)">🚫 No se realizará</button>` : ''}</div>`; };
+// Día en que cuenta el desembolso: franja arriba del detalle y diálogo reutilizable (Historial, detalle, Desembolsos)
+function colocacionTopHTML(s){
+  if (s.estado !== 'desembolsada') return '';
+  const fc = diaColoc(s), real = diaHN(s.desembolsado_en);
+  return `<div class="fc-top"><div><div class="small muted">💰 Desembolsada · cuenta en la meta y las estadísticas del</div><b>${fc ? fDate(fc + 'T12:00') : '—'}</b>${real && real !== fc ? `<div class="small muted">Registrada en el sistema el ${fDate(real + 'T12:00')}</div>` : ''}</div>
+    ${es('analista') ? `<button class="btn sm pri" data-fcedit="${s.id}">✏️ Cambiar fecha</button>` : ''}</div>`;
+}
+function dialogoFechaColoc(s, despues){
+  const w = dialogo(`<h3>📅 Fecha del desembolso</h3><div class="small muted">${esc(s.nombre_cliente)} · ${esc(s.codigo)} · ${L(capitalColocado(s))}</div>
+    ${fechaColocHTML(s, 'fcDlg', diaColoc(s))}<label class="f">Nota (opcional)</label><input id="fcNota" placeholder="Ej. se entregó ese día y se registró después">
+    <div class="small muted" style="margin-top:6px">Cambia el día en que cuenta para la meta, el tablero, las estadísticas y el Historial. La hora real en que se registró no se modifica.</div>
+    <div class="btns"><button class="btn ghost" data-close>Cancelar</button><button class="btn pri" id="fcOk">Guardar</button></div>`);
+  enlazarFechaColoc(w);
+  w.querySelector('#fcOk').onclick = e => run(e.target, async () => {
+    const fc = leerFechaColoc(s, 'fcDlg');
+    if (fc === diaColoc(s)){ cerrarDialogo(w); return; }
+    await rpc('cambiar_fecha_colocacion', { p_id: s.id, p_fecha: fc, p_nota: w.querySelector('#fcNota').value || null });
+    cerrarDialogo(w); toast(`Desembolso: cuenta para el ${fDate(fc + 'T12:00')}`); await cargarSolicitudes(); if (despues) await despues(); });
+}
+document.addEventListener('click', e => {
+  const b = e.target.closest && e.target.closest('[data-fcedit]'); if (!b) return;
+  e.preventDefault(); e.stopPropagation();
+  const s = S.sols.find(x => x.id === +b.dataset.fcedit); if (!s) return;
+  dialogoFechaColoc(s, async () => { pintarTabs(); if (!$('#sheet').classList.contains('hidden')){ S.dirty = false; await abrirDetalle(s.id, true); } else pintar(); });
+}, true);
 function seguimientoTopHTML(s){
   if (CERRADAS.includes(s.estado) || s.importado) return '';
   const a = alertaDe(s);
@@ -2578,7 +2615,7 @@ function renderDetalle(){
   $('#sheetTitle').textContent = s.nombre_cliente; $('#sheetCopy').dataset.cpy = s.nombre_cliente; $('#sheetCopy').innerHTML = ICO_COPIAR; $('#sheetChip').innerHTML = chip(s.estado);
   let n = 0; const col = { m:'', s:'' };
   h.split('\u0001').forEach(p => { const html = p.slice(1).trim(); if (html) col[p[0]] += `<div class="det-it" style="order:${++n}">${html}</div>`; });
-  const arriba = seguimientoTopHTML(s) + (s.estado === 'desembolso_pendiente' ? desembolsoTopHTML(s, evs) : '');
+  const arriba = colocacionTopHTML(s) + seguimientoTopHTML(s) + (s.estado === 'desembolso_pendiente' ? desembolsoTopHTML(s, evs) : '');
   $('#sheetBody').innerHTML = `${arriba}<div class="det-cols"><div class="det-col det-main">${col.m}</div><div class="det-col det-side">${col.s}</div></div>`;
   plegarSecciones();
   enlazarDetalle(s, c);
@@ -2769,12 +2806,6 @@ function accionesHTML(s, c){
   // Asesor: completar (revisadas)
   if (s.estado === 'aprobada' && es('asesor')) h += completarHTML(s);
   // Desembolso por transferencia
-  if (s.estado === 'desembolsada'){
-    const fc = diaColoc(s), real = diaHN(s.desembolsado_en);
-    h += `<div class="card"><h4 class="sec" style="margin-top:0">📅 Colocación</h4>
-      <div>Cuenta en la meta y las estadísticas del <b>${fc ? fDate(fc + 'T12:00') : '—'}</b>${real && real !== fc ? `<div class="small muted">Se desembolsó el ${fDate(real + 'T12:00')}</div>` : ''}</div>
-      ${es('analista') ? `<div class="btns"><button class="btn ghost sm" id="fcCambiar">Cambiar el día</button></div>` : ''}</div>`;
-  }
   if (s.estado === 'por_verificar' && es('analista') && rol() !== 'verificador'){
     h += `<div class="btns"><button class="btn ghost sm" id="tBack">↩ Regresar a revisadas del asesor</button></div>`;
   }
@@ -2995,16 +3026,6 @@ function enlazarDetalle(s, c){
 
   // Desembolso
   enlazarFechaColoc(document.body);
-  if ($('#fcCambiar')) $('#fcCambiar').onclick = () => {
-    const w = dialogo(`<h3>Día en que cuenta la colocación</h3><div class="small muted">${esc(s.nombre_cliente)} · ${esc(s.codigo)}</div>
-      ${fechaColocHTML(s, 'fcDlg', diaColoc(s))}<label class="f">Nota (opcional)</label><input id="fcNota" placeholder="Ej. el desembolso tocaba ese día">
-      <div class="btns"><button class="btn ghost" data-close>Cancelar</button><button class="btn pri" id="fcOk">Guardar</button></div>`);
-    enlazarFechaColoc(w);
-    w.querySelector('#fcOk').onclick = e => run(e.target, async () => {
-      const fc = leerFechaColoc(s, 'fcDlg');
-      await rpc('cambiar_fecha_colocacion', { p_id: s.id, p_fecha: fc, p_nota: w.querySelector('#fcNota').value || null });
-      cerrarDialogo(w); toast(`Cuenta para el ${fDate(fc + 'T12:00')}`); await refrescar(); });
-  };
   if ($('#tFc')) $('#tFc').addEventListener('input', () => { const v = $('#tFc').value; $('#tFcTxt').textContent = v === hoyHN() ? 'Hoy' : v ? fDate(v + 'T12:00') : '—'; });
   if ($('#dtSubirCf')) $('#dtSubirCf').onclick = () => abrirContratoFirmado(S.detData.s);
   enlazarTasa(s);
@@ -3571,10 +3592,10 @@ function desembolsoTopHTML(s, evs){
       ${eV || s.verificado_en ? fila('🔎', 'Verificador', esc(nombre(eV?.usuario_id || s.verificador_id) || '—'), 'Verificó', eV ? fDT(eV.creado_en) : fDT(s.verificado_en))
         : fila('🔎', 'Verificador', '<span class="muted">No requirió verificación</span>', '', '')}
     </div>
-    ${es('analista') ? `<details class="dt-mas"${diaHN(s.creado_en) < inicioMesContable() ? ' open' : ''}><summary class="small">📅 Día en que cuenta la colocación: <b id="tFcTxt">${diaHN(s.creado_en) < inicioMesContable() ? 'elija el día real' : 'Hoy'}</b> (cambiar)</summary>${fechaColocHTML(s, 'tFc')}</details>
+    ${puedeDesembolsar() ? `<details class="dt-mas"${diaHN(s.creado_en) < inicioMesContable() ? ' open' : ''}><summary class="small">📅 Día en que cuenta la colocación: <b id="tFcTxt">${diaHN(s.creado_en) < inicioMesContable() ? 'elija el día real' : 'Hoy'}</b> (cambiar)</summary>${fechaColocHTML(s, 'tFc')}</details>
       <div class="btns"><button class="btn ok" id="tOk" style="font-size:17px;padding:14px 22px;flex:1">✅ Confirmar desembolso · ${L(refi ? libre : monto)}</button></div>
-      <div class="btns" style="margin-top:6px"><button class="btn ghost sm" id="tBack">↩ Regresar al asesor</button></div>`
-      : `<div class="small muted" style="margin-top:8px">El analista confirma el desembolso cuando haga la transferencia.</div>`}
+      ${es('analista') ? `<div class="btns" style="margin-top:6px"><button class="btn ghost sm" id="tBack">↩ Regresar al asesor</button></div>` : ''}`
+      : `<div class="small muted" style="margin-top:8px">El asesor o el analista confirma el desembolso cuando haga la transferencia.</div>`}
   </div>`;
 }
 
@@ -4659,7 +4680,7 @@ function fechaColocHTML(s, id, valor){
   const d = new Date(hoy + 'T12:00'); d.setDate(d.getDate() - 1); const ayer = d.toLocaleDateString('en-CA');
   const corta = f => fDate(f + 'T12:00').replace(/\s*(de\s*)?\d{4}$/, '');
   const op = [[hoy, 'Hoy'], ...(ayer >= ini ? [[ayer, 'Ayer']] : []), ...(ini < ayer ? [[ini, 'Día de la solicitud · ' + corta(ini)]] : [])];
-  return `${mesAnt ? `<div class="alert warn small" style="margin-bottom:6px">⚠️ Esta solicitud se creó el <b>${corta(ini)}</b>, en el mes contable anterior. Elija el día en que <b>realmente se entregó</b> el dinero: si fue antes del 9, cuenta en el mes anterior.</div>` : ''}<label class="f">📅 Cuenta en la colocación del día</label>
+  return `${mesAnt && !valor ? `<div class="alert warn small" style="margin-bottom:6px">⚠️ Esta solicitud se creó el <b>${corta(ini)}</b>, en el mes contable anterior. Elija el día en que <b>realmente se entregó</b> el dinero: si fue antes del 9, cuenta en el mes anterior.</div>` : ''}<label class="f">📅 Cuenta en la colocación del día</label>
     <div class="fcol"><input type="date" id="${id}" value="${v}" min="${ini}" max="${hoy}">
     ${op.map(([f, t]) => `<button type="button" class="btn sm ${f === v ? 'pri' : 'ghost'}" data-fc="${id}" data-v="${f}">${t}</button>`).join('')}</div>
     <div class="small muted">Si el desembolso tocaba otro día y se hace después, elija ese día: la meta y las estadísticas lo cuentan ahí.</div>`;
@@ -4894,7 +4915,7 @@ setInterval(() => {
 
 // ================== Historial (tabla con filtros y orden) ==================
 const H_COLS = [
-  { k:'fecha', t:'Fecha', v:s => hFecha(s), h:s => { const f = hFecha(s); return f ? `${fDate(f)}<div class="small muted">${new Date(f).toLocaleTimeString('es-HN',{timeZone:TZ,hour:'numeric',minute:'2-digit'})}</div>` : '—'; }, csv:s => hFecha(s) ? new Date(hFecha(s)).toLocaleString('es-HN',{timeZone:TZ}) : '' },
+  { k:'fecha', t:'Fecha', v:s => hFecha(s), h:s => { const f = hFecha(s); return f ? `${fDate(f)}<div class="small muted">${new Date(f).toLocaleTimeString('es-HN',{timeZone:TZ,hour:'numeric',minute:'2-digit'})}</div>${s.estado === 'desembolsada' && !s.importado && es('analista') && S.h.base !== 'solicitud' ? `<button class="fc-ed" data-fcedit="${s.id}" title="Cambiar la fecha del desembolso">✏️ Cambiar</button>` : ''}` : '—'; }, csv:s => hFecha(s) ? new Date(hFecha(s)).toLocaleString('es-HN',{timeZone:TZ}) : '' },
   { k:'codigo', t:'Código', v:s => s.codigo },
   { k:'cliente', t:'Cliente', v:s => s.nombre_cliente, h:s => `<b>${conCopiar(s.nombre_cliente)}</b>${s.dni ? `<div class="small muted">${esc(s.dni)}</div>` : ''}${puedeRepetir(s) ? `<button class="btn sm ghost" data-rep="${s.id}" title="Crear una nueva solicitud con los mismos datos e ingresos" style="margin-top:4px;padding:2px 8px;font-size:11px">↻ Nueva a partir de esta</button>` : ''}`, cls:'cli' },
   { k:'dni', t:'Identidad', v:s => s.dni || '', oculta:true },
