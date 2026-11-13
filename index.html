@@ -619,11 +619,14 @@ body.marco-cel #sheet > *{max-width:430px;margin-left:auto;margin-right:auto}
 // App disponible sin señal (sw.js debe estar junto a index.html). Va primero para registrarse aunque falle otra cosa.
 if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) navigator.serviceWorker.register('sw.js').catch(() => {});
 // Versión de esta copia de la app: cambia en cada entrega. La app la compara con la publicada y se actualiza sola.
-const APP_VER = '2026-11-13.1500';
+const APP_VER = '2026-11-13.1510';
 // Novedades que ve cada usuario al abrir una versión nueva (la más reciente primero).
 // Al publicar cambios: subir APP_VER y agregar aquí una entrada con la misma versión.
 // r = roles que la ven (sin r = todos; el admin ve todo).
 const NOVEDADES = [
+  { v:'2026-11-13.1510', f:'13 de noviembre de 2026', items:[
+    { i:'🏦', t:'El asesor también confirma los desembolsos por transferencia', r:['asesor'],
+      d:'Ahora tiene la pestaña "Desembolsos". Al abrir una solicitud con transferencia pendiente verá el monto, el banco y el número de cuenta, y el botón "✅ Confirmar desembolso" para marcarla como desembolsada después de hacer la transferencia. Si se entregó otro día, elija ese día antes de confirmar.' } ] },
   { v:'2026-11-13.1500', f:'13 de noviembre de 2026', items:[
     { i:'✏️', t:'Cambiar la fecha de un desembolso es más fácil', r:['analista'],
       d:'En las solicitudes desembolsadas, la fecha en que cuenta el desembolso aparece arriba de todo en el detalle, con el botón "✏️ Cambiar fecha". También puede cambiarla directo desde el Historial con el botón "✏️ Cambiar" debajo de la fecha. El cambio se refleja en la meta, el tablero, las estadísticas y el Historial.' },
