@@ -128,6 +128,12 @@ label.f{display:block;font-size:12px;color:var(--ink2);margin:10px 0 4px;font-we
 .filters{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}
 .filters button{flex:none;border:1px solid var(--line);background:var(--card);border-radius:999px;padding:5px 11px;font-size:13px}
 .filters button.on{background:var(--brand);border-color:var(--brand);color:#fff}
+.pb.off{opacity:.72} .pb .pb-sub{font-size:12.5px;color:var(--ink2);margin-top:4px;display:flex;flex-wrap:wrap;gap:4px 8px;align-items:center}
+.pb-monto{margin-top:8px;padding:7px 10px;border-radius:10px;background:var(--green-bg);color:var(--green);font-size:13.5px} .pb-monto b{font:800 17px Poppins,Inter,sans-serif} .pb-monto span{color:var(--ink2);font-size:12px}
+.pb-grid{margin-top:8px;display:grid;grid-template-columns:1fr;gap:0} .pb-f{display:flex;justify-content:space-between;gap:12px;padding:5px 0;border-bottom:1px dashed var(--line);font-size:13.5px}
+.pb-f > span{color:var(--ink2);flex:none} .pb-f > b{font-weight:600;text-align:right;min-width:0;overflow-wrap:anywhere}
+.pb-res{margin-top:8px;padding:8px 10px;border-radius:10px;background:var(--bg);border:1px solid var(--line);font-size:13px;color:var(--ink2)}
+.pb-btns{margin-top:10px;flex-wrap:wrap} .pb-btns .btn{flex:1 1 auto;text-align:center;text-decoration:none}
 .subtabs{display:flex;gap:2px;overflow-x:auto;scrollbar-width:none;border-bottom:1px solid var(--line);margin-bottom:10px}
 .subtabs::-webkit-scrollbar{display:none}
 .subtabs button{flex:none;background:none;border:0;border-bottom:3px solid transparent;color:var(--ink2);padding:8px 10px 9px;font-weight:600;font-size:14px;white-space:nowrap}
@@ -619,11 +625,14 @@ body.marco-cel #sheet > *{max-width:430px;margin-left:auto;margin-right:auto}
 // App disponible sin señal (sw.js debe estar junto a index.html). Va primero para registrarse aunque falle otra cosa.
 if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) navigator.serviceWorker.register('sw.js').catch(() => {});
 // Versión de esta copia de la app: cambia en cada entrega. La app la compara con la publicada y se actualiza sola.
-const APP_VER = '2026-11-13.1510';
+const APP_VER = '2026-11-14.1600';
 // Novedades que ve cada usuario al abrir una versión nueva (la más reciente primero).
 // Al publicar cambios: subir APP_VER y agregar aquí una entrada con la misma versión.
 // r = roles que la ven (sin r = todos; el admin ve todo).
 const NOVEDADES = [
+  { v:'2026-11-14.1600', f:'14 de noviembre de 2026', items:[
+    { i:'🤖', t:'Nueva pestaña "Prospectos": clientes que llegan por el bot de WhatsApp', r:['asesor','analista'],
+      d:'Cuando un cliente termina de dar sus datos al bot de WhatsApp, aparece en la pestaña "🤖 Prospectos" con su nombre, identidad, empresa, ingreso, sector, los documentos que dijo haber enviado y la precalificación estimada. Desde ahí puede escribirle por WhatsApp, marcarlo como contactado, descartarlo o tocar "➕ Crear solicitud": se abre la solicitud nueva con los datos ya llenos. Las fotos de la identidad y los comprobantes se revisan en el chat de WhatsApp.' } ] },
   { v:'2026-11-13.1510', f:'13 de noviembre de 2026', items:[
     { i:'🏦', t:'El asesor también confirma los desembolsos por transferencia', r:['asesor'],
       d:'Ahora tiene la pestaña "Desembolsos". Al abrir una solicitud con transferencia pendiente verá el monto, el banco y el número de cuenta, y el botón "✅ Confirmar desembolso" para marcarla como desembolsada después de hacer la transferencia. Si se entregó otro día, elija ese día antes de confirmar.' } ] },
@@ -970,7 +979,7 @@ async function guardarCache(){
 // Re-aplica sobre los datos cargados los cambios que siguen en cola
 function aplicarPendientes(){ outbox().forEach(op => { try { aplicarOp(op, false); } catch(e){} }); }
 async function recargarTodo(){
-  await cargarSolicitudes(); pintarTabs();
+  await cargarSolicitudes(); pintarTabs(); pbCambio();
   if (!$('#sheet').classList.contains('hidden') && S.det != null && S.sols.some(x => x.id === S.det)){ if (!S.dirty) await abrirDetalle(S.det, true); }
   else if ($('#sheet').classList.contains('hidden')) pintar();
 }
@@ -1053,7 +1062,7 @@ async function init(){
   // Si la app se recargó por una actualización, vuelve a donde estaba el usuario
   let vuelta = null; try { vuelta = JSON.parse(sessionStorage.getItem('vc_vuelta') || 'null'); sessionStorage.removeItem('vc_vuelta'); } catch(e){}
   if (vuelta && tabsRol().some(t => t[0] === vuelta.tab)) S.tab = vuelta.tab;
-  pintarTabs(); pintar(); suscribir(); indicadorRed();
+  pintarTabs(); pintar(); suscribir(); indicadorRed(); pbCargar();
   if (vuelta){ window.scrollTo(0, vuelta.y || 0); if (vuelta.det != null && S.sols.some(x => x.id === vuelta.det)) abrirDetalle(vuelta.det); if (vuelta.ver) toast(`✨ App actualizada a la versión más reciente`); }
   if (outbox().length) programarEnvio(1500);
   setTimeout(() => mostrarNovedades(), vuelta ? 1200 : 700);
@@ -1440,18 +1449,20 @@ function tabsRol(){
     tablero:['tablero','Tablero', s => false],
     alertas:['alertas','⚠️ Alertas', s => mio(s) && !!alertaDe(s)],
     refi:['refi','Refinanciar'],
+    prospectos:['prospectos','🤖 Prospectos'],
     stats:['stats','Estadísticas'], referidos:['referidos','Referidos'], usuarios:['usuarios','Usuarios'], params:['params','Parámetros'], pagos:['pagos','Pago verificadores'], vercomo:['vercomo','👁 Vista verificador']
   };
-  const m = { asesor:['tablero','alertas','solicitudes','revisadas','proceso','verificar',...(asesorDesembolsa() ? ['desembolsos'] : []),'todas','refi','historial','stats'],
-    analista:['tablero','alertas','analisis','desembolsos','todas','refi','referidos','historial','stats'],
+  const m = { asesor:['tablero','alertas','prospectos','solicitudes','revisadas','proceso','verificar',...(asesorDesembolsa() ? ['desembolsos'] : []),'todas','refi','historial','stats'],
+    analista:['tablero','alertas','prospectos','analisis','desembolsos','todas','refi','referidos','historial','stats'],
     verificador:['verificar','tablero','verificadas','historial','stats'],
-    admin:['tablero','alertas','solicitudes','revisadas','analisis','verificar','desembolsos','todas','refi','referidos','historial','stats','pagos','vercomo','usuarios','params'] };
+    admin:['tablero','alertas','prospectos','solicitudes','revisadas','analisis','verificar','desembolsos','todas','refi','referidos','historial','stats','pagos','vercomo','usuarios','params'] };
   return m[rol()].map(k => T[k]);
 }
 function pintarTabs(){
   const sx = $('#tabs').scrollLeft;
   $('#tabs').innerHTML = tabsRol().map(([k, t, f]) => {
     let n = '';
+    if (k === 'prospectos'){ const c = PB.lista.filter(p => p.estado === 'nuevo').length; if (c) n = `<span class="n">${c}</span>`; }
     if (f && k !== 'todas' && k !== 'verificadas'){
       const c = S.sols.filter(f).filter(s => k !== 'desembolsos' || s.estado === 'desembolso_pendiente').filter(s => k !== 'proceso' || s.estado !== 'desembolsada').length;
       if (c) n = `<span class="n">${c}</span>`;
@@ -1897,6 +1908,7 @@ function pintar(){
   if (S.tab === 'historial') return pintarHistorial();
   if (S.tab === 'stats') return pintarStats();
   if (S.tab === 'referidos') return pintarReferidos();
+  if (S.tab === 'prospectos') return pintarProspectos();
   if (S.tab === 'refi') return $('#rfTop') ? rfPintar() : pintarRefi();
   if (S.tab === 'usuarios') return pintarUsuarios();
   if (S.tab === 'params') return pintarParams();
@@ -2230,9 +2242,11 @@ function abrirOrigen(s, despues){
 const referidor = s => s.origen_canal === 'referido_empleado'
   ? ((S.empleados || []).find(e => e.id === s.referido_empleado_id)?.nombre || (s.referido_empleado ? nombre(s.referido_empleado) : s.referido_nombre) || '—') : s.referido_nombre || '—';
 const origenTxt = s => !s.origen_canal ? null : CANAL[s.origen_canal] + (esReferido(s.origen_canal) ? ': ' + referidor(s) : s.referido_nombre ? ': ' + s.referido_nombre : '') + (s.origen_asumido ? ' (asumido)' : '');
-$('#fab').onclick = () => {
+$('#fab').onclick = () => nuevaSolicitudDlg();
+// pre = datos para llenar el formulario (p. ej. desde un prospecto del bot): { nombre, dni, tel, tipo, lead }
+function nuevaSolicitudDlg(pre = {}){
   const w = dialogo(`
-    <h3>Nueva solicitud</h3>
+    <h3>Nueva solicitud${pre.lead ? ' · prospecto del bot' : ''}</h3>
     <label class="f">Tipo</label>
     <div class="seg" id="nTipo">${Object.entries(TIPO).map(([k,t],i) => `<button type="button" data-v="${k}" class="${i?'':'on'}">${t}</button>`).join('')}</div>
     <label class="f">Nombre completo del cliente</label><input id="nNombre" autocomplete="off">
@@ -2258,16 +2272,23 @@ $('#fab').onclick = () => {
   $('#nDni').oninput = () => { $('#nDni').value = RD.fmtId($('#nDni').value); coin(); };
   $('#nNombre').focus();
   origenEnlazar(w);
+  if (pre.nombre) $('#nNombre').value = pre.nombre;
+  if (pre.dni) $('#nDni').value = RD.fmtId(pre.dni);
+  if (pre.tel) $('#nTel').value = pre.tel;
+  if (pre.tipo && pre.tipo !== 'nuevo') w.querySelector(`#nTipo button[data-v="${pre.tipo}"]`)?.click();
+  if (pre.nombre || pre.dni) coin();
   $('#nOk').onclick = e => run(e.target, async () => {
     if ($('#nDni').value.replace(/\D/g,'').length !== 13) throw new Error('Ingrese el número de identidad (13 dígitos)');
     const origen = tipo === 'nuevo' ? origenLeer(w, true) : null;
     const id = await rpc('crear_solicitud', { p_dni: $('#nDni').value, p_nombre: $('#nNombre').value, p_tipo: tipo, p_telefono: $('#nTel').value || null, p_enviar: false, p_fecha_ingreso: tipo !== 'nuevo' ? ($('#nIng').value || null) : null, p_asesor: $('#nAsesor')?.value || null });
     if (origen) await rpc('guardar_origen_cliente', { p_id:id, ...origen });
+    // Si venía de un prospecto del bot, queda ligado a la solicitud (solo con señal: necesita el número real)
+    if (pre.lead && id > 0){ try { await pbActualizar(pre.lead.id, { estado:'convertido', solicitud_id:id, atendido_por:S.me.id, atendido_en:new Date().toISOString() }, true); } catch(e){ console.error(e); toast('La solicitud se creó, pero el prospecto no se pudo marcar. Márquelo de nuevo al tener señal.', true); } }
     await cerrarDialogo(w); await cargarSolicitudes(); pintarTabs(); pintar();
     toast('Solicitud creada. Agregue los ingresos.');
     abrirDetalle(id);
   });
-};
+}
 function dialogo(html){
   const w = document.createElement('div'); w.className = 'dlg-wrap';
   w.innerHTML = `<div class="dlg">${html}</div>`;
@@ -5784,6 +5805,122 @@ function pintarParams(){
   }));
 }
 
+// ================== Prospectos del bot de WhatsApp (tabla bot_leads) ==================
+// El bot (BuilderBot) guarda aquí a cada cliente que completa sus datos. El asesor lo contacta y crea la solicitud.
+const PB = { lista:[], cargado:false, cargando:false, error:null, filtro:'nuevo', q:'' };
+const PB_EST = { nuevo:['Por atender','c-blue'], contactado:['Contactado','c-amber'], convertido:['Con solicitud','c-green'], descartado:['Descartado','c-gray'] };
+const PB_RES = { califica:['✅ Precalifica','c-green'], tipo_b:['🅱️ Tipo B','c-amber'], no_califica:['⛔ No califica','c-red'], en_proceso:['⏳ Ya tiene solicitud abierta','c-violet'],
+  refi_disponible:['✅ Refi disponible','c-green'], refi_revisar:['🔎 Refi por revisar','c-amber'] };
+const pbVe = () => es('asesor', 'analista');
+const pbTel8 = t => String(t || '').replace(/\D/g, '').slice(-8);
+async function pbCargar(){
+  if (!S.me || !pbVe() || PB.cargando) return;
+  PB.cargando = true;
+  try {
+    const { data, error } = await sb.from('bot_leads').select('*').order('creado_en', { ascending:false }).limit(400);
+    if (error) throw error;
+    PB.lista = data || []; PB.cargado = true; PB.error = null;
+  } catch(e){ PB.error = esRed(e) ? 'Sin señal: los prospectos se cargan al volver la conexión.' : errMsg(e); }
+  finally { PB.cargando = false; }
+  pintarTabs();
+  if (S.tab === 'prospectos' && !(S.dlgs || []).some(w => w.isConnected) && document.activeElement?.id !== 'pbQ') pintarProspectos();
+}
+let pbT = null;
+function pbCambio(){ clearTimeout(pbT); pbT = setTimeout(pbCargar, 500); }
+async function pbActualizar(id, cambios, sinPintar){
+  if (S.verComo) throw new Error('👁 Vista del verificador: solo consulta, no se guardan cambios');
+  if (!navigator.onLine) throw new Error('Sin conexión: esta acción necesita señal');
+  const { error } = await sb.from('bot_leads').update(cambios).eq('id', id);
+  if (error) throw (esRed(error) ? new Error('Sin conexión: esta acción necesita señal') : error);
+  const p = PB.lista.find(x => x.id === id); if (p) Object.assign(p, cambios);
+  if (!sinPintar){ pintarTabs(); if (S.tab === 'prospectos') pintarProspectos(); }
+}
+// Avisos internos que deja el servicio del bot (coincidencias con clientes o cartera)
+function pbAvisos(p){
+  const d = p.detalle || {}, a = [];
+  const txt = v => v == null || v === false ? '' : typeof v === 'object' ? Object.entries(v).filter(([, x]) => x != null && typeof x !== 'object' && x !== '').slice(0, 5).map(([k, x]) => `${k.replace(/_/g, ' ')}: ${x}`).join(' · ') : String(v);
+  if (d.cliente_existente || d.cliente) a.push('👤 Ya aparece como cliente' + (txt(d.cliente_existente || d.cliente) && txt(d.cliente_existente || d.cliente) !== 'true' ? ' — ' + txt(d.cliente_existente || d.cliente) : ''));
+  if (d.cartera_activa) a.push('💼 Tiene préstamo activo en el último corte' + (txt(d.cartera_activa) && txt(d.cartera_activa) !== 'true' ? ' — ' + txt(d.cartera_activa) : ''));
+  if (d.refi) a.push('🔁 Decisión del analista sobre el refinanciamiento' + (txt(d.refi) && txt(d.refi) !== 'true' ? ' — ' + txt(d.refi) : ''));
+  if (p.tipo === 'refinanciamiento' && d.coincidencia === 'nombre') a.push('⚠️ Se buscó solo por nombre (no por identidad): confirme que es el mismo cliente');
+  if (d.preferencial) a.push('⭐ Ingreso para tasa preferencial');
+  return a;
+}
+function pbCard(p){
+  const x = p.datos || {}, est = PB_EST[p.estado] || [p.estado, 'c-gray'], res = PB_RES[p.resultado];
+  const tel = pbTel8(p.telefono), sol = p.solicitud_id ? S.sols.find(s => s.id === p.solicitud_id) : null;
+  const fila = (ico, t, v) => v ? `<div class="pb-f"><span>${ico} ${t}</span><b>${v}</b></div>` : '';
+  const avisos = pbAvisos(p);
+  const puede = !S.verComo;
+  let btns = '';
+  if (p.estado === 'convertido') btns = p.solicitud_id ? `<button class="btn sm pri" data-pb="abrir" data-id="${p.id}">Abrir solicitud${sol ? ' ' + esc(sol.codigo) : ''}</button>` : '';
+  else if (p.estado === 'descartado') btns = puede ? `<button class="btn sm ghost" data-pb="reabrir" data-id="${p.id}">↩ Volver a Por atender</button>` : '';
+  else btns = `${tel.length === 8 ? `<a class="btn sm ghost" href="https://wa.me/504${tel}" target="_blank" rel="noopener">💬 WhatsApp</a>` : ''}
+      ${puede && p.estado === 'nuevo' ? `<button class="btn sm ghost" data-pb="contactado" data-id="${p.id}">✔ Ya lo contacté</button>` : ''}
+      ${puede && es('asesor') ? `<button class="btn sm pri" data-pb="crear" data-id="${p.id}">➕ Crear solicitud</button>` : ''}
+      ${puede ? `<button class="btn sm ghost" data-pb="descartar" data-id="${p.id}" style="color:var(--red)">Descartar</button>` : ''}`;
+  return `<div class="card pb${p.estado === 'descartado' ? ' off' : ''}">
+    <div class="name-row"><div class="name">${esc(p.nombre || 'Sin nombre')}</div>${cpyBtn(p.nombre)}</div>
+    <div class="sub pb-sub">${tipoChip(p.tipo)}${res ? `<span class="chip ${res[1]}">${res[0]}</span>` : ''}<span class="chip ${est[1]}">${est[0]}</span>${x.prueba === 'si' ? '<span class="chip c-gray">PRUEBA</span>' : ''}<span>🕒 ${hace(p.creado_en)}</span><span>${esc(p.canal || '')}</span></div>
+    ${p.tipo === 'nuevo' && p.monto_estimado ? `<div class="pb-monto">Estimado del bot: <b>${L(p.monto_estimado)}</b> <span>· se confirma con el análisis de ingresos</span></div>` : ''}
+    <div class="pb-grid">
+      ${fila('📞', 'Teléfono', tel ? `<a href="tel:${esc(tel)}">${esc(tel)}</a>` : '')}
+      ${fila('🪪', 'Identidad', p.dni ? conCopiar(p.dni) : '')}
+      ${fila('🏢', 'Empresa', esc(p.empresa || ''))}
+      ${fila('💵', 'Ingreso', p.ingreso_pago ? `${L(p.ingreso_pago)}${p.tipo_pago ? ' ' + esc(String(p.tipo_pago).toLowerCase()) : ''}${p.ingreso_mensual ? ' · ' + L(p.ingreso_mensual) + ' al mes' : ''}` : '')}
+      ${fila('📍', 'Vive en', esc([p.sector, p.ciudad].filter(Boolean).join(', ')))}
+      ${fila('🎂', 'Edad', p.edad ? p.edad + ' años' : '')}
+      ${fila('💰', 'Monto que pide', p.monto_deseado ? L(p.monto_deseado) : '')}
+      ${fila('📝', 'Motivo', esc(p.motivo || ''))}
+      ${p.tipo === 'refinanciamiento' ? fila('🏢', '¿Mismo trabajo?', esc(x.mismo_trabajo || p.antiguedad || '')) : fila('⏳', 'Antigüedad', esc(p.antiguedad || ''))}
+      ${fila('📣', 'Cómo nos conoció', esc(p.como_nos_conocio || ''))}
+      ${fila('📎', 'Documentos (según el chat)', esc(x.documentos || ''))}
+    </div>
+    ${x.resumen ? `<div class="pb-res">🤖 ${esc(x.resumen)}</div>` : ''}
+    ${avisos.map(a => `<div class="alert warn small" style="margin:6px 0 0">${esc(a)}</div>`).join('')}
+    ${p.nota ? `<div class="small" style="margin-top:6px;color:var(--ink2)">🗒 ${esc(p.nota)}</div>` : ''}
+    ${p.atendido_por ? `<div class="small muted" style="margin-top:4px">${p.estado === 'descartado' ? 'Descartado' : p.estado === 'convertido' ? 'Solicitud creada' : 'Atendido'} por ${esc(nombre(p.atendido_por))}${p.atendido_en ? ' · ' + fDT(p.atendido_en) : ''}</div>` : ''}
+    ${btns.trim() ? `<div class="btns pb-btns">${btns}</div>` : ''}
+  </div>`;
+}
+function pintarProspectos(){
+  if (!PB.cargado && !PB.cargando && !PB.error) pbCargar();
+  const cnt = k => PB.lista.filter(p => p.estado === k).length;
+  const fs = [['nuevo','Por atender'],['contactado','Contactados'],['convertido','Con solicitud'],['descartado','Descartados'],['todos','Todos']];
+  let lista = PB.filtro === 'todos' ? PB.lista : PB.lista.filter(p => p.estado === PB.filtro);
+  const q = PB.q.trim().toLowerCase(), qd = q.replace(/\D/g, '');
+  if (q) lista = lista.filter(p => [p.nombre, p.empresa, p.sector, p.ciudad].some(v => (v || '').toLowerCase().includes(q)) || (qd.length >= 3 && [p.dni, p.telefono].some(v => String(v || '').replace(/\D/g, '').includes(qd))));
+  $('#main').innerHTML = `
+    <div class="search"><input id="pbQ" placeholder="Buscar por nombre, identidad, teléfono o empresa" value="${esc(PB.q)}"><button class="btn ghost sm" id="pbRec" style="flex:none">↻ Actualizar</button></div>
+    <div class="filters">${fs.map(([k, t]) => `<button data-pf="${k}" class="${PB.filtro === k ? 'on' : ''}">${t}${k !== 'todos' && cnt(k) ? ' · ' + cnt(k) : ''}</button>`).join('')}</div>
+    <div class="alert info small">Clientes que dieron sus datos al bot de WhatsApp. Las fotos de la identidad y los comprobantes están en el chat de WhatsApp. El monto estimado es solo una guía: se confirma con el análisis.</div>
+    ${PB.error ? `<div class="alert warn small">${esc(PB.error)}</div>` : ''}
+    ${!PB.cargado && !PB.error ? '<div class="empty">Cargando prospectos…</div>' : lista.length ? `<div class="sol-grid">${lista.map(pbCard).join('')}</div>` : `<div class="empty">${q ? 'Ningún prospecto coincide con la búsqueda.' : PB.filtro === 'nuevo' ? 'No hay prospectos por atender.' : 'No hay prospectos aquí.'}</div>`}`;
+  const qi = $('#pbQ'); qi.oninput = () => { PB.q = qi.value; const c = qi.selectionStart; pintarProspectos(); const n = $('#pbQ'); n.focus(); n.setSelectionRange(c, c); };
+  $('#pbRec').onclick = e => run(e.target, async () => { PB.error = null; await pbCargar(); if (!PB.error) toast('Prospectos actualizados'); });
+  $('#main').querySelectorAll('[data-pf]').forEach(b => b.onclick = () => { PB.filtro = b.dataset.pf; pintarProspectos(); });
+  $('#main').querySelectorAll('[data-pb]').forEach(b => b.onclick = e => run(e.currentTarget, async () => {
+    const p = PB.lista.find(x => x.id === +b.dataset.id); if (!p) return;
+    const yo = { atendido_por:S.me.id, atendido_en:new Date().toISOString() };
+    if (b.dataset.pb === 'abrir'){
+      if (!S.sols.some(s => s.id === p.solicitud_id)) await cargarSolicitudes();
+      if (!S.sols.some(s => s.id === p.solicitud_id)) throw new Error('Esa solicitud ya no está disponible');
+      return abrirDetalle(p.solicitud_id);
+    }
+    if (b.dataset.pb === 'contactado'){ await pbActualizar(p.id, { estado:'contactado', ...yo }); return toast('Marcado como contactado'); }
+    if (b.dataset.pb === 'reabrir'){ await pbActualizar(p.id, { estado:'nuevo' }); return toast('El prospecto volvió a Por atender'); }
+    if (b.dataset.pb === 'descartar'){
+      const m = await pedirTexto(`Descartar a ${p.nombre || 'este prospecto'}`, 'Motivo: no contesta, no le interesa, no cumple, duplicado…', 'Descartar', 'bad');
+      if (!m) return;
+      await pbActualizar(p.id, { estado:'descartado', nota:m, ...yo }); return toast('Prospecto descartado');
+    }
+    if (b.dataset.pb === 'crear'){
+      if (!navigator.onLine || outbox().length) throw new Error('Para crear la solicitud desde un prospecto se necesita señal y no tener cambios por enviar');
+      nuevaSolicitudDlg({ nombre:p.nombre || '', dni:p.dni || '', tel:pbTel8(p.telefono), tipo:p.tipo === 'refinanciamiento' ? 'refinanciamiento' : 'nuevo', lead:p });
+    }
+  }));
+}
+
 // ================== Tiempo real ==================
 let tRe = null, canal = null;
 function suscribir(){
@@ -5803,6 +5940,7 @@ function suscribir(){
     .on('postgres_changes', { event:'INSERT', schema:'public', table:'celebraciones' }, p => celebrarMeta(p.new))
     .on('postgres_changes', { event:'*', schema:'public', table:'refi_clientes' }, p => rfCambio(p))
     .on('postgres_changes', { event:'*', schema:'public', table:'refi_cortes' }, p => rfCambio(p, true))
+    .on('postgres_changes', { event:'*', schema:'public', table:'bot_leads' }, () => pbCambio())
     .on('postgres_changes', { event:'*', schema:'public', table:'comentario_likes' }, () => { if (S.det) cargarComentarios(); })
     .on('postgres_changes', { event:'*', schema:'public', table:'ingresos' }, p => {
       const sid = p.new?.solicitud_id || p.old?.solicitud_id;
