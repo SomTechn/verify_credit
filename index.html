@@ -625,11 +625,14 @@ body.marco-cel #sheet > *{max-width:430px;margin-left:auto;margin-right:auto}
 // App disponible sin señal (sw.js debe estar junto a index.html). Va primero para registrarse aunque falle otra cosa.
 if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) navigator.serviceWorker.register('sw.js').catch(() => {});
 // Versión de esta copia de la app: cambia en cada entrega. La app la compara con la publicada y se actualiza sola.
-const APP_VER = '2026-11-14.1600';
+const APP_VER = '2026-11-15.0030';
 // Novedades que ve cada usuario al abrir una versión nueva (la más reciente primero).
 // Al publicar cambios: subir APP_VER y agregar aquí una entrada con la misma versión.
 // r = roles que la ven (sin r = todos; el admin ve todo).
 const NOVEDADES = [
+  { v:'2026-11-15.0030', f:'15 de noviembre de 2026', items:[
+    { i:'🤖', t:'Prospectos del bot: "Cómo llegó" ya viene marcado', r:['asesor'],
+      d:'Al tocar "➕ Crear solicitud" en un prospecto del bot, el campo "¿Cómo llegó a nosotros?" ya aparece con el canal por donde escribió el cliente (WhatsApp). Si el cliente le dice que llegó por otra vía, por ejemplo referido, cámbielo antes de crear.' } ] },
   { v:'2026-11-14.1600', f:'14 de noviembre de 2026', items:[
     { i:'🤖', t:'Nueva pestaña "Prospectos": clientes que llegan por el bot de WhatsApp', r:['asesor','analista'],
       d:'Cuando un cliente termina de dar sus datos al bot de WhatsApp, aparece en la pestaña "🤖 Prospectos" con su nombre, identidad, empresa, ingreso, sector, los documentos que dijo haber enviado y la precalificación estimada. Desde ahí puede escribirle por WhatsApp, marcarlo como contactado, descartarlo o tocar "➕ Crear solicitud": se abre la solicitud nueva con los datos ya llenos. Las fotos de la identidad y los comprobantes se revisan en el chat de WhatsApp.' } ] },
@@ -2276,6 +2279,7 @@ function nuevaSolicitudDlg(pre = {}){
   if (pre.dni) $('#nDni').value = RD.fmtId(pre.dni);
   if (pre.tel) $('#nTel').value = pre.tel;
   if (pre.tipo && pre.tipo !== 'nuevo') w.querySelector(`#nTipo button[data-v="${pre.tipo}"]`)?.click();
+  if (pre.lead && w.querySelector('#oCanal')){ const oc = w.querySelector('#oCanal'), c = String(pre.lead.canal || 'whatsapp').toLowerCase(); oc.value = [...oc.options].some(o => o.value === c) ? c : 'whatsapp'; oc.onchange?.(); }
   if (pre.nombre || pre.dni) coin();
   $('#nOk').onclick = e => run(e.target, async () => {
     if ($('#nDni').value.replace(/\D/g,'').length !== 13) throw new Error('Ingrese el número de identidad (13 dígitos)');

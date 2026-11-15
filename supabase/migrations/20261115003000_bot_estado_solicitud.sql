@@ -1,0 +1,5 @@
+-- Consulta de estado para el bot de WhatsApp (Edge Function `bot-estado`, fuente en supabase/functions/bot-estado).
+-- Función SQL public.bot_estado(p_tel, p_dni): aplicada en la base el 15-nov-2026 con la migración del mismo nombre.
+-- Solo responde si el número de WhatsApp coincide con el teléfono de la solicitud, o si ese número ya dio esa
+-- identidad al bot (bot_leads). Nunca devuelve montos, tasas ni motivos. Ejecución solo para service_role.
+-- (El cuerpo completo de la función está en la base; ver pg_get_functiondef('public.bot_estado(text,text)'::regprocedure).)
