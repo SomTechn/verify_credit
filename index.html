@@ -629,11 +629,14 @@ body.marco-cel #sheet > *{max-width:430px;margin-left:auto;margin-right:auto}
 // App disponible sin señal (sw.js debe estar junto a index.html). Va primero para registrarse aunque falle otra cosa.
 if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) navigator.serviceWorker.register('sw.js').catch(() => {});
 // Versión de esta copia de la app: cambia en cada entrega. La app la compara con la publicada y se actualiza sola.
-const APP_VER = '2026-11-19.1100';
+const APP_VER = '2026-11-19.1110';
 // Novedades que ve cada usuario al abrir una versión nueva (la más reciente primero).
 // Al publicar cambios: subir APP_VER y agregar aquí una entrada con la misma versión.
 // r = roles que la ven (sin r = todos; el admin ve todo).
 const NOVEDADES = [
+  { v:'2026-11-19.1110', f:'19 de noviembre de 2026', items:[
+    { i:'🔎', t:'Refinanciamiento: "En atraso" ahora muestra los clientes', r:['analista','asesor'],
+      d:'Las pestañas Pendiente y Aplica solo tienen clientes al día (son la oportunidad de colocación). Al tocar el filtro "En atraso" la app pasa sola a la pestaña Todos para mostrarlos. Si un filtro sale vacío y en Todos sí hay clientes, aparece el botón "Ver N en Todos".' } ] },
   { v:'2026-11-19.1100', f:'19 de noviembre de 2026', items:[
     { i:'📑', t:'Refinanciamiento: lee el formato nuevo de los reportes del sistema', r:['analista'],
       d:'La app ya reconoce las columnas nuevas: "Balance total" en el reporte de cuotas y "Balance capital" en la lista de préstamos. Al subir el reporte de cuotas le avisa si trae cuotas que aún no vencen (se ignoran), si empieza muy tarde (descárguelo desde el 1 de enero hasta hoy para ver todos los atrasos) o si el saldo pendiente viene vacío; en ese último caso no deja guardar el corte.' } ] },
@@ -1645,7 +1648,8 @@ function rfPintar(){
   const gfs = [['todas','Todos'],['aldia','Al día'],['atraso','En atraso'],['sugerido','Sin límite'],['aumento','⬆ Para aumento de límite'],['nuevo','🆕 Clientes nuevos'],['nuevoaum','🆕⬆ Nuevos para aumento'],['maximo','🔝 Límite máximo'],['menos',`Préstamo < ${S.params.refi_meses_aumento ?? 3} meses`]];
   $('#rfGf').innerHTML = gfs.map(([k, t]) => `<button data-g="${k}" class="${RF.gf === k ? 'on' : ''}">${t}</button>`).join('');
   $('#rfEst').querySelectorAll('[data-e]').forEach(b => b.onclick = () => { RF.etapa = b.dataset.e; rfPintar(); });
-  $('#rfGf').querySelectorAll('[data-g]').forEach(b => b.onclick = () => { RF.gf = b.dataset.g; rfPintar(); });
+  // Pendiente y Aplica solo tienen clientes al día: "En atraso" se ve en Todos
+  $('#rfGf').querySelectorAll('[data-g]').forEach(b => b.onclick = () => { RF.gf = b.dataset.g; if (RF.gf === 'atraso' && ['pendiente','aplica'].includes(RF.etapa)) RF.etapa = 'todos'; rfPintar(); });
   rfPintarLista(rows);
 }
 function rfFiltrar(rows){
@@ -1670,10 +1674,17 @@ function rfFiltrar(rows){
 }
 function rfPintarLista(rows){
   if (S.tab !== 'refi' || !$('#rfLista') || !RF.corte) return;
-  const lista = rfFiltrar(rows || rfCalcular().rows);
+  rows = rows || rfCalcular().rows;
+  const lista = rfFiltrar(rows);
   const tot = lista.reduce((a, r) => a + (r.elegible ? r.disp : 0), 0);
   $('#rfCount').innerHTML = `${lista.length} cliente(s) · disponible <b>${rfL0(tot)}</b>`;
-  if (!lista.length){ $('#rfLista').innerHTML = '<div class="empty">Ningún cliente con estos filtros.</div>'; return; }
+  if (!lista.length){
+    let enTodos = 0;
+    if (RF.etapa !== 'todos'){ const e = RF.etapa; RF.etapa = 'todos'; enTodos = rfFiltrar(rows).length; RF.etapa = e; }
+    $('#rfLista').innerHTML = `<div class="empty">Ningún cliente con estos filtros.${enTodos ? `<div style="margin-top:10px"><button class="btn sm pri" id="rfVerTodos">Ver ${enTodos} en Todos</button></div>` : ''}</div>`;
+    if ($('#rfVerTodos')) $('#rfVerTodos').onclick = () => { RF.etapa = 'todos'; rfPintar(); };
+    return;
+  }
   $('#rfLista').innerHTML = lista.map(r => {
     const g = r.g, ch = [];
     if (r.bloq) ch.push(`<span class="chip c-red" title="${esc(g.motivo_bloqueo || '')}">🔒 Bloqueado${g.bloqueado_en ? ' ' + rfFd(g.bloqueado_en) : ''}</span>`);
