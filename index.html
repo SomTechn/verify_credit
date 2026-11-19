@@ -629,11 +629,14 @@ body.marco-cel #sheet > *{max-width:430px;margin-left:auto;margin-right:auto}
 // App disponible sin señal (sw.js debe estar junto a index.html). Va primero para registrarse aunque falle otra cosa.
 if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) navigator.serviceWorker.register('sw.js').catch(() => {});
 // Versión de esta copia de la app: cambia en cada entrega. La app la compara con la publicada y se actualiza sola.
-const APP_VER = '2026-11-19.1110';
+const APP_VER = '2026-11-19.1120';
 // Novedades que ve cada usuario al abrir una versión nueva (la más reciente primero).
 // Al publicar cambios: subir APP_VER y agregar aquí una entrada con la misma versión.
 // r = roles que la ven (sin r = todos; el admin ve todo).
 const NOVEDADES = [
+  { v:'2026-11-19.1120', f:'19 de noviembre de 2026', items:[
+    { i:'⬆', t:'Aumento de límite: solo clientes que no deben ninguna cuota', r:['analista','asesor'],
+      d:'Los filtros "Para aumento de límite" y "Nuevos para aumento" ya no muestran clientes con saldo en cuotas vencidas. Antes, en préstamos nivelados, un cliente que debía la parte de capital de la cuota podía aparecer ahí. Esos clientes ahora llevan la etiqueta amarilla "Debe cuota".' } ] },
   { v:'2026-11-19.1110', f:'19 de noviembre de 2026', items:[
     { i:'🔎', t:'Refinanciamiento: "En atraso" ahora muestra los clientes', r:['analista','asesor'],
       d:'Las pestañas Pendiente y Aplica solo tienen clientes al día (son la oportunidad de colocación). Al tocar el filtro "En atraso" la app pasa sola a la pestaña Todos para mostrarlos. Si un filtro sale vacío y en Todos sí hay clientes, aparece el botón "Ver N en Todos".' } ] },
@@ -1542,9 +1545,11 @@ function rfCalcular(){
     if (ignorarCorte && c.fecha_corte && q.f >= c.fecha_corte) continue;
     const niv = String(q.m || '').toUpperCase().startsWith('NIVELADO');
     const v = niv && !nivCompleto ? Math.max(0, (q.bal || 0) - (q.cap || 0)) : (q.bal || 0);
-    const k = rfKey(q.c), o = pend[k] = pend[k] || { monto:0, n:0, max:0, list:[] };
+    const k = rfKey(q.c), o = pend[k] = pend[k] || { monto:0, n:0, max:0, list:[], total:0, maxTot:0 };
     o.list.push({ ...q, pend:v });
     if (v > 0.004){ o.monto += v; o.n++; o.max = Math.max(o.max, q.atr || 0); }
+    // Saldo completo de cuotas vencidas (incluye la parte de capital del nivelado): para aumento de límite
+    if ((q.bal || 0) > 0.004){ o.total += q.bal; o.maxTot = Math.max(o.maxTot, q.atr || 0); }
   }
   // Solicitud de refinanciamiento/reingreso más reciente del cliente (para no duplicar gestiones)
   const sols = {};
@@ -1565,18 +1570,18 @@ function rfCalcular(){
   for (const k in loans){
     const ls = loans[k].slice().sort((a, b) => String(b.f || '').localeCompare(String(a.f || '')) || (b.cap - a.cap));
     const u = ls[0], balance = ls.reduce((a, x) => a + (x.bal || 0), 0);
-    const g = RF.gest[k] || {}, pd = pend[k] || { monto:0, n:0, max:0, list:[] };
-    const atraso = pd.monto > tol;
+    const g = RF.gest[k] || {}, pd = pend[k] || { monto:0, n:0, max:0, list:[], total:0, maxTot:0 };
+    const atraso = pd.monto > tol, debeCuota = !atraso && pd.total > tol;
     const limG = g.limite == null ? null : Number(g.limite);
     const base = limG ?? u.cap, bruto = base - balance, disp = bruto >= minimo ? bruto : 0;
     // Bloqueado: línea de crédito cerrada; se conserva entre cortes y no cuenta como oportunidad
     const bloq = !!g.bloqueado, noAplica = g.aplica === 'no', elegible = !atraso && disp > 0 && !noAplica && !bloq;
     const sol = sols[k] && (!CERRADAS.includes(sols[k].estado) || new Date(sols[k].creado_en) >= new Date(Date.now() - 45 * 864e5)) ? sols[k] : null;
-    const an = antig(u.f), aumento = !!an && an.cumple && !atraso && !noAplica && !bloq && g.nivel !== 100;
+    const an = antig(u.f), aumento = !!an && an.cumple && !atraso && !debeCuota && !noAplica && !bloq && g.nivel !== 100;
     const nv = nuevos[k] ? { ...nuevos[k], refis:(otrosDes[k] || []).filter(f => f > nuevos[k].fecha).length } : null;
     const nvAum = !!nv && aumento;   // cliente nuevo que ya cumple el tiempo para aumento: el más propenso
     const etapa = bloq ? 'bloqueado' : g.colocado ? 'desembolsado' : noAplica ? 'noaplica' : g.contactado ? 'contactado' : !elegible ? null : g.aplica === 'si' ? 'aplica' : 'pendiente';
-    rows.push({ k, nombre:u.c, tipo:u.t, dia:u.dia, fecha:u.f, capital:u.cap, nPrest:ls.length, prest:ls, balance, pd, atraso, limG, sugerido:u.cap, bruto, disp, elegible, noAplica, bloq, etapa, g, sol, an, aumento, nv, nvAum });
+    rows.push({ k, nombre:u.c, tipo:u.t, dia:u.dia, fecha:u.f, capital:u.cap, nPrest:ls.length, prest:ls, balance, pd, atraso, debeCuota, limG, sugerido:u.cap, bruto, disp, elegible, noAplica, bloq, etapa, g, sol, an, aumento, nv, nvAum });
   }
   const st = { clientes:rows.length, prestamos:(c.prestamos || []).length, alDia:0, atraso:0, opN:0, opM:0, conN:0, conM:0, colN:0, colM:0, porN:0, porM:0, sugN:0, revN:0, aumN:0, menosN:0, bloqN:0, nvN:0, nvAumN:0, modal:{} };
   for (const r of rows){
@@ -1689,6 +1694,7 @@ function rfPintarLista(rows){
     const g = r.g, ch = [];
     if (r.bloq) ch.push(`<span class="chip c-red" title="${esc(g.motivo_bloqueo || '')}">🔒 Bloqueado${g.bloqueado_en ? ' ' + rfFd(g.bloqueado_en) : ''}</span>`);
     ch.push(r.atraso ? `<span class="chip c-red">En atraso ${L(r.pd.monto)} · ${r.pd.max} d</span>` : '<span class="chip c-green">Al día</span>');
+    if (r.debeCuota) ch.push(`<span class="chip c-amber" title="Préstamo nivelado: debe parte de capital de cuotas vencidas. No se toma en cuenta para aumento de límite.">Debe cuota ${L(r.pd.total)} · ${r.pd.maxTot} d</span>`);
     ch.push(r.limG == null ? `<span class="chip c-amber" title="No tiene límite asignado: se usa el capital de su último préstamo">Sugerido ${rfL0(r.sugerido)}</span>` : `<span class="chip c-blue">Límite ${rfL0(r.limG)}</span>`);
     if (r.an){ const tx = rfAntTxt(r.an);
       ch.push(r.aumento ? `<span class="chip c-teal" title="Préstamo con ${r.an.dias} días: puede subir el límite si aún no está al 100%">⬆ ${tx} · puede subir límite</span>`
