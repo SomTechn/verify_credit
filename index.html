@@ -629,11 +629,14 @@ body.marco-cel #sheet > *{max-width:430px;margin-left:auto;margin-right:auto}
 // App disponible sin señal (sw.js debe estar junto a index.html). Va primero para registrarse aunque falle otra cosa.
 if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) navigator.serviceWorker.register('sw.js').catch(() => {});
 // Versión de esta copia de la app: cambia en cada entrega. La app la compara con la publicada y se actualiza sola.
-const APP_VER = '2026-11-19.1000';
+const APP_VER = '2026-11-19.1030';
 // Novedades que ve cada usuario al abrir una versión nueva (la más reciente primero).
 // Al publicar cambios: subir APP_VER y agregar aquí una entrada con la misma versión.
 // r = roles que la ven (sin r = todos; el admin ve todo).
 const NOVEDADES = [
+  { v:'2026-11-19.1030', f:'19 de noviembre de 2026', items:[
+    { i:'🔄', t:'Refinanciamiento: cada corte nuevo empieza a marcar de cero', r:['analista','asesor'],
+      d:'Al cargar la lista de préstamos y el reporte de cuotas nuevos, la casilla "Empezar a marcar de cero" viene marcada: se borran Aplica / No aplica, contactados y colocados del corte anterior para revisar a todos otra vez. Se conservan los límites, el nivel, los comentarios y los clientes bloqueados. Lo que se borra queda guardado en el historial de cada cliente. Si solo está corrigiendo un archivo del mismo día, desmarque la casilla.' } ] },
   { v:'2026-11-19.1000', f:'19 de noviembre de 2026', items:[
     { i:'🏦', t:'Transferencias: escoja el banco con un botón y escriba solo el número de cuenta', r:['asesor','analista'],
       d:'En "Completar con el cliente", al marcar 🏦 Transferencia aparecen botones con los bancos (BAC, Ficohsa, Atlántida, Davivienda, Occidente, Banpaís, Banrural y Azteca) y un campo aparte para el número de cuenta, que acepta solo números. Los dos son obligatorios para enviar a desembolso o a verificar. Así el desembolso muestra siempre el banco y la cuenta separados, listos para copiar.' } ] },
@@ -1828,6 +1831,7 @@ function rfDialogoCarga(){
     <div class="small muted">Suba la <b>lista de préstamos</b> y el <b>reporte de cuotas</b> pendientes. Opcional: un Excel anterior con la columna NUEVO LIMITE para traer límites y comentarios. El tipo de cada archivo se detecta solo.</div>
     <label class="btn ghost" style="display:block;text-align:center;margin-top:10px">📎 Elegir archivos<input id="rfFiles" type="file" accept=".xlsx,.xls,.csv" multiple hidden></label>
     <div id="rfStaged" style="margin-top:8px"></div>
+    <label class="chk hidden" id="rfResetF" style="margin-top:8px;align-items:flex-start"><input type="checkbox" id="rfReset0" checked> <span><b>Empezar a marcar de cero</b><br><span class="small muted">Se borran Aplica / No aplica, contactados y colocados del corte anterior (quedan guardados en el historial de cada cliente). Se conservan límites, nivel, comentarios y bloqueados.</span></span></label>
     <div class="btns"><button class="btn ghost" data-close>Cancelar</button><button class="btn pri" id="rfProc" disabled>Procesar</button></div>`);
   const has = k => staged.some(f => f.kind === k);
   const pintarSt = () => {
@@ -1835,6 +1839,7 @@ function rfDialogoCarga(){
     w.querySelectorAll('[data-rm]').forEach(b => b.onclick = () => { staged.splice(+b.dataset.rm, 1); pintarSt(); });
     const ok = (has('prestamos') && has('cuotas')) || has('limites'), btn = w.querySelector('#rfProc');
     btn.disabled = !ok;
+    w.querySelector('#rfResetF').classList.toggle('hidden', !(has('prestamos') && has('cuotas')));
     btn.textContent = has('prestamos') && has('cuotas') ? (has('limites') ? 'Guardar corte e importar límites' : 'Guardar corte nuevo') : has('limites') ? 'Importar límites' : has('prestamos') ? 'Falta el reporte de cuotas' : has('cuotas') ? 'Falta la lista de préstamos' : 'Procesar';
   };
   w.querySelector('#rfFiles').onchange = async e => {
@@ -1847,9 +1852,13 @@ function rfDialogoCarga(){
   };
   w.querySelector('#rfProc').onclick = e => run(e.target, async () => {
     const P = staged.find(f => f.kind === 'prestamos'), C = staged.find(f => f.kind === 'cuotas'), Lm = staged.find(f => f.kind === 'limites');
+    const reiniciar = !!(P && C && w.querySelector('#rfReset0').checked);
+    if (reiniciar && !confirm('Se borrarán las marcas de Aplica / No aplica, contactados y colocados para empezar de cero con este corte.\n\nSe conservan límites, nivel, comentarios y bloqueados. ¿Continuar?')) return;
+    let reiniciados = 0;
     if (P && C){
-      const { error } = await sb.from('refi_cortes').insert({ fecha_corte:C.fechaCorte || hoyHN(), archivos:{ prestamos:P.name, cuotas:C.name }, prestamos:P.data, cuotas:C.data });
+      const { data:cn, error } = await sb.from('refi_cortes').insert({ fecha_corte:C.fechaCorte || hoyHN(), archivos:{ prestamos:P.name, cuotas:C.name }, prestamos:P.data, cuotas:C.data }).select('id').single();
       if (error) throw error;
+      if (reiniciar) reiniciados = await rpc('refi_reiniciar_marcas', { p_corte: cn.id }) || 0;
     }
     let imp = 0;
     if (Lm){
@@ -1868,7 +1877,7 @@ function rfDialogoCarga(){
     }
     await cerrarDialogo(w);
     await rfCargar(true); rfPintar();
-    toast(P && C ? `Corte guardado: ${P.data.length} préstamos y ${C.data.length} cuotas${Lm ? ` · ${imp} límites importados` : ''}` : `${imp} cliente(s) actualizados con límites o comentarios`);
+    toast(P && C ? `Corte guardado: ${P.data.length} préstamos y ${C.data.length} cuotas${reiniciar ? ` · marcas reiniciadas (${reiniciados} clientes)` : ''}${Lm ? ` · ${imp} límites importados` : ''}` : `${imp} cliente(s) actualizados con límites o comentarios`);
   });
 }
 async function rfExportar(){
