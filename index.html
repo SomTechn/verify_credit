@@ -125,6 +125,10 @@ label.f{display:block;font-size:12px;color:var(--ink2);margin:10px 0 4px;font-we
 .seg{display:flex;background:var(--gray-bg);border-radius:10px;padding:3px;gap:3px}
 .seg button{flex:1;border:0;background:none;border-radius:8px;padding:8px 6px;font-weight:600;font-size:13.5px;color:var(--ink2)}
 .seg button.on{background:var(--card);color:var(--ink);box-shadow:var(--shadow)}
+.bancos{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.bancos button{border:1.5px solid var(--line,#e2e8f0);background:var(--card);border-radius:10px;padding:10px 4px;font-weight:600;font-size:13.5px;color:var(--ink2)}
+.bancos button.on{border-color:var(--blue);background:var(--blue-bg);color:var(--ink)}
+@media (max-width:360px){.bancos{grid-template-columns:repeat(2,1fr)}}
 .filters{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}
 .filters button{flex:none;border:1px solid var(--line);background:var(--card);border-radius:999px;padding:5px 11px;font-size:13px}
 .filters button.on{background:var(--brand);border-color:var(--brand);color:#fff}
@@ -625,11 +629,14 @@ body.marco-cel #sheet > *{max-width:430px;margin-left:auto;margin-right:auto}
 // App disponible sin señal (sw.js debe estar junto a index.html). Va primero para registrarse aunque falle otra cosa.
 if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) navigator.serviceWorker.register('sw.js').catch(() => {});
 // Versión de esta copia de la app: cambia en cada entrega. La app la compara con la publicada y se actualiza sola.
-const APP_VER = '2026-11-15.0030';
+const APP_VER = '2026-11-19.1000';
 // Novedades que ve cada usuario al abrir una versión nueva (la más reciente primero).
 // Al publicar cambios: subir APP_VER y agregar aquí una entrada con la misma versión.
 // r = roles que la ven (sin r = todos; el admin ve todo).
 const NOVEDADES = [
+  { v:'2026-11-19.1000', f:'19 de noviembre de 2026', items:[
+    { i:'🏦', t:'Transferencias: escoja el banco con un botón y escriba solo el número de cuenta', r:['asesor','analista'],
+      d:'En "Completar con el cliente", al marcar 🏦 Transferencia aparecen botones con los bancos (BAC, Ficohsa, Atlántida, Davivienda, Occidente, Banpaís, Banrural y Azteca) y un campo aparte para el número de cuenta, que acepta solo números. Los dos son obligatorios para enviar a desembolso o a verificar. Así el desembolso muestra siempre el banco y la cuenta separados, listos para copiar.' } ] },
   { v:'2026-11-15.0030', f:'15 de noviembre de 2026', items:[
     { i:'🤖', t:'Prospectos del bot: "Cómo llegó" ya viene marcado', r:['asesor'],
       d:'Al tocar "➕ Crear solicitud" en un prospecto del bot, el campo "¿Cómo llegó a nosotros?" ya aparece con el canal por donde escribió el cliente (WhatsApp). Si el cliente le dice que llegó por otra vía, por ejemplo referido, cámbielo antes de crear.' } ] },
@@ -2884,7 +2891,14 @@ function completarHTML(s){
     ${s.tipo !== 'nuevo' && (+s.saldo_capital || +s.saldo_intereses) ? `<div class="small muted">Se descuenta saldo capital ${L(+s.saldo_capital || 0)} + intereses ${L(+s.saldo_intereses || 0)}.</div>` : ''}
     <h4 class="sec">Forma de desembolso</h4>
     <div class="seg" id="cForma"><button type="button" data-v="efectivo" class="${s.forma_desembolso==='efectivo'?'on':''}">💵 Efectivo</button><button type="button" data-v="transferencia" class="${s.forma_desembolso==='transferencia'?'on':''}">🏦 Transferencia</button></div>
-    <div id="cCtaF" class="${s.forma_desembolso==='transferencia'?'':'hidden'}"><label class="f">Banco y número de cuenta</label><input id="cCta" value="${esc(s.cuenta_banco||'')}" placeholder="Ej. BAC 7412..."></div>
+    ${(() => { const ct = partirCuenta(s.cuenta_banco), b = bancoDe(ct.banco);
+      return `<div id="cCtaF" class="${s.forma_desembolso==='transferencia'?'':'hidden'}">
+      <label class="f">Banco del cliente</label>
+      <div class="bancos" id="cBanco">${BANCOS.map(x => `<button type="button" data-v="${x}" class="${x === b ? 'on' : ''}">${x}</button>`).join('')}</div>
+      <label class="f" style="margin-top:10px">Número de cuenta</label>
+      <input id="cCta" inputmode="numeric" autocomplete="off" value="${esc(ct.cuenta || '')}" placeholder="Solo números">
+      ${s.cuenta_banco && !b ? `<div class="small muted" style="margin-top:4px">Dato anterior: ${esc(s.cuenta_banco)}</div>` : ''}
+    </div>`; })()}
     <div id="cDestino" class="alert info small" style="margin-top:12px"></div>
     <div class="btns"><button class="btn pri" id="cEnviar" style="font-size:16px;padding:13px 18px">🚀 Enviar a verificar</button></div>
   </div>`;
@@ -3206,6 +3220,18 @@ function enlazarCompletar(s, refrescar){
   F.querySelectorAll('input,textarea,select').forEach(i => i.addEventListener('input', () => S.dirty = true));
   F.querySelectorAll('#cForma button').forEach(b => b.onclick = () => { forma = b.dataset.v; S.dirty = true;
     F.querySelectorAll('#cForma button').forEach(x => x.classList.toggle('on', x===b)); $('#cCtaF').classList.toggle('hidden', forma !== 'transferencia'); destino(); });
+  let banco = F.querySelector('#cBanco button.on')?.dataset.v || '';
+  F.querySelectorAll('#cBanco button').forEach(b => b.onclick = () => { banco = b.dataset.v; S.dirty = true;
+    F.querySelectorAll('#cBanco button').forEach(x => x.classList.toggle('on', x === b)); });
+  $('#cCta').addEventListener('input', () => { const v = $('#cCta').value.replace(/[^\d]/g, ''); if (v !== $('#cCta').value) $('#cCta').value = v; });
+  const cuenta = () => {
+    if (forma !== 'transferencia') return null;
+    const n = $('#cCta').value.replace(/[^\d]/g, '');
+    if (!banco) throw new Error('Seleccione el banco del cliente');
+    if (!n) throw new Error('Escriba el número de cuenta');
+    if (n.length < 6) throw new Error('El número de cuenta parece incompleto');
+    return `${banco} ${n}`;
+  };
   if (!nuevo){
     $('#cDom').onchange = destino; $('#cTrab').onchange = destino;
   } else {
@@ -3216,9 +3242,10 @@ function enlazarCompletar(s, refrescar){
   destino();
   $('#cEnviar').onclick = e => run(e.target, async () => {
     if (!forma) throw new Error('Seleccione la forma de desembolso');
+    const pCuenta = cuenta();
     const r = await rpc('completar_solicitud', { p_id: s.id, p_datos: {}, p_forma: forma,
       p_act_domicilio: !nuevo && $('#cDom').checked, p_act_trabajo: nuevo ? verTrab : $('#cTrab').checked, p_act_foto: false,
-      p_verificador: s.verificador_id || null, p_monto_solicitado: (() => { const m = num($('#cMonto').value); if (!m || m <= 0) throw new Error('Indique el monto que toma el cliente'); if (m > +s.monto_aprobado) throw new Error(`El monto excede el aprobado (${L(s.monto_aprobado)})`); return m; })(), p_plazo: null, p_cuenta: $('#cCta').value || null });
+      p_verificador: s.verificador_id || null, p_monto_solicitado: (() => { const m = num($('#cMonto').value); if (!m || m <= 0) throw new Error('Indique el monto que toma el cliente'); if (m > +s.monto_aprobado) throw new Error(`El monto excede el aprobado (${L(s.monto_aprobado)})`); return m; })(), p_plazo: null, p_cuenta: pCuenta });
     S.dirty = false;
     if (r === 'por_verificar'){
       // El verificador se asigna en la pantalla Por verificar
@@ -3580,6 +3607,14 @@ function partirCuenta(txt){
   const t = String(txt || '').trim(), m = t.match(/^(.*?)(\d[\d\s-]{3,}\d)(.*)$/);
   if (!m) return { banco: t, cuenta: '', extra: '' };
   return { banco: m[1].replace(/[\s:#,-]+$/, '').trim(), cuenta: m[2].replace(/[\s-]/g, ''), extra: m[3].replace(/^[\s,.-]+/, '').trim() };
+}
+// Bancos para desembolso por transferencia (se guarda en cuenta_banco como "Banco 123456")
+const BANCOS = ['BAC', 'Ficohsa', 'Atlántida', 'Davivienda', 'Occidente', 'Banpaís', 'Banrural', 'Azteca'];
+const sinTilde = t => String(t || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+function bancoDe(txt){
+  const t = sinTilde(txt).replace(/^banco\s+(de\s+)?/, '').trim();
+  if (!t) return '';
+  return BANCOS.find(b => t === sinTilde(b) || t.startsWith(sinTilde(b))) || (t.includes('azteka') ? 'Azteca' : '');
 }
 function desembolsoTopHTML(s, evs){
   const monto = +(s.monto_solicitado || s.monto_aprobado || 0), libre = montoLibre(s), refi = s.tipo !== 'nuevo';
