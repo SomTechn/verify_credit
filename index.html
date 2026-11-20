@@ -629,11 +629,16 @@ body.marco-cel #sheet > *{max-width:430px;margin-left:auto;margin-right:auto}
 // App disponible sin señal (sw.js debe estar junto a index.html). Va primero para registrarse aunque falle otra cosa.
 if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) navigator.serviceWorker.register('sw.js').catch(() => {});
 // Versión de esta copia de la app: cambia en cada entrega. La app la compara con la publicada y se actualiza sola.
-const APP_VER = '2026-11-19.1120';
+const APP_VER = '2026-11-20.1130';
 // Novedades que ve cada usuario al abrir una versión nueva (la más reciente primero).
 // Al publicar cambios: subir APP_VER y agregar aquí una entrada con la misma versión.
 // r = roles que la ven (sin r = todos; el admin ve todo).
 const NOVEDADES = [
+  { v:'2026-11-20.1130', f:'20 de noviembre de 2026', items:[
+    { i:'🙋', t:'Análisis: hay que tocar "Tomar análisis" antes de dictaminar', r:['analista'],
+      d:'Cuando el asesor envía una solicitud a análisis, queda "⏳ Sin tomar". Para aprobar, denegar o devolver, primero toque "🙋 Tomar análisis" (arriba del detalle): desde ese momento cuenta el tiempo de análisis. El tiempo que la solicitud esperó a que alguien la tomara se mide aparte como "Espera de análisis". Si otro analista ya la tomó, puede tomarla usted con "Tomarla yo".' },
+    { i:'⏳', t:'Ahora se ve si el analista ya tomó su solicitud', r:['asesor'],
+      d:'En el tablero, las solicitudes en análisis muestran "⏳ Sin tomar" o el nombre del analista que la está revisando. En el detalle aparece desde qué hora la tiene.' } ] },
   { v:'2026-11-19.1120', f:'19 de noviembre de 2026', items:[
     { i:'⬆', t:'Aumento de límite: solo clientes que no deben ninguna cuota', r:['analista','asesor'],
       d:'Los filtros "Para aumento de límite" y "Nuevos para aumento" ya no muestran clientes con saldo en cuotas vencidas. Antes, en préstamos nivelados, un cliente que debía la parte de capital de la cuota podía aparecer ahí. Esos clientes ahora llevan la etiqueta amarilla "Debe cuota".' } ] },
@@ -742,7 +747,7 @@ const TIPO = { nuevo:'Nuevo', reingreso:'Reingreso', refinanciamiento:'Refinanci
 const ROL = { asesor:'Asesor', analista:'Analista', verificador:'Verificador', admin:'Administrador' };
 const ITEM = { domicilio:'Visita a domicilio', trabajo:'Visita a trabajo', foto_perfil:'Foto de perfil del cliente',
   referencias:'Referencias familiares', entrega_efectivo:'Entrega de efectivo' };
-const ACC = { seguimiento_programado:'Programó seguimiento', seguimiento_hecho:'Hizo el seguimiento', confirmada_vigente:'Confirmó que continúa', creada:'Creó la solicitud', enviada_analisis:'Envió a análisis', devuelta_asesor:'Devolvió al asesor',
+const ACC = { analisis_tomado:'Tomó el análisis', analisis_reasignado:'Tomó el análisis', seguimiento_programado:'Programó seguimiento', seguimiento_hecho:'Hizo el seguimiento', confirmada_vigente:'Confirmó que continúa', creada:'Creó la solicitud', enviada_analisis:'Envió a análisis', devuelta_asesor:'Devolvió al asesor',
   dictamen_aprobada:'Aprobó', dictamen_denegada:'Denegó', enviada_verificacion:'Envió a verificación',
   enviada_desembolso:'Envió a desembolso por transferencia', verificacion_ok:'Verificación exitosa',
   verificacion_rechazada:'Rechazó en verificación', desembolsada:'Marcó como desembolsada', desistida:'Cliente desistió',
@@ -2239,7 +2244,7 @@ function cardSol(s, ctx){
     <div class="main">
       <div style="margin-bottom:4px">${rolPill(s)}</div>
       <div class="name-row"><div class="name">${esc(s.nombre_cliente)}</div>${cpyBtn(s.nombre_cliente)}</div>
-      <div class="sub"><span>${esc(s.codigo)}</span>${tipoChip(s.tipo)}${pendChip(s)}<span>👤 ${esc(nombre(s.asesor_id))}</span>${extra}${c}</div>
+      <div class="sub"><span>${esc(s.codigo)}</span>${tipoChip(s.tipo)}${pendChip(s)}${tomaChip(s)}<span>👤 ${esc(nombre(s.asesor_id))}</span>${extra}${c}</div>
       ${entregaHTML(s)}
       ${s.en_espera && s.espera_motivo ? `<div class="small" style="color:var(--gray);margin-top:3px">⏸ ${esc(s.espera_motivo)}</div>` : ''}
       ${segLinea(s)}${al && S.tab === 'alertas' ? alBtns(s, al) : ''}
@@ -2408,6 +2413,28 @@ document.addEventListener('click', e => {
   e.preventDefault(); e.stopPropagation();
   const s = S.sols.find(x => x.id === +b.dataset.fcedit); if (!s) return;
   dialogoFechaColoc(s, async () => { pintarTabs(); if (!$('#sheet').classList.contains('hidden')){ S.dirty = false; await abrirDetalle(s.id, true); } else pintar(); });
+}, true);
+function analisisTopHTML(s){
+  if (s.estado !== 'en_analisis' || s.id < 0) return '';
+  if (!s.analisis_tomado_en) return `<div class="al-box"><b>⏳ Esperando que un analista la tome</b>
+    <div class="small">Enviada a análisis ${hace(s.enviado_analisis_en || s.estado_desde)}. El tiempo de análisis empieza a contar cuando se toca "Tomar análisis"; la espera se mide aparte.</div>
+    ${es('analista') ? `<div class="al-btns"><button class="btn pri" data-tomaran="${s.id}">🙋 Tomar análisis</button></div>` : ''}</div>`;
+  const mio = s.analisis_tomado_por === S.me?.id;
+  return `<div class="seg-box"><b>🔎 En análisis ${mio ? 'por usted' : 'por ' + esc(nombre(s.analisis_tomado_por))}</b>
+    <div class="small">La tomó ${fDT(s.analisis_tomado_en)} · lleva ${fmtDur(segHabiles(s.analisis_tomado_en, new Date()))} hábiles</div>
+    ${es('analista') && !mio ? `<div class="al-btns"><button class="btn sm ghost" data-tomaran="${s.id}" data-otro="${esc(nombre(s.analisis_tomado_por))}">🙋 Tomarla yo</button></div>` : ''}</div>`;
+}
+document.addEventListener('click', e => {
+  const b = e.target.closest && e.target.closest('[data-tomaran]'); if (!b) return;
+  e.preventDefault(); e.stopPropagation();
+  if (b.dataset.otro && !confirm(`${b.dataset.otro} ya tomó este análisis. ¿Quiere tomarlo usted?`)) return;
+  run(b, async () => {
+    if (!navigator.onLine) throw new Error('Se necesita conexión para tomar el análisis');
+    const id = +b.dataset.tomaran;
+    await rpc('tomar_analisis', { p_id: id }); toast('Análisis tomado · el tiempo de análisis empieza ahora');
+    await cargarSolicitudes(); pintarTabs();
+    if (!$('#sheet').classList.contains('hidden')){ S.dirty = false; await abrirDetalle(id, true); } else pintar();
+  });
 }, true);
 function seguimientoTopHTML(s){
   if (CERRADAS.includes(s.estado) || s.importado) return '';
@@ -2695,7 +2722,7 @@ function renderDetalle(){
   $('#sheetTitle').textContent = s.nombre_cliente; $('#sheetCopy').dataset.cpy = s.nombre_cliente; $('#sheetCopy').innerHTML = ICO_COPIAR; $('#sheetChip').innerHTML = chip(s.estado);
   let n = 0; const col = { m:'', s:'' };
   h.split('\u0001').forEach(p => { const html = p.slice(1).trim(); if (html) col[p[0]] += `<div class="det-it" style="order:${++n}">${html}</div>`; });
-  const arriba = colocacionTopHTML(s) + seguimientoTopHTML(s) + (s.estado === 'desembolso_pendiente' ? desembolsoTopHTML(s, evs) : '');
+  const arriba = analisisTopHTML(s) + colocacionTopHTML(s) + seguimientoTopHTML(s) + (s.estado === 'desembolso_pendiente' ? desembolsoTopHTML(s, evs) : '');
   $('#sheetBody').innerHTML = `${arriba}<div class="det-cols"><div class="det-col det-main">${col.m}</div><div class="det-col det-side">${col.s}</div></div>`;
   plegarSecciones();
   enlazarDetalle(s, c);
@@ -2869,8 +2896,11 @@ function accionesHTML(s, c){
       <div class="small" style="margin-top:6px">${nIng ? `📄 ${nIng} registro(s) de ingresos agregados` : '<span style="color:var(--amber)">⚠ Aún no hay ingresos registrados</span>'}</div>
       <div class="btns"><button class="btn pri" id="aEnviar">✅ Solicitud lista · enviar a análisis</button></div></div>`;
   }
-  // Analista: dictamen
-  if (s.estado === 'en_analisis' && es('analista')){
+  // Analista: dictamen (primero hay que tomar el análisis)
+  if (s.estado === 'en_analisis' && es('analista') && s.analisis_tomado_por !== S.me?.id){
+    h += `<div class="card"><h4 class="sec" style="margin-top:0">Dictamen</h4><div class="small muted">${s.analisis_tomado_en ? `Este análisis lo tiene ${esc(nombre(s.analisis_tomado_por))}. Para dictaminar, tómelo usted con el botón de arriba.` : 'Para aprobar, denegar o devolver, primero toque <b>🙋 Tomar análisis</b> arriba.'}</div>
+      <div class="btns"><button class="btn pri" data-tomaran="${s.id}"${s.analisis_tomado_en ? ` data-otro="${esc(nombre(s.analisis_tomado_por))}"` : ''}>🙋 ${s.analisis_tomado_en ? 'Tomarla yo' : 'Tomar análisis'}</button></div></div>`;
+  } else if (s.estado === 'en_analisis' && es('analista')){
     if (s.tipo === 'nuevo' && (c.tipoB || s.politica_b) && !s.dictamen_en) c = { ...c, limite: limNuevo(s, c) };
     const refi = s.tipo !== 'nuevo';
     h += `<div class="card"><h4 class="sec" style="margin-top:0">Dictamen</h4>
@@ -4596,9 +4626,12 @@ const RC = {
   asesor:{ t:'Asesor' }, analista:{ t:'Analista' }, verificador:{ t:'Verificador' },
   desembolso:{ t:'Pendiente de desembolso' }, finalizada:{ t:'Finalizada' }, cerrada:{ t:'Cancelada / rechazada' }, completar:{ t:'Asesor' } };
 // c = color con el que se identifica cada paso en tarjetas y tablero
-const PASO = { borrador:{ t:'Captura', r:'asesor', c:'asesor' }, en_analisis:{ t:'Análisis', r:'analista', c:'analista' }, aprobada:{ t:'Completar datos', r:'asesor', c:'completar' },
+const PASO = { borrador:{ t:'Captura', r:'asesor', c:'asesor' }, cola_analisis:{ t:'Espera de análisis', r:'analista', c:'analista' }, en_analisis:{ t:'Análisis', r:'analista', c:'analista' }, aprobada:{ t:'Completar datos', r:'asesor', c:'completar' },
   por_verificar:{ t:'Verificación', r:'verificador', c:'verificador' }, desembolso_pendiente:{ t:'Desembolso', r:'desembolso', c:'desembolso' } };
-const ORDEN_PASOS = ['borrador','en_analisis','aprobada','por_verificar','desembolso_pendiente'];
+const ORDEN_PASOS = ['borrador','cola_analisis','en_analisis','aprobada','por_verificar','desembolso_pendiente'];
+// En análisis sin tomar = "Espera de análisis" (el tiempo de análisis cuenta desde "Tomar análisis")
+const sinTomar = s => s.estado === 'en_analisis' && !s.analisis_tomado_en;
+const pasoActual = s => sinTomar(s) ? 'cola_analisis' : s.estado;
 const rolDe = est => PASO[est]?.r || (est === 'desembolsada' ? 'finalizada' : 'cerrada');
 const colorDe = est => PASO[est]?.c || rolDe(est);
 const rcVars = r => `--rc:var(--r-${r});--rb:var(--r-${r}-bg)`;
@@ -4620,7 +4653,7 @@ function pasosHTML(s){
   const acc = pasosDe(s), ab = !CERRADAS.includes(s.estado), ahora = new Date();
   const desde = s.estado_desde || s.actualizado_en;
   return `<div class="pasos">${ORDEN_PASOS.map(k => {
-    const a = acc[k], cur = ab && s.estado === k;
+    const a = acc[k], cur = ab && pasoActual(s) === k;
     if (!a && !cur) return '';
     const seg = (a?.seg || 0) + (cur ? segHabiles(desde, ahora) : 0);
     const late = cur && clsMeta(segHabiles(desde, ahora), S.params.meta_paso_min) === 'late';
@@ -4629,7 +4662,7 @@ function pasosHTML(s){
 }
 function clsMeta(segHab, metaMin){ if (!metaMin) return ''; const r = segHab / (metaMin * 60); return r >= 1 ? 'late' : r >= .75 ? 'warn' : ''; }
 function tiemposHTML(s, evs){
-  const pasos = evs.filter(e => e.de_estado || ['en_espera','reanudada','verificador_asignado'].includes(e.accion));
+  const pasos = evs.filter(e => e.de_estado || ['en_espera','reanudada','verificador_asignado','analisis_reasignado'].includes(e.accion));
   const cerrada = CERRADAS.includes(s.estado);
   const ahora = new Date();
   const totHab = cerrada ? s.duracion_total_habil_seg : segHabiles(s.creado_en, ahora);
@@ -4643,14 +4676,14 @@ function tiemposHTML(s, evs){
     <div class="steps" style="margin-top:8px">
     <div class="stp" style="${rcVars('asesor')}"><i></i><div><b>${esc(nombre(creada?.usuario_id || s.asesor_id))}</b> creó la solicitud<br><small class="muted">${fDT(s.creado_en)}</small></div><div class="d"></div></div>`;
   pasos.forEach(e => {
-    if (!e.de_estado){ h += `<div class="stp sub" style="--rc:var(--gray)"><i></i><div><b>${esc(nombre(e.usuario_id))}</b> ${e.accion === 'en_espera' ? '⏸ puso en espera' : e.accion === 'reanudada' ? '▶ reanudó' : '🛵 asignó verificador'}${e.nota ? `: <span class="nota">${esc(e.nota)}</span>` : ''}<br><small class="muted">${fDT(e.creado_en)}</small></div><div class="d"></div></div>`; return; }
+    if (!e.de_estado){ h += `<div class="stp sub" style="--rc:var(--gray)"><i></i><div><b>${esc(nombre(e.usuario_id))}</b> ${e.accion === 'en_espera' ? '⏸ puso en espera' : e.accion === 'reanudada' ? '▶ reanudó' : e.accion === 'analisis_reasignado' ? '🙋 tomó el análisis' : '🛵 asignó verificador'}${e.nota ? `: <span class="nota">${esc(e.nota)}</span>` : ''}<br><small class="muted">${fDT(e.creado_en)}</small></div><div class="d"></div></div>`; return; }
     const pr = PASO[e.de_estado];
     h += `<div class="stp" style="${rcVars(pr ? pr.c : 'cerrada')}"><i></i><div><span class="pn">${pr ? pr.t + ' · ' + RC[pr.r].t : (EST[e.de_estado]?.t || e.de_estado)}</span><br><b>${esc(nombre(e.usuario_id))}</b> ${esc((ACC[e.accion]||e.accion).toLowerCase())}${e.nota ? `: <span class="nota">${esc(e.nota)}</span>` : ''}<br><small class="muted">${fDT(e.creado_en)}</small></div>
       <div class="d">${fmtDur(e.duracion_habil_seg)}<small>${fmtDur(e.duracion_seg)} cal.</small></div></div>`;
   });
   if (!cerrada){
-    const desde = s.estado_desde || s.actualizado_en;
-    h += `<div class="stp now" style="${rcVars(colorDe(s.estado))}"><i></i><div><span class="pn">${PASO[s.estado].t} · ${RC[rolDe(s.estado)].t}</span> <b>en curso</b><br><small class="muted">desde ${fDT(desde)}</small></div>
+    const desde = s.estado_desde || s.actualizado_en, pa = pasoActual(s);
+    h += `<div class="stp now" style="${rcVars(colorDe(s.estado))}"><i></i><div><span class="pn">${PASO[pa].t} · ${RC[rolDe(s.estado)].t}</span> <b>${pa === 'cola_analisis' ? 'sin tomar' : 'en curso'}</b><br><small class="muted">desde ${fDT(desde)}</small></div>
       <div class="d" data-live-paso="${desde}">${fmtDur(segHabiles(desde, ahora))}<small>en curso</small></div></div>`;
   }
   return h + `</div><div class="small muted" style="margin-top:8px">Tiempos hábiles: L–V ${hh(S.params.hora_inicio)}–${hh(S.params.hora_cierre_lv)}, sáb ${hh(S.params.hora_inicio)}–${hh(S.params.hora_cierre_sab)}, sin domingos ni feriados.</div></div>`;
@@ -4756,6 +4789,11 @@ function pintarTablero(){
   $('#main').querySelectorAll('.kc').forEach(c => c.onclick = () => { if (Date.now() - (S._dragFin || 0) < 400) return; abrirDetalle(+c.dataset.id); });
   activarArrastre($('#main').querySelector('.board'));
 }
+function tomaChip(s){
+  if (s.estado !== 'en_analisis') return '';
+  return s.analisis_tomado_en ? `<span class="chip c-violet" title="Tomó el análisis ${fDT(s.analisis_tomado_en)}">🙋 ${esc(nombre(s.analisis_tomado_por).split(' ')[0])}</span>`
+    : '<span class="chip c-amber" title="Ningún analista la ha tomado: el tiempo de análisis aún no corre">⏳ Sin tomar</span>';
+}
 function cardK(s, dia){
   const ab = !CERRADAS.includes(s.estado), ahora = new Date();
   const desde = s.estado_desde || s.actualizado_en;
@@ -4773,7 +4811,7 @@ function cardK(s, dia){
   return `<div class="kc${s.en_espera ? ' espera' : ''}${alertaDe(s) ? ' alerta' : ''}" data-id="${s.id}" style="${rcVars(colorDe(s.estado))}">
     <div class="rolbar">${rolPill(s)}${previo}</div>
     <div class="nm">${conCopiar(s.nombre_cliente)}</div>
-    <div class="ln">${ab && !s.en_espera ? '' : chip(s.estado)}${tipoChip(s.tipo)}${esperaChip(s)}${pendChip(s)}${s.estado === 'por_verificar' && !s.verificador_id && !s.en_espera ? '<span class="chip c-red">⚠ Sin verificador</span>' : ''}</div>
+    <div class="ln">${ab && !s.en_espera ? '' : chip(s.estado)}${tipoChip(s.tipo)}${esperaChip(s)}${pendChip(s)}${tomaChip(s)}${s.estado === 'por_verificar' && !s.verificador_id && !s.en_espera ? '<span class="chip c-red">⚠ Sin verificador</span>' : ''}</div>
     ${s.en_espera ? `<div class="ln" style="color:var(--gray)">${ESP_CAT[s.espera_categoria]?.i || '⏸'} ${esc(s.espera_motivo||'')} · ${hace(s.espera_desde)}</div>` : ''}
     <div class="ln"><span>${esc(s.codigo)}</span><span>👤 ${esc(nombre(s.asesor_id).split(' ')[0])}</span>${monto ? `<b style="color:var(--ink)">${monto}</b>` : ''}${S.com[s.id] ? `<span>💬 ${S.com[s.id]}</span>` : ''}</div>
     ${['aprobada','por_verificar'].includes(s.estado) && (sectorDe(s) || ciudadDe(s)) ? `<div class="ln">📍 ${esc([sectorDe(s), ciudadDe(s)].filter(Boolean).join(' · '))}</div>` : ''}
@@ -4811,7 +4849,7 @@ function leerFechaColoc(s, id){
 function destinosRegreso(s){
   if (!s || s.id < 0) return [];
   const i = ORDEN_PASOS.indexOf(s.estado);
-  return ORDEN_PASOS.filter((k, j) => (i < 0 || j < i))
+  return ORDEN_PASOS.filter((k, j) => k !== 'cola_analisis' && (i < 0 || j < i))
     .filter(k => k !== 'desembolso_pendiente' || s.forma_desembolso === 'transferencia')
     .filter(k => k !== 'por_verificar' || !!s.forma_desembolso)
     .filter(k => !['aprobada','por_verificar','desembolso_pendiente'].includes(k) || s.monto_aprobado != null);
