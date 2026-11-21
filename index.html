@@ -640,13 +640,16 @@ body.marco-cel #sheet > *{max-width:430px;margin-left:auto;margin-right:auto}
 // App disponible sin señal (sw.js debe estar junto a index.html). Va primero para registrarse aunque falle otra cosa.
 if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) navigator.serviceWorker.register('sw.js').catch(() => {});
 // Versión de esta copia de la app: cambia en cada entrega. La app la compara con la publicada y se actualiza sola.
-const APP_VER = '2026-11-21.0930';
+const APP_VER = '2026-11-21.0950';
+// 'admin' = cambio solo para el administrador: los demás usuarios no ven el aviso de versión nueva (se actualiza en silencio)
+// y sus NOVEDADES deben llevar r:['admin']. 'todos' = cambio que ven los usuarios.
+const APP_AVISO = 'admin';
 // Novedades que ve cada usuario al abrir una versión nueva (la más reciente primero).
 // Al publicar cambios: subir APP_VER y agregar aquí una entrada con la misma versión.
 // r = roles que la ven (sin r = todos; el admin ve todo).
 const NOVEDADES = [
   { v:'2026-11-21.0930', f:'21 de noviembre de 2026', items:[
-    { i:'🧾', t:'Nueva pestaña "Posteo": control de lo que falta registrar en el sistema general', r:['analista'],
+    { i:'🧾', t:'Nueva pestaña "Posteo": control de lo que falta registrar en el sistema general', r:['admin'],
       d:'Muestra cada solicitud desembolsada con todo lo necesario para registrarla en el sistema general y en caja: monto del préstamo; en refinanciamientos y reingresos, el saldo de intereses y el de capital a pagar; y el monto entregado con los textos listos para copiar del ingreso y del traslado de fondos banco → caja (por ejemplo "Ingreso de fondos entre BAC a CAJA, Préstamo aprobado (nombre)"). Escoja el banco de donde salió el dinero y marque cada paso al hacerlo; al completarlos queda ✅ Posteado. El número en la pestaña son los pendientes. Para los desembolsos que ya había registrado antes, use "Marcar anteriores como posteadas…".' } ] },
   { v:'2026-11-20.1130', f:'20 de noviembre de 2026', items:[
     { i:'🙋', t:'Análisis: hay que tocar "Tomar análisis" antes de dictaminar', r:['analista'],
@@ -1137,7 +1140,7 @@ async function instalarApp(){
 // Revisa si hay una versión nueva publicada (al abrir, al volver a la app y cada 2 minutos).
 // Si la hay, recarga sola en un momento seguro: sin diálogos abiertos, sin cambios sin guardar y sin estar escribiendo.
 // Los cambios pendientes de enviar están guardados en el teléfono, así que no se pierden al recargar.
-const UPD = { firma: null, nueva: null, revisando: false, timer: null };
+const UPD = { firma: null, nueva: null, revisando: false, timer: null, silencioso: false };
 async function revisarVersion(){
   if (UPD.revisando || !navigator.onLine || !/^https?:$/.test(location.protocol)) return;
   UPD.revisando = true;
@@ -1148,9 +1151,10 @@ async function revisarVersion(){
     try { const h = await fetch(url, { method: 'HEAD', cache: 'no-store' }); if (h.ok) firma = h.headers.get('etag') || h.headers.get('last-modified') || h.headers.get('content-length'); } catch(e){}
     if (firma && UPD.firma === firma && !UPD.nueva) return;
     const r = await fetch(url + '?vc=' + Date.now(), { cache: 'no-store' }); if (!r.ok) return;
-    const m = (await r.text()).match(new RegExp('const APP' + "_VER = '([^']+)'"));
+    const txt = await r.text(), m = txt.match(new RegExp('const APP' + "_VER = '([^']+)'"));
+    const av = txt.match(new RegExp('const APP' + "_AVISO = '([^']+)'"));
     UPD.firma = firma;
-    if (m && m[1] !== APP_VER){ UPD.nueva = m[1]; navigator.serviceWorker?.getRegistration?.().then(g => g && g.update()).catch(() => {}); intentarActualizar(); }
+    if (m && m[1] !== APP_VER){ UPD.nueva = m[1]; UPD.silencioso = !!av && av[1] === 'admin' && rol() !== 'admin'; navigator.serviceWorker?.getRegistration?.().then(g => g && g.update()).catch(() => {}); intentarActualizar(); }
   } catch(e){} finally { UPD.revisando = false; }
 }
 function momentoSeguro(){
@@ -1162,7 +1166,7 @@ function momentoSeguro(){
 function intentarActualizar(forzar){
   if (!UPD.nueva) return;
   if (!forzar && !momentoSeguro()){
-    if (!$('#updBar')){
+    if (!UPD.silencioso && !$('#updBar')){
       const b = document.createElement('div'); b.id = 'updBar';
       b.style.cssText = 'position:fixed;left:50%;transform:translateX(-50%);bottom:calc(14px + env(safe-area-inset-bottom));z-index:9999;background:#0A2A66;color:#fff;border-radius:12px;padding:10px 12px;display:flex;gap:10px;align-items:center;box-shadow:0 6px 20px rgba(0,0,0,.25);font-size:13px;max-width:calc(100% - 24px)';
       b.innerHTML = '<span>✨ Hay una versión nueva. Se aplicará al terminar lo que está haciendo.</span><button class="btn sm" style="background:#FFD400;color:#0A2A66;white-space:nowrap" id="updYa">Actualizar ahora</button>';
@@ -1468,7 +1472,7 @@ async function cargarSolicitudes(){
   S.evs = {}; (evr || []).forEach(e => { if (e.de_estado) (S.evs[e.solicitud_id] = S.evs[e.solicitud_id] || []).push(e); });
   const { data: cs } = await sb.from('comentarios').select('solicitud_id');
   S.com = {}; (cs||[]).forEach(c => S.com[c.solicitud_id] = (S.com[c.solicitud_id]||0) + 1);
-  if (es('analista')) await cargarPosteos();
+  if (rol() === 'admin') await cargarPosteos();
   marcarConexion(true); KV.set(ck('syncAt'), S.syncAt);
   aplicarPendientes(); guardarCache(); indicadorRed();
   precargarDetalles();
@@ -1496,7 +1500,7 @@ function tabsRol(){
     stats:['stats','Estadísticas'], referidos:['referidos','Referidos'], usuarios:['usuarios','Usuarios'], params:['params','Parámetros'], pagos:['pagos','Pago verificadores'], vercomo:['vercomo','👁 Vista verificador']
   };
   const m = { asesor:['tablero','alertas','prospectos','solicitudes','revisadas','proceso','verificar',...(asesorDesembolsa() ? ['desembolsos'] : []),'todas','refi','historial','stats'],
-    analista:['tablero','alertas','prospectos','analisis','desembolsos','posteo','todas','refi','referidos','historial','stats'],
+    analista:['tablero','alertas','prospectos','analisis','desembolsos','todas','refi','referidos','historial','stats'],
     verificador:['verificar','tablero','verificadas','historial','stats'],
     admin:['tablero','alertas','prospectos','solicitudes','revisadas','analisis','verificar','desembolsos','posteo','todas','refi','referidos','historial','stats','pagos','vercomo','usuarios','params'] };
   return m[rol()].map(k => T[k]);
