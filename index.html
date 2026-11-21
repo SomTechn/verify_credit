@@ -687,8 +687,8 @@ header.top .iconbtn svg.ic{width:18px;height:18px;vertical-align:-4px}
 @media (min-width:1024px){ .mt-ritmo-cel{display:none} .mt-side .mt-ritmo-pc{display:block} }
 /* Bandeja limpia */
 .mt-cel{position:relative;overflow:hidden;display:flex;gap:16px;align-items:flex-start;background:linear-gradient(135deg,var(--green-bg),var(--card));border:1px solid var(--line);border-left:4px solid var(--green);border-radius:8px;padding:18px}
-.mt-cel.estrella{background:linear-gradient(135deg,#FFF6CC,var(--card));border-left-color:#C98500}
-@media (prefers-color-scheme: dark){ .mt-cel.estrella{background:linear-gradient(135deg,#3A3212,var(--card))} }
+.mt-cel.estrella,.mt-cel.record{background:linear-gradient(135deg,#FFF6CC,var(--card));border-left-color:#C98500}.mt-cel.record .mt-cel-ic{background:#C98500}
+@media (prefers-color-scheme: dark){ .mt-cel.estrella,.mt-cel.record{background:linear-gradient(135deg,#3A3212,var(--card))} }
 .mt-cel-ic{flex:none;width:46px;height:46px;border-radius:50%;background:var(--green);color:#fff;display:grid;place-items:center}
 .mt-cel.estrella .mt-cel-ic{background:#C98500}.mt-cel-ic svg.ic{width:24px;height:24px}
 .mt-cel.fiesta .mt-cel-ic{animation:celPop .7s cubic-bezier(.2,1.6,.4,1) both}
@@ -700,6 +700,22 @@ header.top .iconbtn svg.ic{width:18px;height:18px;vertical-align:-4px}
 @keyframes celCae{0%{opacity:1;transform:translateY(0) rotate(0)}100%{opacity:0;transform:translateY(220px) rotate(540deg)}}
 @keyframes celPop{0%{transform:scale(.3)}100%{transform:scale(1)}}
 @media (prefers-reduced-motion: reduce){ .conf{display:none} .mt-cel.fiesta .mt-cel-ic{animation:none} }
+/* Mi progreso */
+.mt-prog{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-bottom:16px}
+.mt-prog:empty{display:none}
+@media (max-width:760px){ .mt-prog{grid-template-columns:1fr;gap:8px} }
+.pg-t{display:flex;gap:12px;align-items:flex-start;background:var(--card);border:1px solid var(--line);border-radius:8px;padding:12px 14px;text-align:left;font:inherit;color:inherit}
+.pg-t > div:last-child{min-width:0;flex:1}
+.pg-t span{display:block;font-size:12.5px;color:var(--muted)}.pg-t b{display:block;font:800 19px Poppins,Inter,sans-serif;color:var(--ink);margin-top:1px}.pg-t b em{font:600 12px Inter,sans-serif;color:var(--muted);font-style:normal}
+.pg-t small{display:block;font-size:12px;color:var(--ink2);margin-top:2px}
+.pg-sem{cursor:pointer}.pg-sem:hover{box-shadow:var(--shadow)}
+.pg-ic{flex:none;width:38px;height:38px;border-radius:8px;display:grid;place-items:center;background:var(--gray-bg);color:var(--gray)}
+.pg-ic svg.ic{width:21px;height:21px}
+.pg-t.on .pg-ic.fl{background:#FFE8D6;color:#E4630B}.pg-t.on .pg-ic.tr{background:#FFF4C2;color:#B98300}.pg-ic.wk{background:var(--brand2);color:var(--brand)}
+@media (prefers-color-scheme: dark){ .pg-t.on .pg-ic.fl{background:#3D2410;color:#FF9A52} .pg-t.on .pg-ic.tr{background:#3A3212;color:#F2C94C} }
+.pg-t.on{border-color:#E4A23B}
+.pg-bar{height:6px;border-radius:6px;background:var(--line);overflow:hidden;margin-top:7px}.pg-bar.big{height:9px}.pg-bar i{display:block;height:100%;background:var(--green);border-radius:6px}
+.pg-tbl{width:100%;border-collapse:collapse;font-size:13.5px}.pg-tbl th{text-align:left;font-size:12px;color:var(--muted);font-weight:600;padding:6px 4px;border-bottom:1px solid var(--line)}.pg-tbl td{padding:8px 4px;border-bottom:1px solid var(--line);color:var(--ink2)}.pg-tbl td b{color:var(--ink)}
 </style>
 </head>
 <body>
@@ -760,7 +776,7 @@ header.top .iconbtn svg.ic{width:18px;height:18px;vertical-align:-4px}
 // App disponible sin señal (sw.js debe estar junto a index.html). Va primero para registrarse aunque falle otra cosa.
 if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) navigator.serviceWorker.register('sw.js').catch(() => {});
 // Versión de esta copia de la app: cambia en cada entrega. La app la compara con la publicada y se actualiza sola.
-const APP_VER = '2026-11-21.1700';
+const APP_VER = '2026-11-21.1730';
 // 'admin' = cambio solo para el administrador: los demás usuarios no ven el aviso de versión nueva (se actualiza en silencio)
 // y sus NOVEDADES deben llevar r:['admin']. 'todos' = cambio que ven los usuarios.
 const APP_AVISO = 'todos';
@@ -768,6 +784,9 @@ const APP_AVISO = 'todos';
 // Al publicar cambios: subir APP_VER y agregar aquí una entrada con la misma versión.
 // r = roles que la ven (sin r = todos; el admin ve todo).
 const NOVEDADES = [
+  { v:'2026-11-21.1730', f:'21 de noviembre de 2026', items:[
+    { i:'•', t:'Mi trabajo: su ritmo, rachas, récords y "Tu semana"',
+      d:'En Mi trabajo verá su tiempo promedio por solicitud comparado con sus últimos 30 días (dentro o fuera de su promedio). También su racha de días dejando la bandeja limpia antes del cierre, su récord personal de solicitudes en un día y cuántas lleva esta semana contra la semana pasada. Toque "Esta semana" para ver el resumen completo; cada lunes le aparecerá el resumen de la semana anterior. Al limpiar la bandeja recibirá una felicitación según su rendimiento.' } ] },
   { v:'2026-11-21.1600', f:'21 de noviembre de 2026', items:[
     { i:'•', t:'Versión de prueba del nuevo diseño',
       d:'Esta es una versión de prueba con los mismos datos reales. Ahora la app abre en "Mi trabajo": solo lo que le toca a usted, lo más urgente primero, con un botón para cada acción. El tablero general sigue disponible en "Tablero". En computadora el menú está a la izquierda y en el celular abajo; lo demás está en "Más". Los comentarios nuevos aparecen arriba en Mi trabajo, en rojo en las tarjetas y al abrir la solicitud. Lo que haga aquí cuenta igual que en la app normal.' } ] },
@@ -1952,6 +1971,70 @@ function ritmoHTML(){
       <div class="muted small" style="padding:6px 0 8px">Promedio de sus últimos 30 días, sin contar el 10% más lento.</div></div>`;
 }
 
+// ---------- Mi progreso: racha, récord personal y "Tu semana" ----------
+ICO.flame = '<path d="M12 2c1.2 3.6 5 5.4 5 10.5A5 5 0 0 1 7 12.5c0-2 .9-3.2 2-4.2.1 1.8.9 3 2 3.2C11 8.6 10.8 5 12 2z"/>';
+ICO.trophy = '<path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0z"/><path d="M17 5h3v2a3 3 0 0 1-3 3M7 5H4v2a3 3 0 0 0 3 3"/>';
+ICO.week = '<rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01"/>';
+const fDia = d => d ? new Date(d + 'T12:00').toLocaleDateString('es-HN', { day:'numeric', month:'short' }) : '';
+const PASO_TXT = { borrador:'captura', en_analisis:'análisis', por_verificar:'verificación' };
+async function cargarProgreso(forzar){
+  if (!navigator.onLine || S.verComo) return;
+  if (!forzar && S.prog && Date.now() - (S.progAt || 0) < 120000) return;
+  try { const r = await rpc('mi_progreso', {}); if (r) { S.prog = r; S.progAt = Date.now(); } } catch(e){}
+}
+// Registra el día con bandeja limpia (una vez por día; la base valida horario y actividad)
+async function registrarLimpia(){
+  if (!navigator.onLine || S.verComo || !S.me) return;
+  const k = 'vc_limpia_' + S.me.id + '_' + hoyHN(); try { if (localStorage.getItem(k)) return; } catch(e){}
+  try { const r = await rpc('registrar_bandeja_limpia', {});
+    if (r?.ok){ try { localStorage.setItem(k, '1'); } catch(e){} await cargarProgreso(true);
+      if (S.tab === 'trabajo') document.querySelectorAll('.mt-prog').forEach(el => el.innerHTML = progresoHTML()); }
+  } catch(e){}
+}
+const semMeta = p => Math.max(1, Math.ceil((p?.semana?.anterior?.n || 0) * 1.05));
+function progresoHTML(){
+  const p = S.prog; if (!p) return '';
+  const hoy = p.hoy_n || 0, md = p.mejor_dia, a = p.semana?.actual || {}, b = p.semana?.anterior || {};
+  const nuevoRec = md && hoy > md.n;
+  const var_ = b.n ? Math.round((a.n - b.n) / b.n * 100) : null;
+  const racha = p.racha || 0;
+  const rachaSub = racha ? (p.hoy_limpia ? 'Hoy ya cuenta' : 'Deja la bandeja limpia hoy para mantenerla') : 'Deja la bandeja limpia antes del cierre para empezar';
+  return `<div class="pg-t${racha >= 3 ? ' on' : ''}"><div class="pg-ic fl">${ico('flame')}</div><div><span>Racha de bandeja limpia</span><b>${racha} día${racha === 1 ? '' : 's'}</b><small>${rachaSub}${p.mejor_racha > racha ? ` · mejor: ${p.mejor_racha}` : ''}</small></div></div>
+    <div class="pg-t${nuevoRec ? ' on' : ''}"><div class="pg-ic tr">${ico('trophy')}</div><div><span>${nuevoRec ? 'Nuevo récord personal' : 'Tu récord diario'}</span><b>${nuevoRec ? hoy : md ? md.n : '—'}${nuevoRec ? ' hoy' : md ? ` <em>${fDia(md.dia)}</em>` : ''}</b>
+      <small>${nuevoRec ? `Superaste tu marca anterior de ${md.n}` : md ? `Hoy llevas ${hoy}${md.n - hoy > 0 ? ` · te faltan ${md.n - hoy + 1} para superarlo` : ''}` : 'Aún sin historial'}</small></div></div>
+    <button class="pg-t pg-sem" data-semana><div class="pg-ic wk">${ico('week')}</div><div><span>Esta semana</span><b>${a.n || 0} completadas</b>
+      <small>${b.n ? `Semana pasada ${b.n}${var_ != null ? ` · ${var_ >= 0 ? '+' : ''}${var_}%` : ''}` : 'Ver resumen'} · meta ${semMeta(p)}</small>
+      <div class="pg-bar"><i style="width:${Math.min(100, Math.round((a.n || 0) / semMeta(p) * 100))}%"></i></div></div></button>`;
+}
+function dialogoSemana(enfasisAnterior){
+  const p = S.prog; if (!p) return;
+  const a = p.semana.actual, b = p.semana.anterior, paso = PASO_TXT[p.paso] || 'tu paso principal', ases = es('asesor');
+  const cmp = (x, y, menorMejor) => (x == null || y == null || !y) ? '' : (menorMejor ? x <= y : x >= y) ? `<span class="rt-b ok">${ico('check', 'sm')}Mejor</span>` : `<span class="rt-b mal">Por debajo</span>`;
+  const fila = (t, va, vb, c) => `<tr><td>${t}</td><td><b>${va}</b></td><td>${vb}</td><td>${c || ''}</td></tr>`;
+  const msg = !b.n ? 'Esta es tu primera semana con resumen. Cada semana podrás comparar tu avance.'
+    : a.n >= b.n ? `Vas por buen camino: ya igualaste o superaste la semana pasada.` : `Te faltan ${b.n - a.n} para igualar la semana pasada y ${Math.max(0, semMeta(p) - a.n)} para tu meta.`;
+  const ant = enfasisAnterior && b.n ? `<div class="alert ok small" style="margin:8px 0">La semana pasada completaste <b>${b.n}</b> solicitudes${b.dias_trab ? ` en ${b.dias_trab} día(s)` : ''}${b.mejor_dia ? `; tu mejor día fue el ${fDia(b.mejor_dia.dia)} con ${b.mejor_dia.n}` : ''}. Meta sugerida para esta semana: <b>${semMeta(p)}</b>.</div>` : '';
+  dialogo(`<h3 style="margin-top:0;display:flex;gap:8px;align-items:center">${ico('week')}Tu semana</h3>${ant}
+    <table class="tbl pg-tbl"><tr><th></th><th>Esta semana</th><th>Semana pasada</th><th></th></tr>
+      ${fila('Completadas', a.n || 0, b.n || 0, cmp(a.n, b.n))}
+      ${fila(`Tiempo promedio de ${paso}`, a.prom != null ? fmtDur(a.prom) : '—', b.prom != null ? fmtDur(b.prom) : '—', cmp(a.prom, b.prom, true))}
+      ${fila('Días con bandeja limpia', a.dias_limpia || 0, b.dias_limpia || 0, '')}
+      ${fila('Mejor día', a.mejor_dia ? `${a.mejor_dia.n} (${fDia(a.mejor_dia.dia)})` : '—', b.mejor_dia ? `${b.mejor_dia.n} (${fDia(b.mejor_dia.dia)})` : '—', '')}
+      ${ases ? fila('Capital colocado', L(a.colocado || 0), L(b.colocado || 0), cmp(+a.colocado, +b.colocado)) : ''}
+    </table>
+    <div class="small" style="margin:10px 0 4px"><b>Meta de la semana: ${semMeta(p)}</b> (5% más que la semana pasada)</div>
+    <div class="pg-bar big"><i style="width:${Math.min(100, Math.round((a.n || 0) / semMeta(p) * 100))}%"></i></div>
+    <p class="small muted" style="margin:10px 0 0">${msg}${p.mejor_semana ? ` Tu mejor semana: ${p.mejor_semana.n} (desde el ${fDia(p.mejor_semana.lun)}).` : ''}</p>
+    <div class="btns"><button class="btn pri" data-close>Entendido</button></div>`);
+}
+// Lunes (o primera vez en la semana): resumen de la semana pasada
+function quizaSemana(){
+  const p = S.prog; if (!p?.semana || !S.me) return;
+  const k = 'vc_semana_' + S.me.id, lun = p.semana.actual.desde;
+  try { if (localStorage.getItem(k) === lun) return; localStorage.setItem(k, lun); } catch(e){ return; }
+  if (p.semana.anterior.n) setTimeout(() => dialogoSemana(true), 900);
+}
+
 // ---------- Bandeja limpia: felicitación según el rendimiento ----------
 const FRASES = {
   estrella:[
@@ -1970,6 +2053,9 @@ const FRASES = {
     'Bandeja limpia. La constancia es lo que mantiene al equipo funcionando.',
     'Todo al día. Mantener la bandeja limpia es la mejor forma de no dejar a ningún cliente esperando.',
     'Lo pendiente quedó resuelto. Buen trabajo.'],
+  record:[
+    'Nuevo récord personal: {n} completadas hoy, más que cualquier día anterior. Excelente trabajo.',
+    'Superaste tu mejor día: {n} completadas. Así se construye un gran mes.'],
   inicio:[
     'Todo al día por ahora. Buen momento para adelantar seguimientos.',
     'No tienes nada pendiente. Aprovecha para revisar prospectos y refinanciamientos disponibles.',
@@ -1978,18 +2064,23 @@ const FRASES = {
 function celebracionHTML(){
   const { hoyN, diario, ratio } = ritmoResumen(), pct = ratio != null ? Math.max(1, Math.round((1 - ratio) * 100)) : 0;
   const rapido = ratio != null && ratio <= .9, mucho = hoyN > 0 && diario > 0 && hoyN >= diario;
-  const cat = !hoyN ? 'inicio' : rapido && mucho ? 'estrella' : rapido ? 'rapido' : mucho ? 'volumen' : 'constante';
+  const pg = S.prog, record = pg?.mejor_dia && (pg.hoy_n || 0) > pg.mejor_dia.n;
+  const cat = record ? 'record' : !hoyN ? 'inicio' : rapido && mucho ? 'estrella' : rapido ? 'rapido' : mucho ? 'volumen' : 'constante';
   const l = FRASES[cat], dia = Math.floor(Date.now() / 864e5), frase = l[(dia + hoyN) % l.length]
-    .replace('{n}', hoyN).replace('{pct}', pct).replace('{prom}', diario ? diario.toFixed(1).replace('.0', '') : '0');
-  const titulo = { estrella:'Día sobresaliente', rapido:'Bandeja limpia y a buen ritmo', volumen:'Bandeja limpia', constante:'Bandeja limpia', inicio:'Todo al día' }[cat];
-  const chips = [hoyN ? `${hoyN} completada${hoyN > 1 ? 's' : ''} hoy` : '', rapido ? `${pct}% más rápido que tu promedio` : '', mucho ? 'Sobre tu promedio diario' : ''].filter(Boolean);
+    .replace('{n}', cat === 'record' ? pg.hoy_n : hoyN).replace('{pct}', pct).replace('{prom}', diario ? diario.toFixed(1).replace('.0', '') : '0');
+  const titulo = { record:'Nuevo récord personal', estrella:'Día sobresaliente', rapido:'Bandeja limpia y a buen ritmo', volumen:'Bandeja limpia', constante:'Bandeja limpia', inicio:'Todo al día' }[cat];
+  const racha = pg ? (pg.racha || 0) + (pg.hoy_limpia ? 0 : 1) : 0, hito = [3, 5, 10, 15, 20, 30, 50].includes(racha);
+  const nChip = record ? pg.hoy_n : hoyN;
+  const chips = [nChip ? `${nChip} completada${nChip > 1 ? 's' : ''} hoy` : '', rapido ? `${pct}% más rápido que tu promedio` : '', mucho ? 'Sobre tu promedio diario' : '',
+    racha >= 2 ? `Racha de ${racha} días con bandeja limpia` : ''].filter(Boolean);
+  const extra = hito ? ` Llevas ${racha} días seguidos dejando la bandeja limpia.` : '';
   const sug = rol() === 'verificador' ? [['verificar', 'Ver visitas sin asignar', 'pin']]
     : rol() === 'asesor' ? [['prospectos', 'Ver prospectos', 'inbox'], ['refi', 'Refinanciamientos disponibles', 'refresh']]
     : [['refi', 'Refinanciamientos disponibles', 'refresh'], ['tablero', 'Ver el tablero', 'board']];
   const fiesta = S.mtUltToca > 0;   // se acaba de limpiar en esta sesión
   return `<div class="mt-cel ${cat}${fiesta ? ' fiesta' : ''}">${fiesta ? '<div class="conf">' + Array.from({ length:18 }, (_, i) => `<i style="--i:${i}"></i>`).join('') + '</div>' : ''}
-    <div class="mt-cel-ic">${ico(cat === 'estrella' ? 'star' : 'check')}</div>
-    <div class="mt-cel-tx"><h3>${titulo}</h3><p>${esc(frase)}</p>
+    <div class="mt-cel-ic">${ico(cat === 'record' ? 'trophy' : cat === 'estrella' ? 'star' : 'check')}</div>
+    <div class="mt-cel-tx"><h3>${titulo}</h3><p>${esc(frase + extra)}</p>
       ${chips.length ? `<div class="mt-cel-ch">${chips.map(c => `<span>${esc(c)}</span>`).join('')}</div>` : ''}
       <div class="mt-cel-ac">${sug.filter(([k]) => tabsRol().some(t => t[0] === k)).map(([k, t, i]) => `<button class="mt-b gh" data-ir="${k}">${ico(i)}${t}</button>`).join('')}</div></div></div>`;
 }
@@ -2002,6 +2093,7 @@ function pintarTrabajo(){
       ${es('asesor') ? `<button class="mt-b mt-nueva" data-nueva>${ico('plus')}Nueva solicitud</button>` : ''}
       <div class="mt-srch">${ico('search', 'sm')}<input id="mtQ" placeholder="Buscar cliente, código o identidad"></div></div>
     <div class="mt-kpis">${trabajoKpis(d)}</div>
+    <div class="mt-prog">${progresoHTML()}</div>
     <div id="mtRes"></div>
     <div class="mt-ritmo mt-ritmo-cel">${ritmoHTML()}</div>
     <div class="mt-cols"><div class="mt-main">
@@ -2028,6 +2120,11 @@ function pintarTrabajo(){
   if (recienLimpia) cargarRitmo(true).then(() => { if (S.tab !== 'trabajo') return; document.querySelectorAll('.mt-ritmo').forEach(el => el.innerHTML = ritmoHTML());
     const c = document.querySelector('.mt-cel'); if (c){ const p = S.mtUltToca; S.mtUltToca = 1; c.outerHTML = celebracionHTML(); S.mtUltToca = p; } });
   else if (!S.rend || Date.now() - (S.rendAt || 0) > 120000) cargarRitmo().then(() => { if (S.tab === 'trabajo') document.querySelectorAll('.mt-ritmo').forEach(el => el.innerHTML = ritmoHTML()); });
+  const repProg = () => { if (S.tab !== 'trabajo') return; document.querySelectorAll('.mt-prog').forEach(el => el.innerHTML = progresoHTML()); enlazarProg(); };
+  cargarProgreso(recienLimpia).then(() => { repProg(); quizaSemana(); });
+  if (!d.toca.length && !coms.length) registrarLimpia();
+  function enlazarProg(){ document.querySelectorAll('[data-semana]').forEach(b => b.onclick = () => dialogoSemana(false)); }
+  enlazarProg();
   main.querySelectorAll('[data-nueva]').forEach(b => b.onclick = () => nuevaSolicitudDlg());
   clearInterval(S.mtTimer);
   S.mtTimer = setInterval(() => {
