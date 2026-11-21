@@ -640,14 +640,17 @@ body.marco-cel #sheet > *{max-width:430px;margin-left:auto;margin-right:auto}
 // App disponible sin señal (sw.js debe estar junto a index.html). Va primero para registrarse aunque falle otra cosa.
 if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) navigator.serviceWorker.register('sw.js').catch(() => {});
 // Versión de esta copia de la app: cambia en cada entrega. La app la compara con la publicada y se actualiza sola.
-const APP_VER = '2026-11-21.0950';
+const APP_VER = '2026-11-21.1000';
 // 'admin' = cambio solo para el administrador: los demás usuarios no ven el aviso de versión nueva (se actualiza en silencio)
 // y sus NOVEDADES deben llevar r:['admin']. 'todos' = cambio que ven los usuarios.
-const APP_AVISO = 'admin';
+const APP_AVISO = 'todos';
 // Novedades que ve cada usuario al abrir una versión nueva (la más reciente primero).
 // Al publicar cambios: subir APP_VER y agregar aquí una entrada con la misma versión.
 // r = roles que la ven (sin r = todos; el admin ve todo).
 const NOVEDADES = [
+  { v:'2026-11-21.1000', f:'21 de noviembre de 2026', items:[
+    { i:'🔁', t:'Refinanciamientos y reingresos: puede enviarlos a análisis sin ingresos', r:['asesor','analista'],
+      d:'Al crear un refinanciamiento o reingreso ya no hace falta digitar los ingresos: puede enviarlo a análisis de una vez y el analista los agrega o corrige durante el análisis. En clientes nuevos los ingresos siguen siendo obligatorios.' } ] },
   { v:'2026-11-21.0930', f:'21 de noviembre de 2026', items:[
     { i:'🧾', t:'Nueva pestaña "Posteo": control de lo que falta registrar en el sistema general', r:['admin'],
       d:'Muestra cada solicitud desembolsada con todo lo necesario para registrarla en el sistema general y en caja: monto del préstamo; en refinanciamientos y reingresos, el saldo de intereses y el de capital a pagar; y el monto entregado con los textos listos para copiar del ingreso y del traslado de fondos banco → caja (por ejemplo "Ingreso de fondos entre BAC a CAJA, Préstamo aprobado (nombre)"). Escoja el banco de donde salió el dinero y marque cada paso al hacerlo; al completarlos queda ✅ Posteado. El número en la pestaña son los pendientes. Para los desembolsos que ya había registrado antes, use "Marcar anteriores como posteadas…".' } ] },
@@ -2435,7 +2438,8 @@ function nuevaSolicitudDlg(pre = {}){
     $('#nOk').textContent = 'Crear';
     $('#nIngF').classList.toggle('hidden', nuevo);
     $('#nOrigen').classList.toggle('hidden', !nuevo);
-    $('#nHelp').textContent = 'Se crea con el nombre; luego agrega los ingresos y, cuando esté lista, la envía a análisis.';
+    $('#nHelp').textContent = nuevo ? 'Se crea con el nombre; luego agrega los ingresos y, cuando esté lista, la envía a análisis.'
+      : 'Se crea con el nombre y puede enviarla a análisis de una vez: en refinanciamientos y reingresos los ingresos los puede agregar el analista.';
   });
   const coin = () => { $('#nCoin').innerHTML = coincidencias({ id:0, nombre_cliente: $('#nNombre').value, telefono: $('#nTel').value, dni: $('#nDni').value }); };
   $('#nNombre').oninput = coin;
@@ -2456,7 +2460,7 @@ function nuevaSolicitudDlg(pre = {}){
     // Si venía de un prospecto del bot, queda ligado a la solicitud (solo con señal: necesita el número real)
     if (pre.lead && id > 0){ try { await pbActualizar(pre.lead.id, { estado:'convertido', solicitud_id:id, atendido_por:S.me.id, atendido_en:new Date().toISOString() }, true); } catch(e){ console.error(e); toast('La solicitud se creó, pero el prospecto no se pudo marcar. Márquelo de nuevo al tener señal.', true); } }
     await cerrarDialogo(w); await cargarSolicitudes(); pintarTabs(); pintar();
-    toast('Solicitud creada. Agregue los ingresos.');
+    toast(tipo === 'nuevo' ? 'Solicitud creada. Agregue los ingresos.' : 'Solicitud creada. Puede enviarla a análisis; los ingresos son opcionales.');
     abrirDetalle(id);
   });
 }
@@ -3002,8 +3006,8 @@ function accionesHTML(s, c){
   if (s.estado === 'borrador' && es('asesor')){
     const nIng = (S.detData.ing || []).length;
     h += `<div class="card" style="border:1.5px solid var(--r-asesor)"><h4 class="sec" style="margin-top:0">¿La solicitud está lista?</h4>
-      <div class="small muted">Agregue todos los ingresos${s.tipo === 'nuevo' ? ' (planilla y comisiones si aplica)' : ' y los datos del préstamo actual'}. La solicitud se queda con usted hasta que confirme; el analista no la verá antes.</div>
-      <div class="small" style="margin-top:6px">${nIng ? `📄 ${nIng} registro(s) de ingresos agregados` : '<span style="color:var(--amber)">⚠ Aún no hay ingresos registrados</span>'}</div>
+      <div class="small muted">${s.tipo === 'nuevo' ? 'Agregue todos los ingresos (planilla y comisiones si aplica).' : 'Los ingresos son opcionales: si no los tiene, envíela así y el analista los agrega.'} La solicitud se queda con usted hasta que confirme; el analista no la verá antes.</div>
+      <div class="small" style="margin-top:6px">${nIng ? `📄 ${nIng} registro(s) de ingresos agregados` : s.tipo === 'nuevo' ? '<span style="color:var(--amber)">⚠ Aún no hay ingresos registrados</span>' : '<span class="muted">Sin ingresos: los agregará el analista</span>'}</div>
       <div class="btns"><button class="btn pri" id="aEnviar">✅ Solicitud lista · enviar a análisis</button></div></div>`;
   }
   // Analista: dictamen (primero hay que tomar el análisis)
@@ -3209,7 +3213,9 @@ function enlazarDetalle(s, c){
   // Asesor: enviar
   if ($('#aEnviar')) $('#aEnviar').onclick = e => {
     const nIng = (S.detData.ing || []).length;
-    if (!confirm(`¿Confirma que la solicitud de ${s.nombre_cliente} está lista?\n\n${nIng} registro(s) de ingresos.${nIng ? '' : ' ⚠ No tiene ingresos.'}\nSe enviará al analista y ya no podrá editar los ingresos.`)) return;
+    const msj = s.tipo === 'nuevo' ? `${nIng} registro(s) de ingresos.${nIng ? '' : ' ⚠ No tiene ingresos.'}\nSe enviará al analista y ya no podrá editar los ingresos.`
+      : `${nIng ? nIng + ' registro(s) de ingresos.' : 'Sin ingresos: el analista los agregará.'}\nSe enviará al analista; él podrá agregar o corregir los ingresos.`;
+    if (!confirm(`¿Confirma que la solicitud de ${s.nombre_cliente} está lista?\n\n${msj}`)) return;
     run(e.target, async () => { await rpc('enviar_analisis', { p_id: s.id }); toast('Enviada a análisis'); await refrescar(); });
   };
 
