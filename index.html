@@ -644,7 +644,7 @@ body.marco-cel #sheet > *{max-width:430px;margin-left:auto;margin-right:auto}
 // App disponible sin señal (sw.js debe estar junto a index.html). Va primero para registrarse aunque falle otra cosa.
 if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) navigator.serviceWorker.register('sw.js').catch(() => {});
 // Versión de esta copia de la app: cambia en cada entrega. La app la compara con la publicada y se actualiza sola.
-const APP_VER = '2026-11-21.1240';
+const APP_VER = '2026-11-21.1250';
 // 'admin' = cambio solo para el administrador: los demás usuarios no ven el aviso de versión nueva (se actualiza en silencio)
 // y sus NOVEDADES deben llevar r:['admin']. 'todos' = cambio que ven los usuarios.
 const APP_AVISO = 'admin';
@@ -652,6 +652,9 @@ const APP_AVISO = 'admin';
 // Al publicar cambios: subir APP_VER y agregar aquí una entrada con la misma versión.
 // r = roles que la ven (sin r = todos; el admin ve todo).
 const NOVEDADES = [
+  { v:'2026-11-21.1250', f:'21 de noviembre de 2026', items:[
+    { i:'📅', t:'Posteo: rango de fechas y de monto siempre a la vista', r:['admin'],
+      d:'En Filtros ahora están siempre los campos "Del … al …" del día de colocación (al tocar Hoy, Ayer o Esta semana se llenan solos; si escribe una fecha pasa a rango personalizado) y "Monto del préstamo de L … a L …".' } ] },
   { v:'2026-11-21.1240', f:'21 de noviembre de 2026', items:[
     { i:'🔎', t:'Posteo: filtros', r:['admin'],
       d:'En la pestaña Posteo, el botón "Filtros" permite filtrar por día de colocación (hoy, ayer, esta semana o fechas a elegir), por lo que le falta (desembolso en el sistema, pagos del préstamo anterior o ingreso/traslado a caja), tipo, forma de desembolso, banco de origen y asesor, y ordenar por más viejas, más recientes o mayor préstamo. Abajo de los filtros sale el total de préstamos, lo que va a caja y los pagos del préstamo anterior de lo que está viendo. La app recuerda los filtros.' } ] },
@@ -1534,10 +1537,10 @@ function pintarTabs(){
 // ================== Posteo en sistema general (desembolsadas) ==================
 // Después de desembolsar: registrar el préstamo en el sistema general, en refi/reingreso pagar intereses y capital
 // del préstamo anterior, y en caja postear el ingreso y el traslado de fondos banco → caja (monto entregado).
-const PST = Object.assign({ f:'pend', q:'', per:'todo', d1:'', d2:'', tipo:'', forma:'', falta:'', banco:'', ase:'', ord:'viejas', abierto:false },
+const PST = Object.assign({ f:'pend', q:'', per:'todo', d1:'', d2:'', tipo:'', forma:'', falta:'', banco:'', ase:'', ord:'viejas', abierto:false, m1:'', m2:'' },
   (() => { try { return JSON.parse(localStorage.getItem('vc_pst_f') || '{}'); } catch(e){ return {}; } })());
 const pstGuardarF = () => { try { const { q, ...f } = PST; localStorage.setItem('vc_pst_f', JSON.stringify(f)); } catch(e){} };
-const PST_DEF = { per:'todo', tipo:'', forma:'', falta:'', banco:'', ase:'', ord:'viejas' };
+const PST_DEF = { per:'todo', tipo:'', forma:'', falta:'', banco:'', ase:'', ord:'viejas', m1:'', m2:'' };
 function pstRango(){
   const hoy = hoyHN(), dd = n => { const d = new Date(hoy + 'T12:00'); d.setDate(d.getDate() + n); return d.toISOString().slice(0, 10); };
   if (PST.per === 'hoy') return [hoy, hoy];
@@ -1556,6 +1559,9 @@ function pstFiltrar(lista){
     if (PST.forma && s.forma_desembolso !== PST.forma) return false;
     if (PST.ase && s.asesor_id !== PST.ase) return false;
     if (PST.banco && pstBancoDe(s) !== PST.banco) return false;
+    const mp = +(s.monto_solicitado || s.monto_aprobado || 0);
+    if (PST.m1 !== '' && mp < +PST.m1) return false;
+    if (PST.m2 !== '' && mp > +PST.m2) return false;
     if (PST.falta === 'desembolso' && hecho('desembolso')) return false;
     if (PST.falta === 'pagos' && !req.some(k => (k === 'intereses' || k === 'capital') && !hecho(k))) return false;
     if (PST.falta === 'caja' && hecho('ingreso') && hecho('traslado')) return false;
@@ -1563,7 +1569,7 @@ function pstFiltrar(lista){
   });
 }
 const pstCaja = s => s.tipo !== 'nuevo' ? montoLibre(s) : +(s.monto_solicitado || s.monto_aprobado || 0);
-const pstActivos = () => Object.keys(PST_DEF).filter(k => k !== 'ord' && PST[k] !== PST_DEF[k]).length;
+const pstActivos = () => Object.keys(PST_DEF).filter(k => !['ord','m2'].includes(k) && PST[k] !== PST_DEF[k]).length + (PST.m1 === '' && PST.m2 !== '' ? 1 : 0);
 const BANCOS_FIN = ['BAC', 'Ficohsa', 'Atlántida', 'Banpaís', 'Occidente', 'Banrural'];
 const PST_PASOS = { desembolso:'Desembolso en el sistema general', intereses:'Pago de intereses al día', capital:'Pago del saldo de capital',
   ingreso:'Ingreso de fondos (banco → caja)', traslado:'Traslado de fondos (banco → caja)' };
@@ -1629,7 +1635,9 @@ function pintarPosteo(){
       <div class="pst-tools"><input id="pstQ" placeholder="Buscar cliente, código o identidad" value="${esc(PST.q)}"></div>
       <details class="pst-fil" id="pstFil"${PST.abierto ? ' open' : ''}><summary><b>Filtros</b>${nAct ? ` <span class="chip c-blue">${nAct} activo${nAct > 1 ? 's' : ''}</span>` : ''}</summary>
         ${chips('per', { t:'Día de colocación', o:[['todo', 'Todos'], ['hoy', 'Hoy'], ['ayer', 'Ayer'], ['semana', 'Esta semana'], ['rango', 'Elegir fechas']] })}
-        ${PST.per === 'rango' ? `<div class="pst-fl"><span></span><div class="pst-rg"><label class="small muted">Del <input type="date" id="pstD1" value="${PST.d1}" max="${hoyHN()}"></label><label class="small muted">al <input type="date" id="pstD2" value="${PST.d2}" max="${hoyHN()}"></label></div></div>` : ''}
+        ${(() => { const rg = pstRango() || ['', '']; const v = x => /^\d{4}-/.test(x) && x !== '0000-00-00' && x !== '9999-12-31' ? x : '';
+          return `<div class="pst-fl"><span class="small muted">Rango de fechas</span><div class="pst-rg"><label class="small muted">Del <input type="date" id="pstD1" value="${v(rg[0])}" max="${hoyHN()}"></label><label class="small muted">al <input type="date" id="pstD2" value="${v(rg[1])}" max="${hoyHN()}"></label></div></div>`; })()}
+        <div class="pst-fl"><span class="small muted">Monto del préstamo</span><div class="pst-rg"><label class="small muted">De L <input type="number" inputmode="decimal" min="0" step="500" id="pstM1" value="${PST.m1}" placeholder="mínimo" style="width:110px"></label><label class="small muted">a L <input type="number" inputmode="decimal" min="0" step="500" id="pstM2" value="${PST.m2}" placeholder="máximo" style="width:110px"></label></div></div>
         ${chips('falta', { t:'Le falta', o:[['', 'Cualquier paso'], ['desembolso', 'Desembolso en sistema'], ['pagos', 'Pagos del préstamo anterior'], ['caja', 'Ingreso / traslado a caja']] })}
         ${chips('tipo', { t:'Tipo', o:[['', 'Todos'], ['nuevo', 'Nuevo'], ['refinanciamiento', 'Refinanciamiento'], ['reingreso', 'Reingreso']] })}
         ${chips('forma', { t:'Desembolso', o:[['', 'Todos'], ['transferencia', '🏦 Transferencia'], ['efectivo', '💵 Efectivo']] })}
@@ -1645,9 +1653,13 @@ function pintarPosteo(){
   $('#main').querySelectorAll('[data-pk]').forEach(b => b.onclick = () => { PST[b.dataset.pk] = b.dataset.pv; pstGuardarF(); pintarPosteo(); });
   $('#pstFil').ontoggle = e => { PST.abierto = e.target.open; pstGuardarF(); };
   $('#pstAse').onchange = e => { PST.ase = e.target.value; pstGuardarF(); pintarPosteo(); };
-  if ($('#pstD1')) $('#pstD1').onchange = e => { PST.d1 = e.target.value; pstGuardarF(); pintarPosteo(); };
-  if ($('#pstD2')) $('#pstD2').onchange = e => { PST.d2 = e.target.value; pstGuardarF(); pintarPosteo(); };
+  // Escribir una fecha pasa a "Elegir fechas" conservando la otra punta del rango mostrado
+  const fijarRango = () => { PST.per = 'rango'; PST.d1 = $('#pstD1').value; PST.d2 = $('#pstD2').value; pstGuardarF(); pintarPosteo(); };
+  $('#pstD1').onchange = fijarRango; $('#pstD2').onchange = fijarRango;
+  const fijarMonto = () => { PST.m1 = $('#pstM1').value; PST.m2 = $('#pstM2').value; pstGuardarF(); pintarPosteo(); };
+  $('#pstM1').onchange = fijarMonto; $('#pstM2').onchange = fijarMonto;
   if ($('#pstLimpiar')) $('#pstLimpiar').onclick = () => { Object.assign(PST, PST_DEF, { d1:'', d2:'' }); pstGuardarF(); pintarPosteo(); };
+  if (PST.m1 !== '' && PST.m2 !== '' && +PST.m1 > +PST.m2) toast('El monto mínimo es mayor que el máximo', true);
   const qi = $('#pstQ'); qi.oninput = () => { PST.q = qi.value; const c = qi.selectionStart; pintarPosteo(); const n = $('#pstQ'); n.focus(); n.setSelectionRange(c, c); };
   $('#pstDesde').onchange = e => { try { localStorage.setItem('vc_pst_desde', e.target.value); } catch(x){} pintarTabs(); pintarPosteo(); };
   $('#pstLote').onclick = () => {
