@@ -128,9 +128,9 @@ label.f{display:block;font-size:12px;color:var(--ink2);margin:10px 0 4px;font-we
 .pst .pst-h{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}.pst .nm{font-weight:700;font-size:15.5px}.pst .ln{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-top:4px}
 .pst-est{text-align:right;flex:none}.pst.done{opacity:.8}
 .pst-p{display:flex;gap:10px;align-items:flex-start;padding:9px 0;border-top:1px solid var(--line,#e2e8f0)}.pst-p.ok .pst-t>b{color:var(--green)}.pst-p.na{padding:6px 0}
-.pst-chk{flex:none;width:28px;height:28px;border-radius:8px;border:2px solid var(--line2,#cbd5e1);background:var(--card);color:#fff;font-weight:800;display:grid;place-items:center;font-size:15px}
+.pst-chk{flex:none;width:28px;height:28px;border-radius:8px;border:2px solid var(--muted);background:var(--card);color:#fff;font-weight:800;display:grid;place-items:center;font-size:15px}
 .pst-p.ok .pst-chk{background:var(--green);border-color:var(--green)}.pst-p.na .pst-chk{color:var(--gray);border-style:dashed}
-.pst-t{min-width:0;flex:1}.pst-t .small{margin-top:3px}.pst-txt{margin-top:4px;padding:6px 8px;background:var(--bg2,#f1f5f9);border-radius:8px;font-size:12.5px;word-break:break-word}.pst-txt b{font-weight:600}
+.pst-t{min-width:0;flex:1}.pst-t .small{margin-top:3px}.pst-txt{margin-top:4px;padding:6px 8px;background:var(--brand2);color:var(--ink);border-radius:8px;font-size:12.5px;word-break:break-word}.pst-txt b{font-weight:600}
 .pst-banco{display:flex;flex-wrap:wrap;gap:6px;align-items:center;padding:9px 0 3px;border-top:1px solid var(--line,#e2e8f0)}
 .pst-banco button{border:1.5px solid var(--line,#e2e8f0);background:var(--card);border-radius:999px;padding:4px 10px;font-size:12.5px;font-weight:600;color:var(--ink2)}.pst-banco button.on{border-color:var(--blue);background:var(--blue-bg);color:var(--ink)}
 .pst-fil{margin-top:10px;border:1px solid var(--line,#e2e8f0);border-radius:8px;padding:8px 10px}.pst-fil summary{cursor:pointer;list-style:none;display:flex;gap:8px;align-items:center}.pst-fil summary::-webkit-details-marker{display:none}.pst-fil summary::after{content:'▾';margin-left:auto;color:var(--gray)}.pst-fil[open] summary::after{content:'▴'}
@@ -655,7 +655,16 @@ header.top .iconbtn svg.ic{width:18px;height:18px;vertical-align:-4px}
 .mt-row:first-child{border-top:0}.mt-row > span:first-child{display:flex;gap:8px;align-items:center;min-width:0;color:var(--ink2)}
 .mt-res{margin-top:-6px}
 .mt-link{display:flex;gap:8px;align-items:center;background:none;border:0;color:var(--brand);font:600 13.5px Inter,sans-serif;padding:4px 2px;cursor:pointer}
-@media (max-width:1023px){ .mt-kpis{grid-template-columns:repeat(3,minmax(0,1fr))} }
+@media (max-width:1023px){ .mt-kpis{grid-template-columns:repeat(3,minmax(0,1fr))}
+  header.top .iconbtn:not(#btnBell){display:none!important}
+  header.top h1{font-size:18px} }
+@media (max-width:520px){ .mt-kpis{grid-template-columns:repeat(2,minmax(0,1fr))} .mt-kpi b{font-size:17px;overflow-wrap:anywhere}
+  .mt-hdr h2{font-size:20px} .mt-srch{min-width:0;flex:1 1 100%} }
+.mt-nueva{display:none}
+@media (max-width:1023px){ .mt-nueva{display:inline-flex} }
+.mt-t{display:inline-flex;gap:5px;align-items:center;font:700 12px Inter,sans-serif;border-radius:6px;padding:3px 8px;margin-top:7px;background:var(--green-bg);color:var(--green)}
+.mt-t.warn{background:var(--amber-bg);color:var(--amber)}.mt-t.late{background:var(--red-bg);color:var(--red)}
+.mas-sep{border-top:1px solid var(--line);margin:8px 0 4px;padding-top:8px;font:700 11px Inter,sans-serif;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
 .mt-vacio{display:flex;gap:12px;align-items:center;background:var(--card);border:1px dashed var(--line);border-radius:8px;padding:18px;color:var(--green)}
 /* Comentarios */
 .com-nuevo{animation:comPulso 2s ease-in-out 3}
@@ -728,7 +737,7 @@ header.top .iconbtn svg.ic{width:18px;height:18px;vertical-align:-4px}
 // App disponible sin señal (sw.js debe estar junto a index.html). Va primero para registrarse aunque falle otra cosa.
 if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) navigator.serviceWorker.register('sw.js').catch(() => {});
 // Versión de esta copia de la app: cambia en cada entrega. La app la compara con la publicada y se actualiza sola.
-const APP_VER = '2026-11-21.1600';
+const APP_VER = '2026-11-21.1630';
 // 'admin' = cambio solo para el administrador: los demás usuarios no ven el aviso de versión nueva (se actualiza en silencio)
 // y sus NOVEDADES deben llevar r:['admin']. 'todos' = cambio que ven los usuarios.
 const APP_AVISO = 'todos';
@@ -1363,10 +1372,10 @@ function pintarAvisoPush(){
   const hoy = new Date().toDateString(), ocultar = () => { b.classList.add('hidden'); b.innerHTML = ''; };
   if (PUSH.on || !S.me || localStorage.getItem('vc_pushbar_x') === hoy || localStorage.getItem('vc_push_off') === '1') return ocultar();
   let txt = '', btn = '';
-  if (!pushSoportado()){ if (esIOS() && !instalada()) txt = '📲 Para recibir avisos en iPhone, instale la app: Compartir → Agregar a pantalla de inicio.'; else return ocultar(); }
-  else if (Notification.permission === 'denied'){ txt = '🔕 Las notificaciones están bloqueadas en este dispositivo: no le avisará cuando le toque una solicitud.'; btn = '<button id="pbrComo">Cómo activarlas</button>'; }
-  else { txt = '🔔 Active las notificaciones para enterarse al instante cuando le toque una solicitud.'; btn = '<button id="pbrOn">Activar</button>'; }
-  b.innerHTML = `<span>${txt}</span>${btn}<button class="x" id="pbrX" title="Ocultar por hoy" aria-label="Ocultar por hoy">✕</button>`; b.classList.remove('hidden');
+  if (!pushSoportado()){ if (esIOS() && !instalada()) txt = ico('phoneDl', 'sm') + ' Para recibir avisos en iPhone, instale la app: Compartir → Agregar a pantalla de inicio.'; else return ocultar(); }
+  else if (Notification.permission === 'denied'){ txt = ico('bellOff', 'sm') + ' Las notificaciones están bloqueadas en este dispositivo: no le avisará cuando le toque una solicitud.'; btn = '<button id="pbrComo">Cómo activarlas</button>'; }
+  else { txt = ico('bell', 'sm') + ' Active las notificaciones para enterarse al instante cuando le toque una solicitud.'; btn = '<button id="pbrOn">Activar</button>'; }
+  b.innerHTML = `<span>${txt}</span>${btn}<button class="x" id="pbrX" title="Ocultar por hoy" aria-label="Ocultar por hoy">${ico('x')}</button>`; b.classList.remove('hidden');
   $('#pbrX').onclick = () => { localStorage.setItem('vc_pushbar_x', hoy); ocultar(); };
   if ($('#pbrOn')) $('#pbrOn').onclick = e => run(e.target, async () => { await pushActivar(); toast('Notificaciones activadas en este dispositivo'); });
   if ($('#pbrComo')) $('#pbrComo').onclick = () => dialogo(`<h3>🔕 Notificaciones bloqueadas</h3><div class="small">En el teléfono: toque el <b>candado</b> (o los controles) junto a la dirección de la página → <b>Permisos</b> → <b>Notificaciones</b> → <b>Permitir</b>. Si usa la app instalada: mantenga presionado el ícono → <b>Información de la app</b> → <b>Notificaciones</b> → activar. Luego vuelva a abrir VerifyCredit.</div><div class="btns"><button class="btn pri" data-close>Entendido</button></div>`);
@@ -1618,7 +1627,7 @@ function pintarTabs(){
   }).join('');
   $('#tabs').scrollLeft = sx;
   $('#tabs').querySelectorAll('button').forEach(b => b.onclick = () => { S.tab = b.dataset.k; S.q=''; pintarTabs(); pintar(); window.scrollTo(0,0); });
-  $('#fab').classList.toggle('hidden', !(es('asesor') && ['trabajo','tablero','solicitudes','revisadas','proceso'].includes(S.tab)));
+  $('#fab').classList.toggle('hidden', !(es('asesor') && ['tablero','solicitudes','revisadas','proceso'].includes(S.tab)));
   pintarNav();
 }
 
@@ -1687,9 +1696,10 @@ const NAV_CORTO = { todas:'Todas', verificar:'Por verificar', verificadas:'Hecha
 const COM_DESDE = '2026-11-21T20:00:00Z';   // lo anterior al rediseño se toma como leído
 const comVisto = id => S.leidos?.[id] || COM_DESDE;
 function comMeImporta(s){
-  if (es('analista')) return true;   // analista y admin ven todo
   const yo = S.me?.id;
-  return s.asesor_id === yo || s.verificador_id === yo || s.verificador_trabajo_id === yo || s.analisis_tomado_por === yo
+  // Solo solicitudes donde participa el usuario (o en su cola de trabajo si es analista)
+  if (es('analista') && (s.estado === 'en_analisis' && (!s.analisis_tomado_por || s.analisis_tomado_por === yo) || s.estado === 'desembolso_pendiente')) return true;
+  return s.asesor_id === yo || s.analista_id === yo || s.desembolsado_por === yo || s.verificador_id === yo || s.verificador_trabajo_id === yo || s.analisis_tomado_por === yo
     || (S.comMeta || []).some(c => c.solicitud_id === s.id && c.autor_id === yo);
 }
 function comNuevos(s){
@@ -1761,9 +1771,13 @@ function pintarNav(){
   document.querySelectorAll('[data-nueva]').forEach(b => b.onclick = () => nuevaSolicitudDlg());
   const mas = $('#botNav [data-mas]');
   if (mas) mas.onclick = () => {
-    const w = dialogo(`<h3 style="margin-top:0">Más opciones</h3><div class="mas-l">${resto.map(t => item(t, 'nv')).join('')}</div>
+    const cuenta = [['btnNov', 'star', 'Novedades de la app'], ['btnInstall', 'phoneDl', 'Instalar la app'], ['btnAviso', 'megaphone', 'Enviar aviso al equipo'], ['btnOut', 'out', 'Salir']]
+      .filter(([id]) => $('#' + id) && !$('#' + id).classList.contains('hidden'));
+    const w = dialogo(`<h3 style="margin-top:0">Más opciones</h3><div class="mas-l">${resto.map(t => item(t, 'nv')).join('')}
+      <div class="mas-sep">Cuenta · ${esc(nombre(S.me?.id))}</div>${cuenta.map(([id, i, tx]) => `<button class="nv" data-hb="${id}">${ico(i)}<span>${tx}</span></button>`).join('')}</div>
       <div class="btns"><button class="btn ghost" data-close>Cerrar</button></div>`);
     w.querySelectorAll('[data-nk]').forEach(b => b.onclick = async () => { await cerrarDialogo(w); ir(b.dataset.nk); });
+    w.querySelectorAll('[data-hb]').forEach(b => b.onclick = async () => { await cerrarDialogo(w); $('#' + b.dataset.hb)?.click(); });
   };
 }
 
@@ -1776,13 +1790,20 @@ function trabajoComentarios(){
     const ua = comNuevos(a).slice(-1)[0].creado_en, ub = comNuevos(b).slice(-1)[0].creado_en; return ub.localeCompare(ua); });
 }
 // Qué le toca a cada rol: { toca:[{s, tono, motivo, chips, acc:[...]}], espera:[[texto, n, ico]], cerradas:[s] }
+// Solicitudes "mías" según el rol (para indicadores y cerradas)
+function esMia(s){
+  const yo = S.me?.id, r = rol();
+  if (r === 'asesor') return s.asesor_id === yo;
+  if (r === 'verificador') return s.verificador_id === yo || s.verificador_trabajo_id === yo;
+  return s.asesor_id === yo || s.analista_id === yo || s.analisis_tomado_por === yo || s.desembolsado_por === yo;
+}
 function trabajoDatos(){
   const yo = S.me?.id, r = rol(), toca = [], esperaMap = {}, abiertas = S.sols.filter(s => !s.importado && !CERRADAS.includes(s.estado));
   const add = (s, tono, motivo, acc, chips = '') => toca.push({ s, tono, motivo, acc, chips });
   const esp = (k, t, i) => { (esperaMap[k] = esperaMap[k] || { t, i, n:0 }).n++; };
   const tAg = s => `lleva ${hace(s.estado_desde || s.creado_en).replace(/^hace /, '')}`;
   if (r === 'asesor' || r === 'admin'){
-    abiertas.filter(s => r === 'asesor' ? s.asesor_id === yo : false).forEach(s => {
+    abiertas.filter(s => s.asesor_id === yo).forEach(s => {
       const al = alertaDe(s);
       if (s.en_espera){
         if (al) add(s, 'am', s.seguimiento_en ? `Seguimiento programado: ${fDT(s.seguimiento_en)}` : `En espera · ${s.espera_motivo || ''}`, [['abrir', 'Ver seguimiento', 'cal']], `<span class="chip c-amber">${ico('pause', 'sm')}En espera</span>`);
@@ -1812,12 +1833,13 @@ function trabajoDatos(){
       if (!s.analisis_tomado_en) add(s, 'am', `Enviada por ${esc(nombre(s.asesor_id))} · espera ${hace(s.enviado_analisis_en || s.estado_desde).replace(/^hace /, '')}`,
         [['tomar', 'Tomar análisis', 'hand'], ['abrir', 'Ver', 'arrow', 1]], `<span class="chip c-amber">Sin tomar</span>`);
       else if (s.analisis_tomado_por === yo) add(s, 'bl', `La tomó usted ${hace(s.analisis_tomado_en)}`, [['abrir', 'Continuar análisis', 'arrow']], `<span class="chip c-blue">En análisis</span>`);
-      else esp('ana_otro', `En análisis por otro analista`, 'search');
     });
     abiertas.filter(s => s.estado === 'desembolso_pendiente' && !s.en_espera).forEach(s =>
       add(s, 'gr', `${s.cuenta_banco ? esc(s.cuenta_banco) + ' · ' : ''}transferir ${L(montoLibre(s))}`, [['abrir', 'Confirmar transferencia', 'bank']], `<span class="chip c-green">Por confirmar</span>`));
-    if (r === 'admin') abiertas.filter(s => s.estado === 'por_verificar' && !s.verificador_id && !s.en_espera).forEach(s =>
-      add(s, 'bl', `${s.dom_sector ? esc(s.dom_sector) + ' · ' : ''}sin verificador asignado`, [['asignar', 'Asignar verificador', 'user']], `<span class="chip c-violet">Sin verificador</span>`));
+    if (r === 'admin'){
+      const pp = S.sols.filter(s => typeof posteoPendiente === 'function' && posteoPendiente(s)).length;
+      if (pp) esperaMap.posteo = { t:'Desembolsos por postear en el sistema', i:'receipt', n:pp, tab:'posteo' };
+    }
   }
   if (r === 'verificador'){
     abiertas.filter(s => s.estado === 'por_verificar' && (s.verificador_id === yo || s.verificador_trabajo_id === yo)).sort((a, b) => new Date(a.estado_desde) - new Date(b.estado_desde)).forEach(s => {
@@ -1830,24 +1852,31 @@ function trabajoDatos(){
     if (libres) esperaMap.libres = { t:'Visitas sin asignar (puede tomarlas)', i:'pin', n:libres, tab:'verificar' };
   }
   const ini = hoyIni(), cerradas = S.sols.filter(s => CERRADAS.includes(s.estado) && new Date(s.cerrado_en || s.desembolsado_en || 0) >= ini
-    && (r === 'asesor' ? s.asesor_id === yo : r === 'verificador' ? s.verificador_id === yo : r === 'analista' ? (s.analista_id === yo || s.desembolsado_por === yo) : true));
+    && esMia(s));
   return { toca, espera:Object.values(esperaMap), cerradas };
 }
 function trabajoKpis(d){
   const r = rol(), ini = hoyIni();
-  const colHoy = S.sols.filter(s => s.estado === 'desembolsada' && diaColoc(s) === hoyHN()).reduce((a, s) => a + capitalColocado(s), 0);
+  const colHoy = S.sols.filter(s => s.estado === 'desembolsada' && diaColoc(s) === hoyHN() && esMia(s)).reduce((a, s) => a + capitalColocado(s), 0);
   const k = (t, v, cls = '') => `<div class="mt-kpi ${cls}"><span>${t}</span><b>${v}</b></div>`;
   if (r === 'analista' || r === 'admin'){
     const sinTomar = S.sols.filter(s => s.estado === 'en_analisis' && !s.analisis_tomado_en).length;
     const porConf = S.sols.filter(s => s.estado === 'desembolso_pendiente').length;
-    const dict = S.sols.filter(s => s.dictamen_en && new Date(s.dictamen_en) >= ini).length;
-    return k('Sin tomar', sinTomar) + k('Transferencias por confirmar', porConf) + k('Dictaminadas hoy', dict) + k('Colocado hoy', L(colHoy), 'g');
+    const dict = S.sols.filter(s => s.dictamen_en && new Date(s.dictamen_en) >= ini && s.analista_id === S.me?.id).length;
+    return k('Sin tomar', sinTomar) + k('Transferencias por confirmar', porConf) + k('Dictaminadas por mí hoy', dict) + k('Mi colocado hoy', L(colHoy), 'g');
   }
   if (r === 'verificador'){
     const ef = d.toca.filter(x => x.s.forma_desembolso === 'efectivo').reduce((a, x) => a + (montoLibre(x.s) || 0), 0);
     return k('Visitas asignadas', d.toca.length) + k('Efectivo a entregar', L(ef), 'g') + k('Cerradas hoy', d.cerradas.length);
   }
-  return k('Te toca a ti', d.toca.length) + k('Esperando a otros', d.espera.reduce((a, e) => a + e.n, 0)) + k('Colocado hoy (todos)', L(colHoy), 'g');
+  return k('Te toca a ti', d.toca.length) + k('Esperando a otros', d.espera.reduce((a, e) => a + e.n, 0)) + k('Mi colocado hoy', L(colHoy), 'g');
+}
+// Tiempo hábil en el paso (o en espera / sin tomar) con semáforo según la meta por paso
+function mtDesde(s){ return s.en_espera ? s.espera_desde : (s.estado === 'en_analisis' && !s.analisis_tomado_en ? (s.enviado_analisis_en || s.estado_desde) : s.estado_desde) || s.creado_en; }
+function mtTiempo(s){
+  const desde = mtDesde(s), seg = segHabiles(desde, new Date()), cls = s.en_espera ? '' : semPaso(seg);
+  const et = s.en_espera ? 'En espera' : s.estado === 'en_analisis' && !s.analisis_tomado_en ? 'Esperando analista' : 'En este paso';
+  return `<span class="mt-t ${cls}" data-mtt="${s.id}">${ico('clock', 'sm')}${et} ${fmtDur(seg)}</span>`;
 }
 function trabajoCard(x){
   const s = x.s, acc = x.acc.map(([k, t, i, sec]) => {
@@ -1858,13 +1887,14 @@ function trabajoCard(x){
   }).join('');
   return `<div class="mt-c ${x.tono}" data-id="${s.id}"><div class="mt-tx"><div class="mt-nm">${esc(s.nombre_cliente)} ${tipoChip(s.tipo)}${x.chips}${comChip(s)}</div>
     <div class="mt-meta">${esc(s.codigo)}${s.monto_solicitado || s.monto_aprobado ? ' · ' + L(s.monto_solicitado || s.monto_aprobado) : ''} · ${esc(PASO[pasoActual(s)]?.t || EST[s.estado]?.t || s.estado)}</div>
-    <div class="mt-why">${x.motivo}</div></div><div class="mt-acc">${acc}</div></div>`;
+    <div class="mt-why">${x.motivo}</div>${mtTiempo(s)}</div><div class="mt-acc">${acc}</div></div>`;
 }
 function pintarTrabajo(){
   const d = trabajoDatos(), coms = trabajoComentarios(), r = rol();
   const titulo = r === 'analista' ? 'Mi trabajo · análisis y transferencias' : r === 'verificador' ? 'Mis visitas' : 'Mi trabajo de hoy';
   const fecha = new Date().toLocaleDateString('es-HN', { timeZone:TZ, weekday:'long', day:'numeric', month:'long' });
   $('#main').innerHTML = `<div class="mt-hdr"><div><h2>${titulo}</h2><div class="muted small">${fecha.charAt(0).toUpperCase() + fecha.slice(1)} · lo más urgente aparece primero</div></div>
+      ${es('asesor') ? `<button class="mt-b mt-nueva" data-nueva>${ico('plus')}Nueva solicitud</button>` : ''}
       <div class="mt-srch">${ico('search', 'sm')}<input id="mtQ" placeholder="Buscar cliente, código o identidad"></div></div>
     <div class="mt-kpis">${trabajoKpis(d)}</div>
     <div id="mtRes"></div>
@@ -1886,6 +1916,12 @@ function pintarTrabajo(){
       <button class="mt-link" data-ir="tablero">${ico('board', 'sm')}Ver el tablero general</button>
     </div></div>`;
   const main = $('#main');
+  main.querySelectorAll('[data-nueva]').forEach(b => b.onclick = () => nuevaSolicitudDlg());
+  clearInterval(S.mtTimer);
+  S.mtTimer = setInterval(() => {
+    if (S.tab !== 'trabajo') return clearInterval(S.mtTimer);
+    document.querySelectorAll('[data-mtt]').forEach(el => { const s = S.sols.find(x => x.id === +el.dataset.mtt); if (s) el.outerHTML = mtTiempo(s); });
+  }, 60000);
   // Búsqueda rápida en todas las solicitudes
   const q = $('#mtQ'); q.oninput = () => {
     const t = q.value.trim().toLowerCase(), res = $('#mtRes');
@@ -1971,14 +2007,14 @@ function pstCard(s){
   const prestamo = +(s.monto_solicitado || s.monto_aprobado || 0), libre = s.tipo !== 'nuevo' ? montoLibre(s) : prestamo, refi = s.tipo !== 'nuevo';
   const ct = s.forma_desembolso === 'transferencia' ? partirCuenta(s.cuenta_banco) : null;
   const paso = (k, n, cuerpo) => { const h = p.pasos?.[k];
-    return `<div class="pst-p${h ? ' ok' : ''}"><button type="button" class="pst-chk" data-pp="${k}" data-sid="${s.id}" data-h="${h ? 1 : 0}" aria-label="${h ? 'Desmarcar' : 'Marcar como hecho'}">${h ? '✔' : ''}</button>
-      <div class="pst-t"><b>${n}. ${PST_PASOS[k]}</b>${cuerpo}${h ? `<div class="small muted">✔ ${esc(nombre(h.por))} · ${fDT(h.en)}</div>` : ''}</div></div>`; };
+    return `<div class="pst-p${h ? ' ok' : ''}"><button type="button" class="pst-chk" data-pp="${k}" data-sid="${s.id}" data-h="${h ? 1 : 0}" aria-label="${h ? 'Desmarcar' : 'Marcar como hecho'}">${h ? ico('check') : ''}</button>
+      <div class="pst-t"><b>${n}. ${PST_PASOS[k]}</b>${cuerpo}${h ? `<div class="small muted">Hecho por ${esc(nombre(h.por))} · ${fDT(h.en)}</div>` : ''}</div></div>`; };
   let i = 0;
   return `<div class="card pst${p.completo_en ? ' done' : ''}" data-id="${s.id}">
     <div class="pst-h"><div style="min-width:0"><div class="nm">${conCopiar(s.nombre_cliente)}</div>
-      <div class="small muted">${esc(s.codigo)} · colocado ${diaColoc(s) ? fDate(diaColoc(s) + 'T12:00') : '—'} · ${s.forma_desembolso === 'transferencia' ? '🏦 Transferencia' : '💵 Efectivo'}</div>
+      <div class="small muted">${esc(s.codigo)} · colocado ${diaColoc(s) ? fDate(diaColoc(s) + 'T12:00') : '—'} · ${s.forma_desembolso === 'transferencia' ? ico('bank', 'sm') + ' Transferencia' : ico('cash', 'sm') + ' Efectivo'}</div>
       <div class="ln">${tipoChip(s.tipo)}${s.dni ? `<span class="small">DNI ${conCopiar(s.dni)}</span>` : ''}</div></div>
-      <div class="pst-est">${p.completo_en ? `<span class="chip c-green">✅ Posteado</span><div class="small muted">${fDT(p.completo_en)}</div>` : `<span class="chip c-amber">${hechos} de ${req.length}</span>`}</div></div>
+      <div class="pst-est">${p.completo_en ? `<span class="chip c-green">${ico('check', 'sm')} Posteado</span><div class="small muted">${fDT(p.completo_en)}</div>` : `<span class="chip c-amber">${hechos} de ${req.length}</span>`}</div></div>
     ${paso('desembolso', ++i, `<div class="small">Préstamo ${pstCopia(pstMonto(prestamo), L(prestamo))}${s.tipo_pago ? ' · ' + esc(s.tipo_pago) : ''}${s.plazo_meses ? ' · ' + s.plazo_meses + ' meses' : ''}</div>
       ${ct ? `<div class="small muted">Cuenta del cliente: ${esc(ct.banco || '')} ${esc(ct.cuenta || '')}</div>` : ''}`)}
     ${refi ? (+s.saldo_intereses > 0 ? paso('intereses', ++i, `<div class="small">Saldo de intereses ${pstCopia(pstMonto(s.saldo_intereses), L(s.saldo_intereses))}</div>`)
@@ -2006,8 +2042,8 @@ function pintarPosteo(){
   const bancosUsados = BANCOS_FIN.filter(b => todas.some(s => pstBancoDe(s) === b));
   const chips = (k, ops) => `<div class="pst-fl"><span class="small muted">${ops.t}</span><div class="filters">${ops.o.map(([v, tx]) => `<button data-pk="${k}" data-pv="${v}" class="${PST[k] === v ? 'on' : ''}">${tx}</button>`).join('')}</div></div>`;
   const nAct = pstActivos();
-  $('#main').innerHTML = `<div class="card"><h3 style="margin:0">🧾 Posteo en sistema general</h3>
-      <div class="small muted" style="margin-top:4px">Desembolsos de VerifyCredit para registrar en el sistema general y en caja. Marque cada paso al hacerlo; al completar todos queda ✅ Posteado.</div>
+  $('#main').innerHTML = `<div class="card"><h3 style="margin:0;display:flex;gap:8px;align-items:center">${ico('receipt')}Posteo en sistema general</h3>
+      <div class="small muted" style="margin-top:4px">Desembolsos de VerifyCredit para registrar en el sistema general y en caja. Marque cada paso al hacerlo; al completar todos queda como Posteado.</div>
       <div class="pst-res"><div><b>${pendTot.length}</b><span class="small muted">por postear · ${L(montoPend)} a caja</span></div><div><b>${todas.length - pendTot.length}</b><span class="small muted">posteadas</span></div></div>
       <div class="filters">${[['pend', `Pendientes (${pend.length})`], ['hechas', `Posteadas (${hechas})`], ['todas', `Todas (${base.length})`]].map(([k, t]) => `<button data-pf="${k}" class="${PST.f === k ? 'on' : ''}">${t}</button>`).join('')}</div>
       <div class="pst-tools"><input id="pstQ" placeholder="Buscar cliente, código o identidad" value="${esc(PST.q)}"></div>
@@ -2026,7 +2062,7 @@ function pintarPosteo(){
         ${nAct ? '<div class="btns" style="margin-top:6px"><button class="btn sm ghost" id="pstLimpiar">Quitar filtros</button></div>' : ''}
       </details>
       <div class="pst-tot small">${tot.n} desembolso(s) · préstamos ${L(tot.prest)} · a caja ${L(tot.caja)}${tot.pagos ? ` · pagos de préstamo anterior ${L(tot.pagos)}` : ''}</div></div>
-    ${lista.length ? lista.map(pstCard).join('') : `<div class="empty">${PST.f === 'pend' ? '🎉 No hay desembolsos pendientes de postear.' : 'Sin resultados.'}</div>`}`;
+    ${lista.length ? lista.map(pstCard).join('') : `<div class="empty">${PST.f === 'pend' ? 'No hay desembolsos pendientes de postear.' : 'Sin resultados.'}</div>`}`;
   $('#main').querySelectorAll('[data-pf]').forEach(b => b.onclick = () => { PST.f = b.dataset.pf; pstGuardarF(); pintarPosteo(); });
   $('#main').querySelectorAll('[data-pk]').forEach(b => b.onclick = () => { PST[b.dataset.pk] = b.dataset.pv; pstGuardarF(); pintarPosteo(); });
   $('#pstFil').ontoggle = e => { PST.abierto = e.target.open; pstGuardarF(); };
@@ -2056,7 +2092,7 @@ function pintarPosteo(){
     if (!navigator.onLine) throw new Error('Se necesita conexión para marcar el posteo');
     const id = +b.dataset.sid, card = b.closest('.pst'), banco = card.querySelector('.pst-banco .on')?.dataset.pb || null;
     const r = await rpc('posteo_marcar', { p_id: id, p_paso: b.dataset.pp, p_hecho: b.dataset.h !== '1', p_banco: banco });
-    (S.posteos = S.posteos || {})[id] = r; if (r?.completo_en) toast('✅ Desembolso posteado completo');
+    (S.posteos = S.posteos || {})[id] = r; if (r?.completo_en) toast('Desembolso posteado completo');
     pintarTabs(); pintarPosteo(); }));
   $('#main').querySelectorAll('[data-pb]').forEach(b => b.onclick = async () => {
     const id = +b.dataset.sid; try { localStorage.setItem('vc_pst_banco', b.dataset.pb); } catch(e){}
