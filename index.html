@@ -677,6 +677,29 @@ header.top .iconbtn svg.ic{width:18px;height:18px;vertical-align:-4px}
 /* Menos redondez en tarjetas y botones */
 .card,.board .kc,.al-box,.seg-box,.alert,.mt-c,.dlg,.dialog .box{border-radius:8px!important}
 .btn{border-radius:7px}
+/* Mi ritmo */
+.rt-g{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:8px 0}.rt-g div{display:flex;flex-direction:column}.rt-g b{font:800 20px Poppins,Inter,sans-serif;color:var(--ink)}.rt-g span{font-size:12px;color:var(--muted)}
+.rt-f{border-top:1px solid var(--line);padding:9px 0}.rt-t{display:flex;justify-content:space-between;gap:8px;align-items:center;flex-wrap:wrap;font-size:13.5px;color:var(--ink)}
+.rt-n{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;font-size:12.5px;color:var(--ink2);margin-top:4px}.rt-n b{color:var(--ink)}
+.rt-b{display:inline-flex;gap:4px;align-items:center;font:700 11.5px Inter,sans-serif;border-radius:6px;padding:3px 7px}
+.rt-b.ok{background:var(--green-bg);color:var(--green)}.rt-b.mal{background:var(--red-bg);color:var(--red)}.rt-b.gy{background:var(--gray-bg);color:var(--gray)}
+.mt-ritmo-cel{display:block}.mt-side .mt-ritmo-pc{display:none}
+@media (min-width:1024px){ .mt-ritmo-cel{display:none} .mt-side .mt-ritmo-pc{display:block} }
+/* Bandeja limpia */
+.mt-cel{position:relative;overflow:hidden;display:flex;gap:16px;align-items:flex-start;background:linear-gradient(135deg,var(--green-bg),var(--card));border:1px solid var(--line);border-left:4px solid var(--green);border-radius:8px;padding:18px}
+.mt-cel.estrella{background:linear-gradient(135deg,#FFF6CC,var(--card));border-left-color:#C98500}
+@media (prefers-color-scheme: dark){ .mt-cel.estrella{background:linear-gradient(135deg,#3A3212,var(--card))} }
+.mt-cel-ic{flex:none;width:46px;height:46px;border-radius:50%;background:var(--green);color:#fff;display:grid;place-items:center}
+.mt-cel.estrella .mt-cel-ic{background:#C98500}.mt-cel-ic svg.ic{width:24px;height:24px}
+.mt-cel.fiesta .mt-cel-ic{animation:celPop .7s cubic-bezier(.2,1.6,.4,1) both}
+.mt-cel-tx{min-width:0}.mt-cel h3{margin:0 0 4px;font:800 18px Poppins,Inter,sans-serif;color:var(--ink)}.mt-cel p{margin:0;color:var(--ink2);font-size:14.5px;line-height:1.45}
+.mt-cel-ch{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}.mt-cel-ch span{background:var(--card);border:1px solid var(--line);border-radius:6px;padding:3px 8px;font:700 12px Inter,sans-serif;color:var(--ink)}
+.mt-cel-ac{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.conf{position:absolute;inset:0;pointer-events:none}
+.conf i{position:absolute;top:-12px;left:calc(var(--i) * 5.5%);width:7px;height:12px;border-radius:2px;background:hsl(calc(var(--i) * 47), 85%, 55%);opacity:0;animation:celCae 1.8s ease-in calc(var(--i) * 45ms) 1 forwards}
+@keyframes celCae{0%{opacity:1;transform:translateY(0) rotate(0)}100%{opacity:0;transform:translateY(220px) rotate(540deg)}}
+@keyframes celPop{0%{transform:scale(.3)}100%{transform:scale(1)}}
+@media (prefers-reduced-motion: reduce){ .conf{display:none} .mt-cel.fiesta .mt-cel-ic{animation:none} }
 </style>
 </head>
 <body>
@@ -737,7 +760,7 @@ header.top .iconbtn svg.ic{width:18px;height:18px;vertical-align:-4px}
 // App disponible sin señal (sw.js debe estar junto a index.html). Va primero para registrarse aunque falle otra cosa.
 if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) navigator.serviceWorker.register('sw.js').catch(() => {});
 // Versión de esta copia de la app: cambia en cada entrega. La app la compara con la publicada y se actualiza sola.
-const APP_VER = '2026-11-21.1630';
+const APP_VER = '2026-11-21.1700';
 // 'admin' = cambio solo para el administrador: los demás usuarios no ven el aviso de versión nueva (se actualiza en silencio)
 // y sus NOVEDADES deben llevar r:['admin']. 'todos' = cambio que ven los usuarios.
 const APP_AVISO = 'todos';
@@ -979,7 +1002,7 @@ function encolar(op){
   const r = aplicarOp(op, true);   // valida y aplica en pantalla; lanza error si no procede
   lsSet(OB_KEY(), outbox().concat(op));
   guardarCache(); indicadorRed(); programarEnvio(4000);
-  toast('📴 Sin señal: guardado en el teléfono. Se enviará solo al volver la conexión.');
+  toast('Sin señal: guardado en el teléfono. Se enviará solo al volver la conexión.');
   return r;
 }
 const ahoraISO = () => new Date().toISOString();
@@ -1106,9 +1129,9 @@ function indicadorRed(){
   const n = outbox().length, f = fallidos().length, off = S.offline || !navigator.onLine;
   pill.classList.toggle('hidden', !off && !n && !f);
   pill.className = 'netpill ' + (f ? 'err' : off ? 'off' : 'pend') + (!off && !n && !f ? ' hidden' : '');
-  pill.textContent = f ? `⚠ ${f} con error` : off ? `📴 Sin señal${n ? ' · ' + n : ''}` : enviando ? `⟳ Enviando ${n}…` : `⟳ ${n} por enviar`;
+  pill.textContent = f ? `⚠ ${f} con error` : off ? `Sin señal${n ? ' · ' + n : ''}` : enviando ? `⟳ Enviando ${n}…` : `⟳ ${n} por enviar`;
   bar.classList.toggle('hidden', !off);
-  if (off) bar.innerHTML = `📴 <b>Sin señal.</b> Mostrando datos guardados${S.syncAt ? ' a las ' + new Date(S.syncAt).toLocaleTimeString('es-HN', { timeZone:TZ, hour:'numeric', minute:'2-digit' }) : ''}. Puede seguir trabajando: ${n ? `<b>${n} cambio(s)</b> esperan señal para enviarse.` : 'los cambios se guardan en el teléfono y se envían solos.'}`;
+  if (off) bar.innerHTML = `<b>Sin señal.</b> Mostrando datos guardados${S.syncAt ? ' a las ' + new Date(S.syncAt).toLocaleTimeString('es-HN', { timeZone:TZ, hour:'numeric', minute:'2-digit' }) : ''}. Puede seguir trabajando: ${n ? `<b>${n} cambio(s)</b> esperan señal para enviarse.` : 'los cambios se guardan en el teléfono y se envían solos.'}`;
 }
 function verPendientes(){
   const l = outbox(), f = fallidos();
@@ -1889,6 +1912,88 @@ function trabajoCard(x){
     <div class="mt-meta">${esc(s.codigo)}${s.monto_solicitado || s.monto_aprobado ? ' · ' + L(s.monto_solicitado || s.monto_aprobado) : ''} · ${esc(PASO[pasoActual(s)]?.t || EST[s.estado]?.t || s.estado)}</div>
     <div class="mt-why">${x.motivo}</div>${mtTiempo(s)}</div><div class="mt-acc">${acc}</div></div>`;
 }
+// ---------- Mi ritmo: tiempo promedio del usuario hoy contra sus últimos 30 días ----------
+const RITMO_PASOS = {
+  asesor:[['borrador','Captura'],['aprobada','Completar con el cliente'],['desembolso_pendiente','Confirmar transferencias']],
+  analista:[['cola_analisis','Tomar análisis'],['en_analisis','Análisis'],['desembolso_pendiente','Confirmar transferencias']],
+  verificador:[['por_verificar','Verificación']],
+  admin:[['cola_analisis','Tomar análisis'],['en_analisis','Análisis'],['desembolso_pendiente','Confirmar transferencias'],['borrador','Captura'],['aprobada','Completar con el cliente']]
+};
+async function cargarRitmo(forzar){
+  if (!navigator.onLine || S.verComo) return;
+  if (!forzar && S.rend && Date.now() - S.rendAt < 120000) return;
+  try { S.rend = await rpc('mi_rendimiento', {}) || {}; S.rendAt = Date.now(); } catch(e){}
+}
+function ritmoResumen(){
+  const r = S.rend || {}, pasos = (RITMO_PASOS[rol()] || []).filter(([k]) => r[k] && (r[k].n30 || r[k].hoy_n));
+  let hoyN = 0, n30 = 0, dias = 0, pesoHoy = 0, pesoProm = 0;
+  pasos.forEach(([k]) => { const x = r[k]; hoyN += x.hoy_n || 0; n30 += x.n30 || 0; dias = Math.max(dias, x.dias30 || 0);
+    if (x.hoy_n && x.prom30 != null && x.hoy_prom != null){ pesoHoy += x.hoy_prom * x.hoy_n; pesoProm += x.prom30 * x.hoy_n; } });
+  const diario = dias ? n30 / dias : 0, ratio = pesoProm > 0 ? pesoHoy / pesoProm : null;
+  return { pasos, hoyN, diario, ratio };
+}
+function ritmoHTML(){
+  if (!S.rend) return `<div class="mt-sec">Mi ritmo</div><div class="mt-box"><div class="muted small" style="padding:8px 0">Calculando…</div></div>`;
+  const { pasos, hoyN, diario, ratio } = ritmoResumen(), r = S.rend;
+  if (!pasos.length) return `<div class="mt-sec">Mi ritmo</div><div class="mt-box"><div class="muted small" style="padding:8px 0">Aún no hay suficiente historial para comparar.</div></div>`;
+  const fila = ([k, t]) => { const x = r[k], tiene = x.hoy_n && x.hoy_prom != null && x.prom30 != null;
+    let est = '<span class="rt-b gy">Sin actividad hoy</span>';
+    if (tiene){ const p = x.prom30 ? Math.round((1 - x.hoy_prom / x.prom30) * 100) : 0;
+      est = x.hoy_prom <= x.prom30 ? `<span class="rt-b ok">${ico('check', 'sm')}Dentro del promedio${p > 0 ? ` · ${p}% más rápido` : ''}</span>`
+        : `<span class="rt-b mal">${ico('clock', 'sm')}Fuera del promedio · ${Math.abs(p)}% más lento</span>`; }
+    return `<div class="rt-f"><div class="rt-t"><b>${esc(t)}</b>${est}</div>
+      <div class="rt-n"><span>Hoy <b>${tiene ? fmtDur(x.hoy_prom) : '—'}</b>${x.hoy_n ? ` · ${x.hoy_n} hecha${x.hoy_n > 1 ? 's' : ''}` : ''}</span><span>Promedio 30 días <b>${x.prom30 != null ? fmtDur(x.prom30) : '—'}</b></span></div></div>`; };
+  const g = ratio == null ? '' : ratio <= 1 ? `<span class="rt-b ok">${ico('check', 'sm')}Hoy vas dentro de tu promedio</span>` : `<span class="rt-b mal">${ico('clock', 'sm')}Hoy vas fuera de tu promedio</span>`;
+  return `<div class="mt-sec">Mi ritmo <small>tiempo hábil por solicitud</small></div>
+    <div class="mt-box rt">
+      <div class="rt-g"><div><b>${hoyN}</b><span>completadas hoy</span></div><div><b>${diario ? diario.toFixed(1).replace('.0', '') : '—'}</b><span>tu promedio diario</span></div></div>
+      ${g ? `<div style="margin:2px 0 8px">${g}</div>` : ''}
+      ${pasos.map(fila).join('')}
+      <div class="muted small" style="padding:6px 0 8px">Promedio de sus últimos 30 días, sin contar el 10% más lento.</div></div>`;
+}
+
+// ---------- Bandeja limpia: felicitación según el rendimiento ----------
+const FRASES = {
+  estrella:[
+    'Día sobresaliente: {n} solicitudes y {pct}% más rápido que tu promedio. Así se nota la diferencia.',
+    'Ritmo de primera: más trabajo que tu promedio diario y en menos tiempo. Tus clientes lo agradecen.',
+    'Excelente: {n} completadas hoy y vas {pct}% por encima de tu propia marca de velocidad.'],
+  rapido:[
+    'Bandeja al día y {pct}% más rápido que tu promedio. Cada minuto que ahorras es un cliente que recibe antes su dinero.',
+    'Rápido y ordenado: hoy trabajas {pct}% más ágil que en los últimos 30 días.',
+    'Vas mejorando tu tiempo: {pct}% más rápido que tu promedio. Sigue así.'],
+  volumen:[
+    'Ya completaste {n} hoy, más que tu promedio diario de {prom}. Gran avance.',
+    'Hoy llevas {n} solicitudes, por encima de tu promedio de {prom}. Tu esfuerzo se ve en los resultados.',
+    'Día productivo: {n} completadas y la bandeja limpia.'],
+  constante:[
+    'Bandeja limpia. La constancia es lo que mantiene al equipo funcionando.',
+    'Todo al día. Mantener la bandeja limpia es la mejor forma de no dejar a ningún cliente esperando.',
+    'Lo pendiente quedó resuelto. Buen trabajo.'],
+  inicio:[
+    'Todo al día por ahora. Buen momento para adelantar seguimientos.',
+    'No tienes nada pendiente. Aprovecha para revisar prospectos y refinanciamientos disponibles.',
+    'Bandeja limpia desde temprano. Cuando entre algo nuevo aparecerá aquí.']
+};
+function celebracionHTML(){
+  const { hoyN, diario, ratio } = ritmoResumen(), pct = ratio != null ? Math.max(1, Math.round((1 - ratio) * 100)) : 0;
+  const rapido = ratio != null && ratio <= .9, mucho = hoyN > 0 && diario > 0 && hoyN >= diario;
+  const cat = !hoyN ? 'inicio' : rapido && mucho ? 'estrella' : rapido ? 'rapido' : mucho ? 'volumen' : 'constante';
+  const l = FRASES[cat], dia = Math.floor(Date.now() / 864e5), frase = l[(dia + hoyN) % l.length]
+    .replace('{n}', hoyN).replace('{pct}', pct).replace('{prom}', diario ? diario.toFixed(1).replace('.0', '') : '0');
+  const titulo = { estrella:'Día sobresaliente', rapido:'Bandeja limpia y a buen ritmo', volumen:'Bandeja limpia', constante:'Bandeja limpia', inicio:'Todo al día' }[cat];
+  const chips = [hoyN ? `${hoyN} completada${hoyN > 1 ? 's' : ''} hoy` : '', rapido ? `${pct}% más rápido que tu promedio` : '', mucho ? 'Sobre tu promedio diario' : ''].filter(Boolean);
+  const sug = rol() === 'verificador' ? [['verificar', 'Ver visitas sin asignar', 'pin']]
+    : rol() === 'asesor' ? [['prospectos', 'Ver prospectos', 'inbox'], ['refi', 'Refinanciamientos disponibles', 'refresh']]
+    : [['refi', 'Refinanciamientos disponibles', 'refresh'], ['tablero', 'Ver el tablero', 'board']];
+  const fiesta = S.mtUltToca > 0;   // se acaba de limpiar en esta sesión
+  return `<div class="mt-cel ${cat}${fiesta ? ' fiesta' : ''}">${fiesta ? '<div class="conf">' + Array.from({ length:18 }, (_, i) => `<i style="--i:${i}"></i>`).join('') + '</div>' : ''}
+    <div class="mt-cel-ic">${ico(cat === 'estrella' ? 'star' : 'check')}</div>
+    <div class="mt-cel-tx"><h3>${titulo}</h3><p>${esc(frase)}</p>
+      ${chips.length ? `<div class="mt-cel-ch">${chips.map(c => `<span>${esc(c)}</span>`).join('')}</div>` : ''}
+      <div class="mt-cel-ac">${sug.filter(([k]) => tabsRol().some(t => t[0] === k)).map(([k, t, i]) => `<button class="mt-b gh" data-ir="${k}">${ico(i)}${t}</button>`).join('')}</div></div></div>`;
+}
+
 function pintarTrabajo(){
   const d = trabajoDatos(), coms = trabajoComentarios(), r = rol();
   const titulo = r === 'analista' ? 'Mi trabajo · análisis y transferencias' : r === 'verificador' ? 'Mis visitas' : 'Mi trabajo de hoy';
@@ -1898,6 +2003,7 @@ function pintarTrabajo(){
       <div class="mt-srch">${ico('search', 'sm')}<input id="mtQ" placeholder="Buscar cliente, código o identidad"></div></div>
     <div class="mt-kpis">${trabajoKpis(d)}</div>
     <div id="mtRes"></div>
+    <div class="mt-ritmo mt-ritmo-cel">${ritmoHTML()}</div>
     <div class="mt-cols"><div class="mt-main">
       ${coms.length ? `<div class="mt-sec">Comentarios nuevos <small>${coms.length} solicitud(es)</small></div>
         ${coms.map(s => { const c = comNuevos(s), u = c[c.length - 1];
@@ -1906,8 +2012,9 @@ function pintarTrabajo(){
             <div class="mt-why"><b>${esc(nombre(u.autor_id))}</b> ${hace(u.creado_en)}: ${esc((u.texto || '').slice(0, 140))}</div></div>
             <div class="mt-acc"><button class="mt-b" data-ma="com" data-id="${s.id}">${ico('chat')}Leer y responder</button></div></div>`; }).join('')}` : ''}
       <div class="mt-sec">${r === 'verificador' ? 'Visitas asignadas' : 'Te toca a ti'} <small>${d.toca.length} solicitud(es)</small></div>
-      ${d.toca.length ? d.toca.map(trabajoCard).join('') : `<div class="mt-vacio">${ico('check')}<div><b>Nada pendiente por ahora.</b><div class="muted small">Cuando algo requiera su acción aparecerá aquí.</div></div></div>`}
+      ${d.toca.length ? d.toca.map(trabajoCard).join('') : coms.length ? `<div class="mt-vacio">${ico('check')}<div><b>Nada más pendiente.</b><div class="muted small">Solo le quedan los comentarios de arriba.</div></div></div>` : celebracionHTML()}
     </div><div class="mt-side">
+      <div class="mt-ritmo mt-ritmo-pc">${ritmoHTML()}</div>
       <div class="mt-sec">Esperando a otros <small>no requiere acción</small></div>
       <div class="mt-box">${d.espera.length ? d.espera.map(e => `<button class="mt-row" data-ir="${e.tab || 'tablero'}"><span>${ico(e.i, 'sm')}${esc(e.t)}</span><b>${e.n}</b></button>`).join('') : '<div class="muted small">Nada en espera.</div>'}</div>
       <div class="mt-sec">Cerradas hoy</div>
@@ -1916,6 +2023,11 @@ function pintarTrabajo(){
       <button class="mt-link" data-ir="tablero">${ico('board', 'sm')}Ver el tablero general</button>
     </div></div>`;
   const main = $('#main');
+  const recienLimpia = S.mtUltToca > 0 && !d.toca.length && !coms.length;
+  S.mtUltToca = d.toca.length + coms.length;
+  if (recienLimpia) cargarRitmo(true).then(() => { if (S.tab !== 'trabajo') return; document.querySelectorAll('.mt-ritmo').forEach(el => el.innerHTML = ritmoHTML());
+    const c = document.querySelector('.mt-cel'); if (c){ const p = S.mtUltToca; S.mtUltToca = 1; c.outerHTML = celebracionHTML(); S.mtUltToca = p; } });
+  else if (!S.rend || Date.now() - (S.rendAt || 0) > 120000) cargarRitmo().then(() => { if (S.tab === 'trabajo') document.querySelectorAll('.mt-ritmo').forEach(el => el.innerHTML = ritmoHTML()); });
   main.querySelectorAll('[data-nueva]').forEach(b => b.onclick = () => nuevaSolicitudDlg());
   clearInterval(S.mtTimer);
   S.mtTimer = setInterval(() => {
@@ -1940,7 +2052,7 @@ function pintarTrabajo(){
     if (k === 'asignar'){ S.tab = 'verificar'; S.vVerif = 'sin'; pintarTabs(); pintar(); return; }
     if (k === 'enviar'){
       if (!confirm(`¿Enviar a análisis la solicitud de ${s.nombre_cliente}?\n\nEl analista podrá agregar o corregir los ingresos.`)) return;
-      return run(b, async () => { await rpc('enviar_analisis', { p_id: id }); toast('Enviada a análisis'); await cargarSolicitudes(); pintarTabs(); pintar(); });
+      return run(b, async () => { await rpc('enviar_analisis', { p_id: id }); toast('Enviada a análisis'); S.rendAt = 0; await cargarSolicitudes(); pintarTabs(); pintar(); });
     }
     if (k === 'tomar') return run(b, async () => {
       if (!navigator.onLine) throw new Error('Se necesita conexión para tomar el análisis');
@@ -3201,7 +3313,7 @@ function renderDetalle(){
   const verArriba = rol() === 'verificador' && items.some(i => itemAplica(s, i.item));
   if (verArriba) h += verificacionHTML(s, items);
   if (s._pend) h += `<div class="alert warn small">⟳ Esta solicitud tiene cambios hechos sin señal que todavía no llegan al servidor. Se enviarán solos al volver la conexión.</div>`;
-  if (S.offline) h += `<div class="alert info small">📴 Sin señal: mostrando la última copia guardada en el teléfono${S.detCache[s.id] ? '' : ' (el detalle de esta solicitud no se alcanzó a guardar)'}.</div>`;
+  if (S.offline) h += `<div class="alert info small">Sin señal: mostrando la última copia guardada en el teléfono${S.detCache[s.id] ? '' : ' (el detalle de esta solicitud no se alcanzó a guardar)'}.</div>`;
   // En espera
   h += mk('s');
   if (s.en_espera){
