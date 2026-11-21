@@ -125,8 +125,19 @@ label.f{display:block;font-size:12px;color:var(--ink2);margin:10px 0 4px;font-we
 .seg{display:flex;background:var(--gray-bg);border-radius:10px;padding:3px;gap:3px}
 .seg button{flex:1;border:0;background:none;border-radius:8px;padding:8px 6px;font-weight:600;font-size:13.5px;color:var(--ink2)}
 .seg button.on{background:var(--card);color:var(--ink);box-shadow:var(--shadow)}
+.pst .pst-h{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}.pst .nm{font-weight:700;font-size:15.5px}.pst .ln{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-top:4px}
+.pst-est{text-align:right;flex:none}.pst.done{opacity:.8}
+.pst-p{display:flex;gap:10px;align-items:flex-start;padding:9px 0;border-top:1px solid var(--line,#e2e8f0)}.pst-p.ok .pst-t>b{color:var(--green)}.pst-p.na{padding:6px 0}
+.pst-chk{flex:none;width:28px;height:28px;border-radius:8px;border:2px solid var(--line2,#cbd5e1);background:var(--card);color:#fff;font-weight:800;display:grid;place-items:center;font-size:15px}
+.pst-p.ok .pst-chk{background:var(--green);border-color:var(--green)}.pst-p.na .pst-chk{color:var(--gray);border-style:dashed}
+.pst-t{min-width:0;flex:1}.pst-t .small{margin-top:3px}.pst-txt{margin-top:4px;padding:6px 8px;background:var(--bg2,#f1f5f9);border-radius:8px;font-size:12.5px;word-break:break-word}.pst-txt b{font-weight:600}
+.pst-banco{display:flex;flex-wrap:wrap;gap:6px;align-items:center;padding:9px 0 3px;border-top:1px solid var(--line,#e2e8f0)}
+.pst-banco button{border:1.5px solid var(--line,#e2e8f0);background:var(--card);border-radius:999px;padding:4px 10px;font-size:12.5px;font-weight:600;color:var(--ink2)}.pst-banco button.on{border-color:var(--blue);background:var(--blue-bg);color:var(--ink)}
+.pst-res{display:flex;gap:18px;margin:10px 0 4px}.pst-res>div{display:flex;flex-direction:column}.pst-res b{font-size:22px}
+.pst-tools{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:8px}.pst-tools #pstQ{flex:1;min-width:180px}
 .bancos{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
-.bancos button{border:1.5px solid var(--line,#e2e8f0);background:var(--card);border-radius:10px;padding:10px 4px;font-weight:600;font-size:13.5px;color:var(--ink2)}
+.bancos button{min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;border:1.5px solid var(--line,#e2e8f0);background:var(--card);border-radius:10px;padding:10px 2px;font-weight:600;font-size:13px;color:var(--ink2)}
+@media (max-width:420px){.bancos{gap:5px}.bancos button{font-size:12px;padding:10px 1px}}
 .bancos button.on{border-color:var(--blue);background:var(--blue-bg);color:var(--ink)}
 @media (max-width:360px){.bancos{grid-template-columns:repeat(2,1fr)}}
 .filters{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}
@@ -629,11 +640,14 @@ body.marco-cel #sheet > *{max-width:430px;margin-left:auto;margin-right:auto}
 // App disponible sin señal (sw.js debe estar junto a index.html). Va primero para registrarse aunque falle otra cosa.
 if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) navigator.serviceWorker.register('sw.js').catch(() => {});
 // Versión de esta copia de la app: cambia en cada entrega. La app la compara con la publicada y se actualiza sola.
-const APP_VER = '2026-11-20.1130';
+const APP_VER = '2026-11-21.0930';
 // Novedades que ve cada usuario al abrir una versión nueva (la más reciente primero).
 // Al publicar cambios: subir APP_VER y agregar aquí una entrada con la misma versión.
 // r = roles que la ven (sin r = todos; el admin ve todo).
 const NOVEDADES = [
+  { v:'2026-11-21.0930', f:'21 de noviembre de 2026', items:[
+    { i:'🧾', t:'Nueva pestaña "Posteo": control de lo que falta registrar en el sistema general', r:['analista'],
+      d:'Muestra cada solicitud desembolsada con todo lo necesario para registrarla en el sistema general y en caja: monto del préstamo; en refinanciamientos y reingresos, el saldo de intereses y el de capital a pagar; y el monto entregado con los textos listos para copiar del ingreso y del traslado de fondos banco → caja (por ejemplo "Ingreso de fondos entre BAC a CAJA, Préstamo aprobado (nombre)"). Escoja el banco de donde salió el dinero y marque cada paso al hacerlo; al completarlos queda ✅ Posteado. El número en la pestaña son los pendientes. Para los desembolsos que ya había registrado antes, use "Marcar anteriores como posteadas…".' } ] },
   { v:'2026-11-20.1130', f:'20 de noviembre de 2026', items:[
     { i:'🙋', t:'Análisis: hay que tocar "Tomar análisis" antes de dictaminar', r:['analista'],
       d:'Cuando el asesor envía una solicitud a análisis, queda "⏳ Sin tomar". Para aprobar, denegar o devolver, primero toque "🙋 Tomar análisis" (arriba del detalle): desde ese momento cuenta el tiempo de análisis. El tiempo que la solicitud esperó a que alguien la tomara se mide aparte como "Espera de análisis". Si otro analista ya la tomó, puede tomarla usted con "Tomarla yo".' },
@@ -1454,6 +1468,7 @@ async function cargarSolicitudes(){
   S.evs = {}; (evr || []).forEach(e => { if (e.de_estado) (S.evs[e.solicitud_id] = S.evs[e.solicitud_id] || []).push(e); });
   const { data: cs } = await sb.from('comentarios').select('solicitud_id');
   S.com = {}; (cs||[]).forEach(c => S.com[c.solicitud_id] = (S.com[c.solicitud_id]||0) + 1);
+  if (es('analista')) await cargarPosteos();
   marcarConexion(true); KV.set(ck('syncAt'), S.syncAt);
   aplicarPendientes(); guardarCache(); indicadorRed();
   precargarDetalles();
@@ -1476,13 +1491,14 @@ function tabsRol(){
     tablero:['tablero','Tablero', s => false],
     alertas:['alertas','⚠️ Alertas', s => mio(s) && !!alertaDe(s)],
     refi:['refi','Refinanciar'],
+    posteo:['posteo','🧾 Posteo', s => posteoPendiente(s)],
     prospectos:['prospectos','🤖 Prospectos'],
     stats:['stats','Estadísticas'], referidos:['referidos','Referidos'], usuarios:['usuarios','Usuarios'], params:['params','Parámetros'], pagos:['pagos','Pago verificadores'], vercomo:['vercomo','👁 Vista verificador']
   };
   const m = { asesor:['tablero','alertas','prospectos','solicitudes','revisadas','proceso','verificar',...(asesorDesembolsa() ? ['desembolsos'] : []),'todas','refi','historial','stats'],
-    analista:['tablero','alertas','prospectos','analisis','desembolsos','todas','refi','referidos','historial','stats'],
+    analista:['tablero','alertas','prospectos','analisis','desembolsos','posteo','todas','refi','referidos','historial','stats'],
     verificador:['verificar','tablero','verificadas','historial','stats'],
-    admin:['tablero','alertas','prospectos','solicitudes','revisadas','analisis','verificar','desembolsos','todas','refi','referidos','historial','stats','pagos','vercomo','usuarios','params'] };
+    admin:['tablero','alertas','prospectos','solicitudes','revisadas','analisis','verificar','desembolsos','posteo','todas','refi','referidos','historial','stats','pagos','vercomo','usuarios','params'] };
   return m[rol()].map(k => T[k]);
 }
 function pintarTabs(){
@@ -1499,6 +1515,95 @@ function pintarTabs(){
   $('#tabs').scrollLeft = sx;
   $('#tabs').querySelectorAll('button').forEach(b => b.onclick = () => { S.tab = b.dataset.k; S.q=''; pintarTabs(); pintar(); window.scrollTo(0,0); });
   $('#fab').classList.toggle('hidden', !(es('asesor') && ['tablero','solicitudes','revisadas','proceso'].includes(S.tab)));
+}
+
+// ================== Posteo en sistema general (desembolsadas) ==================
+// Después de desembolsar: registrar el préstamo en el sistema general, en refi/reingreso pagar intereses y capital
+// del préstamo anterior, y en caja postear el ingreso y el traslado de fondos banco → caja (monto entregado).
+const PST = { f:'pend', q:'' };
+const BANCOS_FIN = ['BAC', 'Ficohsa', 'Atlántida', 'Banpaís', 'Occidente', 'Banrural'];
+const PST_PASOS = { desembolso:'Desembolso en el sistema general', intereses:'Pago de intereses al día', capital:'Pago del saldo de capital',
+  ingreso:'Ingreso de fondos (banco → caja)', traslado:'Traslado de fondos (banco → caja)' };
+async function cargarPosteos(){
+  try { const { data, error } = await sb.from('posteos').select('*'); if (!error) S.posteos = Object.fromEntries((data || []).map(p => [p.solicitud_id, p])); } catch(e){}
+}
+const pstDesde = () => { try { const v = localStorage.getItem('vc_pst_desde'); if (v) return v; } catch(e){}
+  const n = String(S.params?.posteo_desde || 20261109); return `${n.slice(0, 4)}-${n.slice(4, 6)}-${n.slice(6, 8)}`; };
+const posteoAplica = s => s.estado === 'desembolsada' && !s.importado && (diaColoc(s) || '') >= pstDesde();
+const posteoPendiente = s => posteoAplica(s) && !(S.posteos || {})[s.id]?.completo_en;
+function pstReq(s){
+  const refi = s.tipo !== 'nuevo';
+  return ['desembolso', ...(refi && +s.saldo_intereses > 0 ? ['intereses'] : []), ...(refi && +s.saldo_capital > 0 ? ['capital'] : []), 'ingreso', 'traslado'];
+}
+const pstMonto = n => (Math.round((+n || 0) * 100) / 100).toFixed(2);
+const pstCopia = (v, txt) => `<span class="cpy-wrap"><b>${txt ?? L(v)}</b><button type="button" class="cpy" data-cpy="${esc(String(v))}" title="Copiar" aria-label="Copiar">${ICO_COPIAR}</button></span>`;
+function pstTexto(tipo, banco, s){ return `${tipo === 'ingreso' ? 'Ingreso' : 'Traslado'} de fondos entre ${banco} a CAJA, Préstamo aprobado (${s.nombre_cliente.trim()})`; }
+function pstCard(s){
+  const p = (S.posteos || {})[s.id] || { pasos:{} }, req = pstReq(s), hechos = req.filter(k => p.pasos?.[k]).length;
+  let banco = p.banco; if (!p.solicitud_id){ try { banco = localStorage.getItem('vc_pst_banco') || 'BAC'; } catch(e){ banco = 'BAC'; } }
+  const prestamo = +(s.monto_solicitado || s.monto_aprobado || 0), libre = s.tipo !== 'nuevo' ? montoLibre(s) : prestamo, refi = s.tipo !== 'nuevo';
+  const ct = s.forma_desembolso === 'transferencia' ? partirCuenta(s.cuenta_banco) : null;
+  const paso = (k, n, cuerpo) => { const h = p.pasos?.[k];
+    return `<div class="pst-p${h ? ' ok' : ''}"><button type="button" class="pst-chk" data-pp="${k}" data-sid="${s.id}" data-h="${h ? 1 : 0}" aria-label="${h ? 'Desmarcar' : 'Marcar como hecho'}">${h ? '✔' : ''}</button>
+      <div class="pst-t"><b>${n}. ${PST_PASOS[k]}</b>${cuerpo}${h ? `<div class="small muted">✔ ${esc(nombre(h.por))} · ${fDT(h.en)}</div>` : ''}</div></div>`; };
+  let i = 0;
+  return `<div class="card pst${p.completo_en ? ' done' : ''}" data-id="${s.id}">
+    <div class="pst-h"><div style="min-width:0"><div class="nm">${conCopiar(s.nombre_cliente)}</div>
+      <div class="small muted">${esc(s.codigo)} · colocado ${diaColoc(s) ? fDate(diaColoc(s) + 'T12:00') : '—'} · ${s.forma_desembolso === 'transferencia' ? '🏦 Transferencia' : '💵 Efectivo'}</div>
+      <div class="ln">${tipoChip(s.tipo)}${s.dni ? `<span class="small">DNI ${conCopiar(s.dni)}</span>` : ''}</div></div>
+      <div class="pst-est">${p.completo_en ? `<span class="chip c-green">✅ Posteado</span><div class="small muted">${fDT(p.completo_en)}</div>` : `<span class="chip c-amber">${hechos} de ${req.length}</span>`}</div></div>
+    ${paso('desembolso', ++i, `<div class="small">Préstamo ${pstCopia(pstMonto(prestamo), L(prestamo))}${s.tipo_pago ? ' · ' + esc(s.tipo_pago) : ''}${s.plazo_meses ? ' · ' + s.plazo_meses + ' meses' : ''}</div>
+      ${ct ? `<div class="small muted">Cuenta del cliente: ${esc(ct.banco || '')} ${esc(ct.cuenta || '')}</div>` : ''}`)}
+    ${refi ? (+s.saldo_intereses > 0 ? paso('intereses', ++i, `<div class="small">Saldo de intereses ${pstCopia(pstMonto(s.saldo_intereses), L(s.saldo_intereses))}</div>`)
+      : `<div class="pst-p na"><span class="pst-chk">—</span><div class="pst-t small muted">Intereses al día: L 0 · no requiere pago</div></div>`) : ''}
+    ${refi ? (+s.saldo_capital > 0 ? paso('capital', ++i, `<div class="small">Saldo de capital ${pstCopia(pstMonto(s.saldo_capital), L(s.saldo_capital))}</div>`) : '') : ''}
+    <div class="pst-banco"><span class="small muted">Banco de donde salió el dinero:</span>${BANCOS_FIN.map(b => `<button type="button" class="${b === banco ? 'on' : ''}" data-pb="${b}" data-sid="${s.id}">${b}</button>`).join('')}</div>
+    ${paso('ingreso', ++i, `<div class="small">Monto ${pstCopia(pstMonto(libre), L(libre))}${refi ? ' <span class="muted">(préstamo − capital − intereses)</span>' : ''}</div><div class="pst-txt">${pstCopia(pstTexto('ingreso', banco, s), esc(pstTexto('ingreso', banco, s)))}</div>`)}
+    ${paso('traslado', ++i, `<div class="small">Monto ${pstCopia(pstMonto(libre), L(libre))}</div><div class="pst-txt">${pstCopia(pstTexto('traslado', banco, s), esc(pstTexto('traslado', banco, s)))}</div>`)}
+  </div>`;
+}
+function pintarPosteo(){
+  const todas = S.sols.filter(posteoAplica).sort((a, b) => (diaColoc(b) || '').localeCompare(diaColoc(a) || '') || new Date(b.desembolsado_en) - new Date(a.desembolsado_en));
+  const pend = todas.filter(s => !(S.posteos || {})[s.id]?.completo_en), hechas = todas.length - pend.length;
+  let lista = PST.f === 'pend' ? pend : PST.f === 'hechas' ? todas.filter(s => (S.posteos || {})[s.id]?.completo_en) : todas;
+  if (PST.f === 'pend') lista = lista.slice().reverse();   // pendientes: las más viejas primero
+  const q = rfHn(PST.q); if (q) lista = lista.filter(s => rfHn(`${s.nombre_cliente} ${s.codigo} ${s.dni || ''}`).includes(q));
+  const montoPend = pend.reduce((a, s) => a + (s.tipo !== 'nuevo' ? montoLibre(s) : +(s.monto_solicitado || s.monto_aprobado || 0)), 0);
+  $('#main').innerHTML = `<div class="card"><h3 style="margin:0">🧾 Posteo en sistema general</h3>
+      <div class="small muted" style="margin-top:4px">Desembolsos de VerifyCredit para registrar en el sistema general y en caja. Marque cada paso al hacerlo; al completar todos queda ✅ Posteado.</div>
+      <div class="pst-res"><div><b>${pend.length}</b><span class="small muted">por postear · ${L(montoPend)} a caja</span></div><div><b>${hechas}</b><span class="small muted">posteadas</span></div></div>
+      <div class="filters">${[['pend', `Pendientes (${pend.length})`], ['hechas', `Posteadas (${hechas})`], ['todas', 'Todas']].map(([k, t]) => `<button data-pf="${k}" class="${PST.f === k ? 'on' : ''}">${t}</button>`).join('')}</div>
+      <div class="pst-tools"><input id="pstQ" placeholder="Buscar cliente, código o identidad" value="${esc(PST.q)}">
+        <label class="small muted">Desde <input type="date" id="pstDesde" value="${pstDesde()}" max="${hoyHN()}"></label>
+        <button class="btn sm ghost" id="pstLote">Marcar anteriores como posteadas…</button></div></div>
+    ${lista.length ? lista.map(pstCard).join('') : `<div class="empty">${PST.f === 'pend' ? '🎉 No hay desembolsos pendientes de postear.' : 'Sin resultados.'}</div>`}`;
+  $('#main').querySelectorAll('[data-pf]').forEach(b => b.onclick = () => { PST.f = b.dataset.pf; pintarPosteo(); });
+  const qi = $('#pstQ'); qi.oninput = () => { PST.q = qi.value; const c = qi.selectionStart; pintarPosteo(); const n = $('#pstQ'); n.focus(); n.setSelectionRange(c, c); };
+  $('#pstDesde').onchange = e => { try { localStorage.setItem('vc_pst_desde', e.target.value); } catch(x){} pintarTabs(); pintarPosteo(); };
+  $('#pstLote').onclick = () => {
+    const w = dialogo(`<h3>Marcar anteriores como posteadas</h3><div class="small muted">Para desembolsos que ya registró en el sistema general y en caja antes de usar este módulo. Se marcan todos sus pasos.</div>
+      <label class="f">Desembolsos colocados hasta el día</label><input type="date" id="pstHasta" max="${hoyHN()}">
+      <div class="small" id="pstCnt" style="margin-top:6px"></div>
+      <div class="btns"><button class="btn ghost" data-close>Cancelar</button><button class="btn pri" id="pstOk" disabled>Marcar</button></div>`);
+    const h = w.querySelector('#pstHasta'), cnt = () => pend.filter(s => (diaColoc(s) || '') <= h.value).length;
+    h.oninput = () => { const n = h.value ? cnt() : 0; w.querySelector('#pstCnt').textContent = h.value ? `${n} desembolso(s) pendiente(s) se marcarán como posteados.` : ''; w.querySelector('#pstOk').disabled = !n; };
+    w.querySelector('#pstOk').onclick = e => run(e.target, async () => {
+      if (!navigator.onLine) throw new Error('Se necesita conexión');
+      const n = await rpc('posteo_marcar_hasta', { p_hasta: h.value }); cerrarDialogo(w);
+      toast(`${n} desembolso(s) marcados como posteados`); await cargarPosteos(); pintarTabs(); pintarPosteo(); });
+  };
+  $('#main').querySelectorAll('[data-pp]').forEach(b => b.onclick = () => run(b, async () => {
+    if (!navigator.onLine) throw new Error('Se necesita conexión para marcar el posteo');
+    const id = +b.dataset.sid, card = b.closest('.pst'), banco = card.querySelector('.pst-banco .on')?.dataset.pb || null;
+    const r = await rpc('posteo_marcar', { p_id: id, p_paso: b.dataset.pp, p_hecho: b.dataset.h !== '1', p_banco: banco });
+    (S.posteos = S.posteos || {})[id] = r; if (r?.completo_en) toast('✅ Desembolso posteado completo');
+    pintarTabs(); pintarPosteo(); }));
+  $('#main').querySelectorAll('[data-pb]').forEach(b => b.onclick = async () => {
+    const id = +b.dataset.sid; try { localStorage.setItem('vc_pst_banco', b.dataset.pb); } catch(e){}
+    const p = (S.posteos = S.posteos || {})[id];
+    if (p) { p.banco = b.dataset.pb; if (navigator.onLine) rpc('posteo_marcar', { p_id: id, p_paso: null, p_hecho: true, p_banco: b.dataset.pb }).catch(e => toast(errMsg(e), true)); }
+    pintarPosteo();
+  });
 }
 
 // ================== Refinanciar (clientes con disponible) ==================
@@ -1970,6 +2075,7 @@ function pintar(){
   if (S.tab === 'referidos') return pintarReferidos();
   if (S.tab === 'prospectos') return pintarProspectos();
   if (S.tab === 'refi') return $('#rfTop') ? rfPintar() : pintarRefi();
+  if (S.tab === 'posteo') return pintarPosteo();
   if (S.tab === 'usuarios') return pintarUsuarios();
   if (S.tab === 'params') return pintarParams();
   if (S.tab === 'pagos') return pintarPagos();
