@@ -644,7 +644,7 @@ body.marco-cel #sheet > *{max-width:430px;margin-left:auto;margin-right:auto}
 // App disponible sin señal (sw.js debe estar junto a index.html). Va primero para registrarse aunque falle otra cosa.
 if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) navigator.serviceWorker.register('sw.js').catch(() => {});
 // Versión de esta copia de la app: cambia en cada entrega. La app la compara con la publicada y se actualiza sola.
-const APP_VER = '2026-11-21.1250';
+const APP_VER = '2026-11-21.1900';
 // 'admin' = cambio solo para el administrador: los demás usuarios no ven el aviso de versión nueva (se actualiza en silencio)
 // y sus NOVEDADES deben llevar r:['admin']. 'todos' = cambio que ven los usuarios.
 const APP_AVISO = 'admin';
@@ -652,6 +652,9 @@ const APP_AVISO = 'admin';
 // Al publicar cambios: subir APP_VER y agregar aquí una entrada con la misma versión.
 // r = roles que la ven (sin r = todos; el admin ve todo).
 const NOVEDADES = [
+  { v:'2026-11-21.1900', f:'21 de noviembre de 2026', items:[
+    { i:'•', t:'Rol de gestor de cobro (preparación)', r:['admin'],
+      d:'Existe el rol "Gestor de cobro". Los gestores usan la versión de prueba (verifycredit-beta.vercel.app): si entran aquí, la app los lleva allá. Al editar un usuario gestor aquí se conserva su rol.' } ] },
   { v:'2026-11-21.1250', f:'21 de noviembre de 2026', items:[
     { i:'📅', t:'Posteo: rango de fechas y de monto siempre a la vista', r:['admin'],
       d:'En Filtros ahora están siempre los campos "Del … al …" del día de colocación (al tocar Hoy, Ayer o Esta semana se llenan solos; si escribe una fecha pasa a rango personalizado) y "Monto del préstamo de L … a L …".' } ] },
@@ -774,7 +777,7 @@ const EST = {
   rechazada_verificacion:{t:'Rechazada en verificación',c:'red'}, desistida:{t:'Desistida',c:'gray'}
 };
 const TIPO = { nuevo:'Nuevo', reingreso:'Reingreso', refinanciamiento:'Refinanciamiento', reestructuracion:'Reestructuración', cambio_modalidad:'Cambio de modalidad' };
-const ROL = { asesor:'Asesor', analista:'Analista', verificador:'Verificador', admin:'Administrador' };
+const ROL = { asesor:'Asesor', analista:'Analista', verificador:'Verificador', admin:'Administrador', gestor:'Gestor de cobro' };
 const ITEM = { domicilio:'Visita a domicilio', trabajo:'Visita a trabajo', foto_perfil:'Foto de perfil del cliente',
   referencias:'Referencias familiares', entrega_efectivo:'Entrega de efectivo' };
 const ACC = { analisis_tomado:'Tomó el análisis', analisis_reasignado:'Tomó el análisis', seguimiento_programado:'Programó seguimiento', seguimiento_hecho:'Hizo el seguimiento', confirmada_vigente:'Confirmó que continúa', creada:'Creó la solicitud', enviada_analisis:'Envió a análisis', devuelta_asesor:'Devolvió al asesor',
@@ -1108,6 +1111,8 @@ async function init(){
   if (session.offline || (errMe && esRed(errMe))){ me = await KV.get(S.user.id + ':me'); S.offline = true;
     if (!me) { toast('Sin señal y sin datos guardados en este teléfono. Conéctese para entrar la primera vez.', true); return mostrarLogin(); } }
   if (!me || !me.activo){ toast('Su usuario no tiene rol asignado o está inactivo', true); await sb.auth.signOut(); return mostrarLogin(); }
+  // Los gestores de cobro usan la versión nueva (por ahora en verifycredit-beta)
+  if (me.rol === 'gestor'){ location.replace('https://verifycredit-beta.vercel.app/'); return; }
   S.me = me; localStorage.setItem('vc_ult_uid', me.id); KV.set(me.id + ':me', me);
   S.detCache = (await KV.get(ck('det'))) || {}; S.cmCache = (await KV.get(ck('cm'))) || {};
   $('#netPill').onclick = verPendientes;
