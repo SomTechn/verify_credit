@@ -618,8 +618,21 @@ header.top .iconbtn svg.ic{width:18px;height:18px;vertical-align:-4px}
   main.board-wide{max-width:none}
   .sheet{left:236px}
 }
-.sn-logo{display:flex;gap:10px;align-items:center;color:#fff;margin:2px 6px 18px}.sn-logo .m{width:34px;height:34px;border-radius:8px;background:#1877F2;display:grid;place-items:center}
-.sn-logo b{display:block;font:800 16px Poppins,Inter,sans-serif}.sn-logo small{font-size:10px;letter-spacing:.12em;text-transform:uppercase;opacity:.7}
+.sn-logo{display:flex;gap:10px;align-items:center;color:#fff;margin:2px 2px 18px 4px}.sn-logo img{width:38px;height:38px;border-radius:9px;flex:none;box-shadow:0 2px 8px rgba(0,0,0,.25)}
+.sn-tx{flex:1;min-width:0}.sn-logo b{display:block;font:800 17px Poppins,Inter,sans-serif;white-space:nowrap}.sn-logo b span{color:#9fe0ff}.sn-logo small{display:block;font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;opacity:.7;white-space:nowrap}
+.sn-tog{flex:none;width:28px;height:28px;border-radius:7px;border:0;background:rgba(255,255,255,.08);color:#C9D6EE;display:grid;place-items:center;cursor:pointer}.sn-tog:hover{background:rgba(255,255,255,.16);color:#fff}.sn-tog svg.ic{width:17px;height:17px}
+@media (min-width:1024px){
+  body.nav-min .sidenav{width:68px;padding:14px 10px;overflow-x:hidden}
+  body.nav-min #vApp{padding-left:68px} body.nav-min .sheet{left:68px}
+  body.nav-min .sn-logo{flex-direction:column;gap:10px;margin:2px 0 14px}
+  body.nav-min .sn-tx, body.nav-min .sn-beta, body.nav-min .sidenav .nv span:not(.nb), body.nav-min .sn-new span, body.nav-min .sn-grp span, body.nav-min .sn-who .t, body.nav-min .sn-ib span{display:none}
+  body.nav-min .sidenav .nv{justify-content:center;padding:10px 0;position:relative}
+  body.nav-min .sidenav .nv .nb{position:absolute;top:3px;right:3px;margin:0;min-width:16px;height:16px;font-size:10px;padding:0 4px}
+  body.nav-min .sn-new{padding:10px 0}
+  body.nav-min .sn-grp{margin:10px 6px;border-top:1px solid rgba(255,255,255,.14)}
+  body.nav-min .sn-who{justify-content:center}
+  body.nav-min .sn-ibs{flex-direction:column}
+}
 .sn-new{display:flex;gap:8px;align-items:center;justify-content:center;background:var(--accent);color:var(--accent-ink);border:0;border-radius:8px;padding:11px;font:800 14px Inter,sans-serif;margin-bottom:14px;cursor:pointer}
 .sidenav .nv{display:flex;gap:11px;align-items:center;width:100%;background:none;border:0;color:inherit;border-radius:7px;padding:9px 11px;font:600 14px Inter,sans-serif;text-align:left;cursor:pointer;margin-bottom:1px}
 .sidenav .nv:hover{background:rgba(255,255,255,.07)}.sidenav .nv.on{background:rgba(255,255,255,.14);color:#fff}
@@ -716,6 +729,26 @@ header.top .iconbtn svg.ic{width:18px;height:18px;vertical-align:-4px}
 .pg-t.on{border-color:#E4A23B}
 .pg-bar{height:6px;border-radius:6px;background:var(--line);overflow:hidden;margin-top:7px}.pg-bar.big{height:9px}.pg-bar i{display:block;height:100%;background:var(--green);border-radius:6px}
 .pg-tbl{width:100%;border-collapse:collapse;font-size:13.5px}.pg-tbl th{text-align:left;font-size:12px;color:var(--muted);font-weight:600;padding:6px 4px;border-bottom:1px solid var(--line)}.pg-tbl td{padding:8px 4px;border-bottom:1px solid var(--line);color:var(--ink2)}.pg-tbl td b{color:var(--ink)}
+/* Nueva solicitud: identidad primero y carteras */
+.ns-dni{display:flex;gap:8px}#nTipo{flex-wrap:wrap}#nTipo button{flex:1 1 auto}.ns-dni input{flex:1;min-width:0}.ns-dni .btn{flex:none;display:inline-flex;gap:6px;align-items:center}
+.ns-enc{display:flex;gap:10px;align-items:flex-start;border:1px solid var(--line);border-radius:8px;padding:10px 12px;margin-top:10px;background:var(--card)}
+.ns-enc svg.ic{flex:none;width:18px;height:18px;margin-top:2px}.ns-enc.si{border-color:#9ED8B5;background:var(--green-bg,#E9F8EF)}.ns-enc.si svg.ic{color:var(--green)}.ns-enc.no svg.ic{color:var(--muted)}
+.cart-op{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px}
+.cart-b{display:inline-flex;gap:6px;align-items:center;border:1px solid var(--line);background:var(--card);color:var(--ink2);border-radius:7px;padding:8px 11px;font:600 13px Inter,sans-serif;cursor:pointer}
+.cart-b.on{border-color:var(--brand);background:var(--brand2);color:var(--brand)}
+.cart-chk{border:1px solid var(--line);border-radius:7px;padding:7px 10px;margin:0}
+/* Gestor de cobro */
+.gs-f{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:6px 0 4px}.gs-f .seg{flex:1;min-width:260px}.gs-f select{width:auto}
+.mt-c.gy{border-left-color:var(--gray,#8A94A6)}
+.gs-c{cursor:pointer}
+.gp{display:flex;gap:4px;margin-top:9px}
+.gp-s{flex:1;min-width:0;text-align:center}.gp-s i{display:block;height:5px;border-radius:4px;background:var(--line)}
+.gp-s span{display:block;font-size:10.5px;color:var(--muted);margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.gp-s.ok i{background:var(--green)}.gp-s.on i{background:var(--brand)}.gp-s.on span{color:var(--brand);font-weight:700}.gp-s.ok span{color:var(--ink2)}
+.gp.fin .gp-s i{background:var(--line)}.gp.fin{opacity:.7}
+@media (max-width:520px){ .gs-c .gp-s span{display:none} .gs-c .gp{margin-top:7px} .gp-s span{font-size:9px;letter-spacing:-.1px} .gs-f .seg{min-width:100%} }
+.dlg .kv a{color:var(--brand)}
+@media (prefers-color-scheme: dark){ .ns-enc.si{background:#12301F;border-color:#2E6B47} }
 </style>
 </head>
 <body>
@@ -776,7 +809,7 @@ header.top .iconbtn svg.ic{width:18px;height:18px;vertical-align:-4px}
 // App disponible sin señal (sw.js debe estar junto a index.html). Va primero para registrarse aunque falle otra cosa.
 if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) navigator.serviceWorker.register('sw.js').catch(() => {});
 // Versión de esta copia de la app: cambia en cada entrega. La app la compara con la publicada y se actualiza sola.
-const APP_VER = '2026-11-21.1730';
+const APP_VER = '2026-11-21.1900';
 // 'admin' = cambio solo para el administrador: los demás usuarios no ven el aviso de versión nueva (se actualiza en silencio)
 // y sus NOVEDADES deben llevar r:['admin']. 'todos' = cambio que ven los usuarios.
 const APP_AVISO = 'todos';
@@ -784,6 +817,17 @@ const APP_AVISO = 'todos';
 // Al publicar cambios: subir APP_VER y agregar aquí una entrada con la misma versión.
 // r = roles que la ven (sin r = todos; el admin ve todo).
 const NOVEDADES = [
+  { v:'2026-11-21.1900', f:'21 de noviembre de 2026', items:[
+    { i:'•', t:'Nueva solicitud: primero la identidad',
+      d:'Al crear una solicitud se escribe primero el número de identidad. Si el cliente ya tuvo solicitudes, se llenan solos el nombre, el teléfono y la antigüedad, y al crear se copian el domicilio y el trabajo de la anterior. También avisa si el cliente ya tiene una solicitud en proceso.' },
+    { i:'•', t:'Cartera de cada solicitud',
+      d:'Cada solicitud tiene ahora su cartera (Cartera, Gestión Telefónica, Gestión Presencial o Gestión Telefónica #2). En refinanciamientos y reingresos se elige al crearla; la app sugiere la del cliente según la última lista de préstamos. Las nuevas toman la cartera predeterminada. Se ve y se cambia en el detalle.' },
+    { i:'•', t:'Gestores de cobro', r:['asesor','analista'],
+      d:'Los gestores de cobro pueden registrar refinanciamientos y reingresos de su cartera. Le llegan al asesor en Mi trabajo marcadas "De (nombre) (gestor)", para revisarlas y enviarlas a análisis. El gestor solo ve en qué paso va cada solicitud, no el análisis.' },
+    { i:'•', t:'Menú lateral ocultable (computadora)',
+      d:'En computadora puede ocultar el menú de la izquierda con la flecha junto al logo; quedan solo los íconos. Vuelva a tocarla para mostrarlo.' },
+    { i:'•', t:'Gestores, carteras y gerente', r:['admin'],
+      d:'En Usuarios: rol "Gestor de cobro" con las carteras que gestiona, y la opción "También es gerente" (Nery ya la tiene). En Parámetros: cartera predeterminada de las solicitudes nuevas y el asesor que recibe lo que registran los gestores.' } ] },
   { v:'2026-11-21.1730', f:'21 de noviembre de 2026', items:[
     { i:'•', t:'Mi trabajo: su ritmo, rachas, récords y "Tu semana"',
       d:'En Mi trabajo verá su tiempo promedio por solicitud comparado con sus últimos 30 días (dentro o fuera de su promedio). También su racha de días dejando la bandeja limpia antes del cierre, su récord personal de solicitudes en un día y cuántas lleva esta semana contra la semana pasada. Toque "Esta semana" para ver el resumen completo; cada lunes le aparecerá el resumen de la semana anterior. Al limpiar la bandeja recibirá una felicitación según su rendimiento.' } ] },
@@ -1250,8 +1294,9 @@ async function init(){
   S.detCache = (await KV.get(ck('det'))) || {}; S.cmCache = (await KV.get(ck('cm'))) || {};
   $('#netPill').onclick = verPendientes;
   $('#vLogin').classList.add('hidden'); $('#vApp').classList.remove('hidden');
-  $('#whoName').textContent = me.nombre; $('#whoRol').textContent = ROL[me.rol];
-  await Promise.all([cargarPerfiles(), cargarParams()]);
+  $('#whoName').textContent = me.nombre; $('#whoRol').textContent = rolTxt(me);
+  if (me.rol === 'gestor') return initGestor();
+  await Promise.all([cargarPerfiles(), cargarParams(), cargarCarteras()]);
   await cargarSolicitudes();
   S.tab = tabsRol()[0][0];
   // Si la app se recargó por una actualización, vuelve a donde estaba el usuario
@@ -1608,6 +1653,7 @@ async function cargarParams(){
   S.feriadosRows = r2.data || []; S.feriados = new Set(S.feriadosRows.map(f => f.fecha));
 }
 async function cargarSolicitudes(){
+  if (esGestor()) return;   // el gestor no lee la tabla: usa gestor_datos()
   const { data, error } = !navigator.onLine ? { error:{ message:'Failed to fetch' } } : await sb.from('solicitudes').select('*').order('creado_en', { ascending:false }).limit(5000);
   if (error){
     if (!esRed(error)) return toast(errMsg(error), true);
@@ -1648,11 +1694,13 @@ function tabsRol(){
     refi:['refi','Refinanciar'],
     posteo:['posteo','Posteo', s => posteoPendiente(s)],
     prospectos:['prospectos','Prospectos'],
+    gestor:['gestor','Mi cartera'],
     stats:['stats','Estadísticas'], referidos:['referidos','Referidos'], usuarios:['usuarios','Usuarios'], params:['params','Parámetros'], pagos:['pagos','Pago verificadores'], vercomo:['vercomo','Vista verificador']
   };
   const m = { asesor:['trabajo','tablero','alertas','prospectos','solicitudes','revisadas','proceso','verificar',...(asesorDesembolsa() ? ['desembolsos'] : []),'todas','refi','historial','stats'],
     analista:['trabajo','tablero','alertas','prospectos','analisis','desembolsos','todas','refi','referidos','historial','stats'],
     verificador:['trabajo','verificar','tablero','verificadas','historial','stats'],
+    gestor:['gestor'],
     admin:['trabajo','tablero','alertas','prospectos','solicitudes','revisadas','analisis','verificar','desembolsos','posteo','todas','refi','referidos','historial','stats','pagos','vercomo','usuarios','params'] };
   return m[rol()].map(k => T[k]);
 }
@@ -1676,6 +1724,7 @@ function pintarTabs(){
 // ================== Rediseño: íconos, navegación y "Mi trabajo" por rol ==================
 // Íconos SVG de trazo (sin emojis)
 const ICO = {
+  chevL:'<path d="M15 18l-6-6 6-6"/>', chevR:'<path d="M9 18l6-6-6-6"/>', briefcase:'<rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M3 13h18"/>',
   home:'<path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/>',
   board:'<rect x="3" y="3" width="5" height="18" rx="1"/><rect x="10" y="3" width="5" height="12" rx="1"/><rect x="17" y="3" width="4" height="8" rx="1"/>',
   list:'<path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/>',
@@ -1727,12 +1776,13 @@ const ico = (n, cls = '') => `<svg class="ic ${cls}" viewBox="0 0 24 24" aria-hi
 // Ícono de cada pestaña
 const TAB_ICO = { trabajo:'home', tablero:'board', todas:'list', refi:'refresh', desembolsos:'bank', posteo:'receipt', verificar:'pin', verificadas:'checksq',
   historial:'clock', stats:'bars', alertas:'alert', prospectos:'inbox', solicitudes:'file', revisadas:'checksq', proceso:'loader', analisis:'search',
-  referidos:'users', pagos:'cash', vercomo:'eye', usuarios:'user', params:'sliders', tutoriales:'play' };
+  referidos:'users', gestor:'briefcase', pagos:'cash', vercomo:'eye', usuarios:'user', params:'sliders', tutoriales:'play' };
 // Accesos principales por rol (el resto queda en "Más")
 const NAV_PRIN = { asesor:['trabajo','tablero','todas','refi'], analista:['trabajo','tablero','desembolsos','refi'],
-  verificador:['trabajo','verificar','verificadas','historial'], admin:['trabajo','tablero','posteo','todas'] };
+  verificador:['trabajo','verificar','verificadas','historial'], admin:['trabajo','tablero','posteo','todas'],
+  gerente:['trabajo','tablero','desembolsos','referidos'], gestor:['gestor'] };
 const NAV_TXT = { todas:'Todas las solicitudes', verificar:'Por verificar', verificadas:'Mis verificaciones' };
-const NAV_CORTO = { todas:'Todas', verificar:'Por verificar', verificadas:'Hechas', trabajo:'Mi trabajo', desembolsos:'Desembolsos' };
+const NAV_CORTO = { gestor:'Mi cartera', todas:'Todas', verificar:'Por verificar', verificadas:'Hechas', trabajo:'Mi trabajo', desembolsos:'Desembolsos' };
 
 // ---------- Comentarios no leídos ----------
 const COM_DESDE = '2026-11-21T20:00:00Z';   // lo anterior al rediseño se toma como leído
@@ -1793,23 +1843,29 @@ function navBadge(k, f){
   else if (f && !['todas','verificadas'].includes(k)) n = S.sols.filter(f).filter(s => k !== 'desembolsos' || s.estado === 'desembolso_pendiente').filter(s => k !== 'proceso' || s.estado !== 'desembolsada').length;
   return n ? `<span class="nb">${n}</span>` : '';
 }
+const navMin = () => { try { return localStorage.getItem('vc_nav_min') === '1'; } catch(e){ return false; } };
 function pintarNav(){
-  const tabs = tabsRol(), prin = (NAV_PRIN[rol()] || []).filter(k => tabs.some(t => t[0] === k));
+  const tabs = tabsRol(), prin = ((rol() === 'analista' && esGerente() ? NAV_PRIN.gerente : NAV_PRIN[rol()]) || []).filter(k => tabs.some(t => t[0] === k));
   const resto = tabs.filter(t => !prin.includes(t[0]));
-  const item = ([k, t, f], cls = 'nv') => `<button class="${cls}${S.tab === k ? ' on' : ''}" data-nk="${k}">${ico(TAB_ICO[k] || 'file')}<span>${esc((cls === 'bn' ? NAV_CORTO[k] : null) || NAV_TXT[k] || t)}</span>${navBadge(k, f)}</button>`;
+  const item = ([k, t, f], cls = 'nv') => `<button class="${cls}${S.tab === k ? ' on' : ''}" data-nk="${k}" title="${esc(NAV_TXT[k] || t)}">${ico(TAB_ICO[k] || 'file')}<span>${esc((cls === 'bn' ? NAV_CORTO[k] : null) || NAV_TXT[k] || t)}</span>${navBadge(k, f)}</button>`;
   const yo = S.me ? nombre(S.me.id) : '';
   const beta = /beta|rediseno|localhost|^file/.test(location.hostname + location.protocol);
-  $('#sideNav').innerHTML = `<div class="sn-logo"><div class="m">${ico('check')}</div><div><b>VerifyCredit</b><small>Análisis de créditos</small></div></div>${beta ? '<div><span class="beta-tag">VERSIÓN DE PRUEBA</span></div>' : ''}
-    ${es('asesor') ? `<button class="sn-new" data-nueva>${ico('plus')}Nueva solicitud</button>` : ''}
+  const min = navMin();
+  document.body.classList.toggle('nav-min', min);
+  $('#sideNav').innerHTML = `<div class="sn-logo"><img src="icon-192.png" alt="VerifyCredit"><div class="sn-tx"><b>Verify<span>Credit</span></b><small>Análisis de créditos</small></div>
+      <button class="sn-tog" data-sntog title="${min ? 'Mostrar menú' : 'Ocultar menú'}" aria-label="${min ? 'Mostrar menú' : 'Ocultar menú'}">${ico(min ? 'chevR' : 'chevL')}</button></div>
+    ${beta ? '<div class="sn-beta"><span class="beta-tag">VERSIÓN DE PRUEBA</span></div>' : ''}
+    ${puedeCrear() ? `<button class="sn-new" data-nueva title="Nueva solicitud">${ico('plus')}<span>Nueva solicitud</span></button>` : ''}
     ${prin.map(k => item(tabs.find(t => t[0] === k))).join('')}
-    ${resto.length ? `<div class="sn-grp">Más</div>${resto.map(t => item(t)).join('')}` : ''}
-    <div class="sn-me"><div class="sn-who"><div class="av" style="background:${avColor(S.me?.id || '')}">${esc(iniciales(yo))}</div><div class="t"><b>${esc(yo)}</b><small>${esc(ROL[rol()] || '')}</small></div></div>
+    ${resto.length ? `<div class="sn-grp"><span>Más</span></div>${resto.map(t => item(t)).join('')}` : ''}
+    <div class="sn-me"><div class="sn-who"><div class="av" style="background:${avColor(S.me?.id || '')}">${esc(iniciales(yo))}</div><div class="t"><b>${esc(yo)}</b><small>${esc(rolTxt())}</small></div></div>
       <div class="sn-ibs"><button class="sn-ib" data-hb="btnNov" title="Novedades">${ico('star')}<span>Novedades</span></button><button class="sn-ib" data-hb="btnBell" title="Notificaciones">${ico(typeof PUSH !== 'undefined' && PUSH.on ? 'bell' : 'bellOff')}<span>Avisos</span></button><button class="sn-ib" data-hb="btnOut" title="Salir">${ico('out')}<span>Salir</span></button></div></div>`;
   $('#botNav').innerHTML = prin.map(k => item(tabs.find(t => t[0] === k), 'bn')).join('')
     + `<button class="bn${resto.some(t => t[0] === S.tab) ? ' on' : ''}" data-mas>${ico('menu')}<span>Más</span>${resto.some(t => navBadge(t[0], t[2])) ? '<span class="nb dot"></span>' : ''}</button>`;
   const ir = k => { S.tab = k; S.q = ''; pintarTabs(); pintar(); window.scrollTo(0, 0); };
   document.querySelectorAll('#sideNav [data-nk], #botNav [data-nk]').forEach(b => b.onclick = () => ir(b.dataset.nk));
   document.querySelectorAll('#sideNav [data-hb]').forEach(b => b.onclick = () => $('#' + b.dataset.hb)?.click());
+  const tg = $('#sideNav [data-sntog]'); if (tg) tg.onclick = () => { try { localStorage.setItem('vc_nav_min', navMin() ? '0' : '1'); } catch(e){} pintarNav(); };
   document.querySelectorAll('[data-nueva]').forEach(b => b.onclick = () => nuevaSolicitudDlg());
   const mas = $('#botNav [data-mas]');
   if (mas) mas.onclick = () => {
@@ -1857,7 +1913,7 @@ function trabajoDatos(){
         add(s, al ? 'rd' : refi ? 'vi' : 'bl', refi ? 'Lista para análisis · los ingresos los agrega el analista'
           : ing ? `${ing} ingreso(s) registrados · revise y envíe a análisis` : 'Agregue los ingresos y documentos, luego envíela a análisis',
           refi ? [['enviar', 'Enviar a análisis', 'send'], ['abrir', 'Abrir', 'arrow', 1]] : [['abrir', 'Continuar captura', 'arrow'], ['wa', 'WhatsApp', 'msg', 1]],
-          al ? `<span class="chip c-red">${ico('clock', 'sm')}${tAg(s)}</span>` : '');
+          (al ? `<span class="chip c-red">${ico('clock', 'sm')}${tAg(s)}</span>` : '') + (deGestor(s) ? `<span class="chip c-teal">${ico('briefcase', 'sm')}De ${esc(nombre(s.creado_por).split(' ')[0])} (gestor)</span>` : ''));
       } else if (s.estado === 'aprobada'){
         add(s, 'gr', 'Llame al cliente y complete monto, forma de entrega y visitas', [['abrir', 'Completar con el cliente', 'arrow'], ['tel', '', 'phone', 1]],
           `<span class="chip c-green">Aprobada ${L(s.monto_aprobado)}</span>`);
@@ -2156,6 +2212,276 @@ function pintarTrabajo(){
       await rpc('tomar_analisis', { p_id: id }); toast('Análisis tomado · el tiempo de análisis empieza ahora'); await cargarSolicitudes(); pintarTabs(); abrirDetalle(id); });
   });
 }
+
+// ================== Roles adicionales, carteras y gestores de cobro ==================
+ROL.gestor = 'Gestor de cobro';
+const esGerente = (u = S.me) => (u?.roles_extra || []).includes('gerente');
+const rolTxt = (u = S.me) => (ROL[u?.rol] || u?.rol || '') + (esGerente(u) ? ' · Gerente' : '');
+const esGestor = () => rol() === 'gestor';
+const puedeCrear = () => es('asesor') || esGestor();
+const CARTERAS_DEF = [{ id:1, nombre:'Cartera' }, { id:2, nombre:'Gestión Telefónica' }, { id:3, nombre:'Gestión Presencial' }, { id:4, nombre:'Gestión Telefónica #2' }];
+const carterasLista = () => (S.carteras && S.carteras.length ? S.carteras : CARTERAS_DEF).filter(c => c.activa !== false);
+const carteraNombre = id => (S.carteras || CARTERAS_DEF).find(c => c.id === +id)?.nombre || null;
+const carteraNuevas = () => +(S.params?.cartera_nuevas ?? 1) || 1;
+async function cargarCarteras(){
+  try { if (!navigator.onLine) throw 0; const { data, error } = await sb.from('carteras').select('*').order('orden'); if (error) throw error;
+    S.carteras = data || []; localStorage.setItem('vc_carteras', JSON.stringify(S.carteras));
+  } catch(e){ try { S.carteras = JSON.parse(localStorage.getItem('vc_carteras') || 'null') || CARTERAS_DEF; } catch(x){ S.carteras = CARTERAS_DEF; } }
+}
+const carteraChip = s => s.cartera_id ? `<span class="chip c-gray">${ico('briefcase', 'sm')}${esc(carteraNombre(s.cartera_id) || '')}</span>` : '';
+const deGestor = s => s.creado_por && s.creado_por !== s.asesor_id && S.perfiles?.[s.creado_por]?.rol === 'gestor';
+function cambiarCartera(s, despues){
+  const w = dialogo(`<h3 style="margin-top:0">Cartera de ${esc(s.nombre_cliente)}</h3>
+    <div class="cart-op">${carterasLista().map(c => `<button type="button" class="cart-b${c.id === s.cartera_id ? ' on' : ''}" data-c="${c.id}">${ico('briefcase', 'sm')}${esc(c.nombre)}</button>`).join('')}</div>
+    <div class="btns"><button class="btn ghost" data-close>Cancelar</button><button class="btn pri" id="ccOk">Guardar</button></div>`);
+  let sel = s.cartera_id;
+  w.querySelectorAll('[data-c]').forEach(b => b.onclick = () => { sel = +b.dataset.c; w.querySelectorAll('[data-c]').forEach(x => x.classList.toggle('on', x === b)); });
+  w.querySelector('#ccOk').onclick = e => run(e.target, async () => {
+    if (!sel) throw new Error('Seleccione la cartera');
+    await rpc('asignar_cartera', { p_id: s.id, p_cartera: sel }); s.cartera_id = sel;
+    await cerrarDialogo(w); toast('Cartera actualizada'); despues && despues();
+  });
+}
+
+// ---------- Nueva solicitud: primero la identidad ----------
+// Busca al cliente por identidad (en la base; sin señal, en lo guardado en el teléfono) y llena lo que ya se sabe
+async function buscarClienteDNI(dni){
+  try { if (!navigator.onLine) throw 0; return await rpc('buscar_cliente', { p_dni: dni }); }
+  catch(e){
+    if (esGestor()) return null;
+    const d = String(dni).replace(/\D/g, ''), ls = S.sols.filter(s => String(s.dni || '').replace(/\D/g, '') === d).sort((a, b) => b.creado_en.localeCompare(a.creado_en));
+    if (!ls.length) return { encontrado:false };
+    const u = ls[0], a = ls.find(s => !CERRADAS.includes(s.estado) && !s.importado), des = ls.find(s => s.estado === 'desembolsada');
+    return { encontrado:true, n:ls.length, nombre:u.nombre_cliente, telefono:ls.find(s => s.telefono)?.telefono || null, fecha_ingreso:ls.find(s => s.fecha_ingreso)?.fecha_ingreso || null,
+      ultima:{ id:u.id, codigo:u.codigo, tipo:u.tipo, estado:u.estado, fecha:u.creado_en, desembolsada:des?.desembolsado_en || null },
+      abierta:a ? { id:a.id, codigo:a.codigo, tipo:a.tipo, estado:a.estado } : null,
+      tiene_domicilio:ls.some(s => s.dom_sector || s.dom_lat), tiene_trabajo:ls.some(s => s.trab_sector || s.trab_lat),
+      cartera_sugerida:ls.find(s => s.tipo !== 'nuevo' && s.cartera_id)?.cartera_id || null, local:true };
+  }
+}
+function nuevaSolicitudDlg(pre = {}){
+  const gestor = esGestor();
+  const tipos = gestor ? [['refinanciamiento', TIPO.refinanciamiento], ['reingreso', TIPO.reingreso]] : Object.entries(TIPO);
+  const misCart = gestor ? carterasLista().filter(c => (G.mias || []).includes(c.id)) : carterasLista();
+  const w = dialogo(`
+    <h3>Nueva solicitud${pre.lead ? ' · prospecto del bot' : ''}</h3>
+    <label class="f">Número de identidad del cliente</label>
+    <div class="ns-dni"><input id="nDni" inputmode="numeric" maxlength="15" placeholder="0501-1990-12345" autocomplete="off"><button type="button" class="btn" id="nBuscar">${ico('search', 'sm')}Buscar</button></div>
+    <div class="small muted" id="nDniHelp">Escriba la identidad: si el cliente ya tuvo solicitudes, sus datos se llenan solos.</div>
+    <div id="nEnc"></div>
+    <div id="nResto" class="hidden">
+      <label class="f">Tipo</label>
+      <div class="seg" id="nTipo">${tipos.map(([k, t], i) => `<button type="button" data-v="${k}" class="${i ? '' : 'on'}">${t}</button>`).join('')}</div>
+      <div id="nCartF"><label class="f">Cartera</label>
+        <div class="cart-op" id="nCart">${misCart.map(c => `<button type="button" class="cart-b" data-c="${c.id}">${ico('briefcase', 'sm')}${esc(c.nombre)}</button>`).join('')}</div>
+        <div class="small muted" id="nCartHelp"></div></div>
+      <div id="nCartNueva" class="small muted" style="margin-top:8px"></div>
+      <label class="f">Nombre completo del cliente</label><input id="nNombre" autocomplete="off">
+      ${rol() === 'admin' ? `<label class="f">Asesor responsable</label><select id="nAsesor">${Object.values(S.perfiles).filter(p => p.activo && ['asesor','admin'].includes(p.rol)).map(p => `<option value="${p.id}" ${p.id === S.me.id ? 'selected' : ''}>${esc(p.nombre)}${p.rol === 'admin' ? ' (admin)' : ''}</option>`).join('')}</select>` : ''}
+      <label class="f">Teléfono${gestor ? '' : ' (opcional)'}</label><input id="nTel" inputmode="tel" autocomplete="off">
+      <div id="nIngF" class="hidden"><label class="f">Fecha de ingreso del cliente (antigüedad)</label><input id="nIng" type="date" max="${hoyHN()}"></div>
+      ${gestor ? '' : `<div id="nOrigen">${origenCampos()}</div>`}
+      ${gestor ? `<label class="f">Nota para el asesor (opcional)</label><textarea id="nNota" rows="2" placeholder="Ej. el cliente pide L 15,000, prefiere que lo llamen en la tarde"></textarea>` : ''}
+      <div id="nHelp" class="alert info small"></div>
+      <div id="nCoin"></div>
+    </div>
+    <div class="btns"><button class="btn ghost" data-close>Cancelar</button><button class="btn pri" id="nOk" disabled>Crear</button></div>`);
+  const q = s => w.querySelector(s);
+  let tipo = tipos[0][0], cart = null, enc = null, buscado = '';
+  const pintarTipo = () => {
+    const nuevo = tipo === 'nuevo';
+    w.querySelectorAll('#nTipo button').forEach(x => x.classList.toggle('on', x.dataset.v === tipo));
+    q('#nIngF').classList.toggle('hidden', nuevo);
+    q('#nOrigen')?.classList.toggle('hidden', !nuevo);
+    q('#nCartF').classList.toggle('hidden', nuevo);
+    q('#nCartNueva').innerHTML = nuevo ? `${ico('briefcase', 'sm')} Cartera: <b>${esc(carteraNombre(carteraNuevas()) || '—')}</b> (predeterminada para nuevas en Parámetros)` : '';
+    q('#nHelp').textContent = gestor ? 'La solicitud le llega al asesor para que la revise y la envíe a análisis. Usted verá aquí en qué paso va.'
+      : nuevo ? 'Se crea con el nombre; luego agrega los ingresos y, cuando esté lista, la envía a análisis.'
+      : 'Se crea con el nombre y puede enviarla a análisis de una vez: en refinanciamientos y reingresos los ingresos los puede agregar el analista.';
+  };
+  const elegirCart = id => { cart = id ? +id : null; w.querySelectorAll('#nCart [data-c]').forEach(x => x.classList.toggle('on', +x.dataset.c === cart)); };
+  w.querySelectorAll('#nTipo button').forEach(b => b.onclick = () => { tipo = b.dataset.v; pintarTipo(); });
+  w.querySelectorAll('#nCart [data-c]').forEach(b => b.onclick = () => { elegirCart(b.dataset.c); q('#nCartHelp').textContent = ''; });
+  if (gestor && misCart.length === 1) elegirCart(misCart[0].id);
+  const coin = () => { if (!gestor) q('#nCoin').innerHTML = coincidencias({ id:0, nombre_cliente: q('#nNombre').value, telefono: q('#nTel').value, dni: q('#nDni').value }); };
+  q('#nNombre').oninput = coin;
+  const abrirResto = () => { if (q('#nResto').classList.contains('hidden')){ q('#nResto').classList.remove('hidden'); q('#nOk').disabled = false; pintarTipo(); } };
+  async function buscar(){
+    const d = q('#nDni').value.replace(/\D/g, '');
+    if (d.length !== 13){ q('#nEnc').innerHTML = '<div class="alert warn small">La identidad debe tener 13 dígitos.</div>'; return; }
+    if (d === buscado) return; buscado = d;
+    q('#nEnc').innerHTML = `<div class="ns-enc muted small">${ico('loader', 'sm')} Buscando…</div>`;
+    enc = await buscarClienteDNI(d);
+    if (!enc){ q('#nEnc').innerHTML = '<div class="alert warn small">No se pudo buscar (sin señal). Llene los datos del cliente.</div>'; abrirResto(); return; }
+    abrirResto();
+    if (!enc.encontrado){
+      q('#nEnc').innerHTML = `<div class="ns-enc no">${ico('user', 'sm')}<div><b>Cliente sin solicitudes anteriores</b><div class="small muted">Ingrese los datos del cliente.</div></div></div>`;
+      if (!gestor && !pre.tipo){ tipo = 'nuevo'; pintarTipo(); }
+      q('#nNombre').focus(); coin(); return;
+    }
+    const u = enc.ultima || {}, ab = enc.abierta;
+    const llenos = [];
+    if (enc.nombre && !q('#nNombre').value.trim()){ q('#nNombre').value = enc.nombre; llenos.push('nombre'); }
+    if (enc.telefono && !q('#nTel').value.trim()){ q('#nTel').value = enc.telefono; llenos.push('teléfono'); }
+    if (enc.fecha_ingreso && !q('#nIng').value){ q('#nIng').value = enc.fecha_ingreso; llenos.push('antigüedad'); }
+    const copia = [enc.tiene_domicilio ? 'domicilio' : '', enc.tiene_trabajo ? 'trabajo' : ''].filter(Boolean);
+    // Tipo sugerido: con préstamo en la última lista, refinanciamiento; si ya se le desembolsó antes, reingreso
+    if (!pre.tipo){ const sug = enc.cartera_sugerida && u.desembolsada ? 'refinanciamiento' : u.desembolsada ? 'reingreso' : (gestor ? 'refinanciamiento' : null);
+      if (sug && tipos.some(t => t[0] === sug)){ tipo = sug; pintarTipo(); } }
+    if (enc.cartera_sugerida && (!gestor || (G.mias || []).includes(+enc.cartera_sugerida))){ elegirCart(enc.cartera_sugerida); q('#nCartHelp').textContent = 'Sugerida según la última lista de préstamos. Cámbiela si corresponde.'; }
+    q('#nEnc').innerHTML = `<div class="ns-enc si">${ico('checksq', 'sm')}<div><b>Cliente encontrado</b> · ${enc.n} solicitud${enc.n > 1 ? 'es' : ''} anterior${enc.n > 1 ? 'es' : ''}
+        <div class="small">Última: ${esc(u.codigo || '')} · ${esc(TIPO[u.tipo] || u.tipo || '')} · ${esc(EST[u.estado]?.t || u.estado || '')} · ${fDate(u.fecha)}${u.desembolsada ? ` · último desembolso ${fDate(u.desembolsada)}` : ''}</div>
+        <div class="small muted">${llenos.length ? 'Se llenó: ' + llenos.join(', ') + '. ' : ''}${copia.length ? 'Al crear se copian ' + copia.join(' y ') + ' de la solicitud anterior.' : ''}</div></div></div>
+      ${ab ? `<div class="alert ${gestor ? 'err' : 'warn'} small" style="margin-top:8px">Este cliente ya tiene la solicitud <b>${esc(ab.codigo)}</b> en proceso (${esc(EST[ab.estado]?.t || ab.estado)}).
+        ${gestor ? 'No se puede registrar otra mientras esa siga abierta.' : ab.id ? `<a href="#" data-verab="${ab.id}">Ver esa solicitud</a>` : ''}</div>` : ''}`;
+    q('#nOk').disabled = !!(ab && gestor);
+    const va = q('[data-verab]'); if (va) va.onclick = async ev => { ev.preventDefault(); await cerrarDialogo(w); abrirDetalle(+va.dataset.verab); };
+    coin();
+  }
+  q('#nDni').oninput = () => { q('#nDni').value = RD.fmtId(q('#nDni').value); if (q('#nDni').value.replace(/\D/g, '').length === 13) buscar(); else { buscado = ''; coin(); } };
+  q('#nDni').onkeydown = e => { if (e.key === 'Enter'){ e.preventDefault(); buscar(); } };
+  q('#nBuscar').onclick = () => { buscado = ''; buscar(); };
+  q('#nDni').focus();
+  if (q('#nOrigen')) origenEnlazar(w);
+  if (pre.nombre) q('#nNombre').value = pre.nombre;
+  if (pre.tel) q('#nTel').value = pre.tel;
+  if (pre.tipo && tipos.some(t => t[0] === pre.tipo)) tipo = pre.tipo;
+  if (pre.lead && w.querySelector('#oCanal')){ const oc = w.querySelector('#oCanal'), c = String(pre.lead.canal || 'whatsapp').toLowerCase(); oc.value = [...oc.options].some(o => o.value === c) ? c : 'whatsapp'; oc.onchange?.(); }
+  if (pre.dni){ q('#nDni').value = RD.fmtId(pre.dni); buscar(); }
+  else if (pre.nombre || pre.lead){ abrirResto(); coin(); }
+  q('#nOk').onclick = e => run(e.target, async () => {
+    if (q('#nDni').value.replace(/\D/g,'').length !== 13) throw new Error('Ingrese el número de identidad (13 dígitos)');
+    if (q('#nNombre').value.trim().length < 3) throw new Error('Escriba el nombre completo del cliente');
+    if (tipo !== 'nuevo' && !cart) throw new Error('Seleccione la cartera');
+    if (gestor){
+      const r = await rpc('gestor_crear_solicitud', { p_dni: q('#nDni').value, p_nombre: q('#nNombre').value, p_tipo: tipo, p_cartera: cart,
+        p_telefono: q('#nTel').value || null, p_fecha_ingreso: q('#nIng').value || null, p_nota: q('#nNota').value || null });
+      await cerrarDialogo(w); await cargarGestor(); pintarGestor();
+      toast(`Solicitud ${r?.codigo || ''} registrada. El asesor ya la tiene.`); return;
+    }
+    const origen = tipo === 'nuevo' ? origenLeer(w, true) : null;
+    const id = await rpc('crear_solicitud', { p_dni: q('#nDni').value, p_nombre: q('#nNombre').value, p_tipo: tipo, p_telefono: q('#nTel').value || null, p_enviar: false, p_fecha_ingreso: tipo !== 'nuevo' ? (q('#nIng').value || null) : null, p_asesor: q('#nAsesor')?.value || null });
+    if (origen) await rpc('guardar_origen_cliente', { p_id:id, ...origen });
+    if (id > 0){
+      try { if (tipo !== 'nuevo') await rpc('asignar_cartera', { p_id:id, p_cartera:cart }); } catch(x){ console.error(x); toast('La solicitud se creó, pero no se pudo guardar la cartera. Cámbiela en el detalle.', true); }
+      try { if (enc?.encontrado) await rpc('copiar_datos_cliente', { p_id:id }); } catch(x){ console.error(x); }
+    }
+    if (pre.lead && id > 0){ try { await pbActualizar(pre.lead.id, { estado:'convertido', solicitud_id:id, atendido_por:S.me.id, atendido_en:new Date().toISOString() }, true); } catch(x){ console.error(x); toast('La solicitud se creó, pero el prospecto no se pudo marcar. Márquelo de nuevo al tener señal.', true); } }
+    await cerrarDialogo(w); await cargarSolicitudes(); pintarTabs(); pintar();
+    toast(tipo === 'nuevo' ? 'Solicitud creada. Agregue los ingresos.' : 'Solicitud creada. Puede enviarla a análisis; los ingresos son opcionales.');
+    abrirDetalle(id);
+  });
+}
+
+// ---------- Gestor de cobro: su cartera ----------
+const G = { carteras:[], mias:[], sols:[], f:{ v:'proceso', q:'', cart:'', mias:false }, cargado:false, err:null };
+const G_PASOS = [['borrador','Registrada'],['en_analisis','Análisis'],['aprobada','Aprobada'],['por_verificar','Verificación'],['desembolso_pendiente','Desembolso'],['desembolsada','Desembolsada']];
+const G_FIN = { denegada:'Denegada', rechazada_verificacion:'No pasó la verificación', desistida:'Desistida' };
+async function cargarGestor(){
+  try { const d = await rpc('gestor_datos', {}); G.carteras = d.carteras || []; G.mias = d.mias || []; G.sols = d.sols || []; G.cargado = true; G.err = null;
+    S.carteras = G.carteras; try { localStorage.setItem('vc_gestor_' + S.me.id, JSON.stringify(d)); } catch(e){}
+  } catch(e){
+    G.err = errMsg(e);
+    try { const d = JSON.parse(localStorage.getItem('vc_gestor_' + S.me.id) || 'null'); if (d){ G.carteras = d.carteras || []; G.mias = d.mias || []; G.sols = d.sols || []; G.cargado = true; S.carteras = G.carteras; } } catch(x){}
+  }
+}
+function gestorEstadoTxt(s){
+  if (G_FIN[s.estado]) return G_FIN[s.estado];
+  if (s.en_espera) return 'En espera';
+  return { borrador:'Con el asesor', en_analisis:s.analisis_tomado ? 'En análisis' : 'Esperando analista', aprobada:'Aprobada · completando datos con el cliente',
+    por_verificar:'En verificación', desembolso_pendiente:'Por desembolsar', desembolsada:'Desembolsada' }[s.estado] || EST[s.estado]?.t || s.estado;
+}
+function gestorPasos(s){
+  const fin = G_FIN[s.estado], i = G_PASOS.findIndex(p => p[0] === s.estado);
+  return `<div class="gp${fin ? ' fin' : ''}">${G_PASOS.map(([k, t], j) => `<div class="gp-s${!fin && j < i ? ' ok' : ''}${!fin && j === i ? (s.estado === 'desembolsada' ? ' ok' : ' on') : ''}"><i></i><span>${t}</span></div>`).join('')}</div>`;
+}
+function gestorFiltrar(){
+  const f = G.f, q = norm(f.q);
+  return G.sols.filter(s => f.v === 'todas' ? true : f.v === 'proceso' ? !CERRADAS.includes(s.estado) : f.v === 'desembolsadas' ? s.estado === 'desembolsada' : !!G_FIN[s.estado])
+    .filter(s => !f.cart || s.cartera_id === +f.cart).filter(s => !f.mias || s.es_mia)
+    .filter(s => !q || norm(`${s.nombre_cliente} ${s.codigo} ${s.dni || ''} ${s.telefono || ''}`).includes(q));
+}
+function gestorCard(s){
+  const fin = G_FIN[s.estado], tono = fin ? 'gy' : s.estado === 'desembolsada' ? 'gr' : s.en_espera ? 'am' : 'bl';
+  return `<div class="mt-c ${tono} gs-c" data-gs="${s.id}"><div class="mt-tx">
+      <div class="mt-nm">${esc(s.nombre_cliente)} ${tipoChip(s.tipo)}${s.cartera_id ? `<span class="chip c-gray">${ico('briefcase', 'sm')}${esc(carteraNombre(s.cartera_id) || '')}</span>` : ''}${s.es_mia ? '<span class="chip c-blue">Registrada por mí</span>' : ''}</div>
+      <div class="mt-meta">${esc(s.codigo || '')} · ${esc(gestorEstadoTxt(s))} · ${s.estado === 'desembolsada' && s.desembolsado_en ? 'desembolsada ' + fDate(s.desembolsado_en) : 'desde ' + hace(s.estado_desde || s.creado_en)}</div>
+      ${gestorPasos(s)}</div>
+    <div class="mt-acc">${s.telefono ? `<a class="mt-b gh ic" href="tel:${telLimpio(s.telefono)}" title="Llamar" data-stop>${ico('phone')}</a>${waUrl(s) ? `<a class="mt-b gh ic" href="${waUrl(s)}" target="_blank" rel="noopener" title="WhatsApp" data-stop>${ico('msg')}</a>` : ''}` : ''}</div></div>`;
+}
+function pintarGestor(){
+  const f = G.f, ls = gestorFiltrar(), ini = hoyHN().slice(0, 8) + '01';
+  const abiertas = G.sols.filter(s => !CERRADAS.includes(s.estado)).length;
+  const desMes = G.sols.filter(s => s.estado === 'desembolsada' && diaHN(s.desembolsado_en || s.creado_en) >= ini).length;
+  const mesMias = G.sols.filter(s => s.es_mia && diaHN(s.creado_en) >= ini).length;
+  const mias = G.carteras.filter(c => G.mias.includes(c.id));
+  const k = (t, v, cls = '') => `<div class="mt-kpi ${cls}"><span>${t}</span><b>${v}</b></div>`;
+  const vs = [['proceso','En proceso'],['desembolsadas','Desembolsadas'],['cerradas','Sin desembolso'],['todas','Todas']];
+  $('#main').innerHTML = `<div class="mt-hdr"><div><h2>Mi cartera</h2><div class="muted small">${mias.length ? esc(mias.map(c => c.nombre).join(' · ')) : 'Sin carteras asignadas: pida al administrador que le asigne una'}</div></div>
+      ${mias.length ? `<button class="mt-b mt-nueva" data-nueva>${ico('plus')}Nueva solicitud</button>` : ''}
+      <div class="mt-srch">${ico('search', 'sm')}<input id="gsQ" placeholder="Buscar cliente, código o identidad" value="${esc(f.q)}"></div></div>
+    ${G.err && !navigator.onLine ? '<div class="alert warn small">Sin señal: mostrando lo último guardado.</div>' : G.err && !G.cargado ? `<div class="alert err small">No se pudo cargar: ${esc(G.err)}</div>` : ''}
+    <div class="mt-kpis">${k('En proceso', abiertas)}${k('Desembolsadas este mes', desMes, 'g')}${k('Registradas por mí este mes', mesMias)}</div>
+    <div class="gs-f"><div class="seg">${vs.map(([v, t]) => `<button data-gv="${v}" class="${f.v === v ? 'on' : ''}">${t}</button>`).join('')}</div>
+      ${mias.length > 1 ? `<select id="gsCart"><option value="">Todas mis carteras</option>${mias.map(c => `<option value="${c.id}" ${+f.cart === c.id ? 'selected' : ''}>${esc(c.nombre)}</option>`).join('')}</select>` : ''}
+      <label class="chk"><input type="checkbox" id="gsMias" ${f.mias ? 'checked' : ''}> Solo las que registré</label></div>
+    <div class="mt-sec">${{ proceso:'En proceso', desembolsadas:'Desembolsadas', cerradas:'Cerradas sin desembolso', todas:'Todas' }[f.v]} <small>${ls.length} solicitud(es)</small></div>
+    <div id="gsL">${ls.length ? ls.map(gestorCard).join('') : `<div class="empty">${f.q ? 'No hay resultados para la búsqueda.' : f.v === 'proceso' ? 'No hay solicitudes de su cartera en proceso.' : 'No hay solicitudes en esta vista.'}</div>`}</div>
+    <p class="small muted" style="margin-top:14px">Se muestran las solicitudes de sus carteras de los últimos 120 días y todas las que siguen en proceso, las haya registrado usted o no.</p>`;
+  const m = $('#main');
+  m.querySelectorAll('[data-nueva]').forEach(b => b.onclick = () => nuevaSolicitudDlg());
+  m.querySelectorAll('[data-gv]').forEach(b => b.onclick = () => { f.v = b.dataset.gv; pintarGestor(); });
+  if ($('#gsCart')) $('#gsCart').onchange = e => { f.cart = e.target.value; pintarGestor(); };
+  $('#gsMias').onchange = e => { f.mias = e.target.checked; pintarGestor(); };
+  $('#gsQ').oninput = e => { f.q = e.target.value; const l = gestorFiltrar(); $('#gsL').innerHTML = l.length ? l.map(gestorCard).join('') : '<div class="empty">No hay resultados para la búsqueda.</div>'; enlazarGs(); };
+  enlazarGs();
+}
+function enlazarGs(){
+  document.querySelectorAll('[data-stop]').forEach(a => a.onclick = e => e.stopPropagation());
+  document.querySelectorAll('[data-gs]').forEach(c => c.onclick = () => gestorDetalle(+c.dataset.gs));
+}
+function gestorDetalle(id){
+  const s = G.sols.find(x => x.id === id); if (!s) return;
+  dialogo(`<div class="row" style="gap:6px;flex-wrap:wrap">${tipoChip(s.tipo)}${G_FIN[s.estado] ? `<span class="chip c-red">${esc(G_FIN[s.estado])}</span>` : chip(s.estado)}<span class="spacer"></span><span class="small muted">${esc(s.codigo || '')}</span></div>
+    <h3 style="margin:8px 0 2px">${esc(s.nombre_cliente)}</h3>
+    <div class="small muted">${esc(gestorEstadoTxt(s))} · desde ${hace(s.estado_desde || s.creado_en)}</div>
+    ${gestorPasos(s)}
+    <dl class="kv" style="margin-top:12px">
+      <dt>Cartera</dt><dd>${esc(carteraNombre(s.cartera_id) || 'Sin cartera')}</dd>
+      ${s.dni ? `<dt>Identidad</dt><dd>${esc(s.dni)}</dd>` : ''}
+      ${s.telefono ? `<dt>Teléfono</dt><dd><a href="tel:${telLimpio(s.telefono)}">${esc(s.telefono)}</a>${waUrl(s) ? ` · <a href="${waUrl(s)}" target="_blank" rel="noopener">WhatsApp</a>` : ''}</dd>` : ''}
+      <dt>Registrada</dt><dd>${fDT(s.creado_en)}${s.registro ? ' · por ' + esc(s.registro) : ''}</dd>
+      ${s.asesor ? `<dt>Asesor</dt><dd>${esc(s.asesor)}</dd>` : ''}
+      ${s.desembolsado_en ? `<dt>Desembolsada</dt><dd>${fDT(s.desembolsado_en)}</dd>` : ''}
+    </dl>
+    <div class="small muted" style="margin-top:10px">El detalle del análisis lo ven solo el asesor y el analista.</div>
+    <div class="btns"><button class="btn pri" data-close>Cerrar</button></div>`);
+}
+async function initGestor(){
+  S.perfiles = { [S.me.id]: S.me }; S.params = S.params || {}; S.sols = []; S.tab = 'gestor';
+  $('#btnAviso').classList.add('hidden');
+  pintarTabs(); $('#main').innerHTML = '<div class="empty">Cargando su cartera…</div>';
+  await cargarGestor(); pintar();
+  indicadorRed(); vigilarVersion(); mostrarInstalar();
+  const refrescarG = async () => { if (document.hidden || !navigator.onLine || (S.dlgs || []).length) return; await cargarGestor(); if (S.tab === 'gestor') pintarGestor(); };
+  setInterval(refrescarG, 60000);
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) refrescarG(); });
+}
+
+// ---------- Usuarios: rol de gestor (carteras) y rol adicional de gerente ----------
+function usrRolExtraHTML(u, pfx){
+  const rolSel = u?.rol || 'asesor';
+  return `<div id="${pfx}Cart" class="${rolSel === 'gestor' ? '' : 'hidden'}"><label class="f">Carteras que gestiona</label>
+      <div class="cart-op">${carterasLista().map(c => `<label class="chk cart-chk"><input type="checkbox" data-uc="${c.id}" ${(u?.carteras || []).includes(c.id) ? 'checked' : ''}> ${esc(c.nombre)}</label>`).join('')}</div>
+      <div class="small muted">Verá solo las solicitudes de estas carteras y podrá registrar refinanciamientos y reingresos. No ve el análisis.</div></div>
+    <label class="chk ${['analista','asesor','admin'].includes(rolSel) ? '' : 'hidden'}" id="${pfx}GerL" style="margin-top:10px"><input type="checkbox" id="${pfx}Ger" ${esGerente(u) ? 'checked' : ''}> También es gerente</label>`;
+}
+function usrRolExtraEnlazar(w, pfx, selId){
+  const sel = w.querySelector('#' + selId), upd = () => { w.querySelector('#' + pfx + 'Cart').classList.toggle('hidden', sel.value !== 'gestor');
+    w.querySelector('#' + pfx + 'GerL').classList.toggle('hidden', !['analista','asesor','admin'].includes(sel.value)); };
+  sel.addEventListener('change', upd); upd();
+}
+const usrCarteras = (w, pfx) => [...w.querySelectorAll(`#${pfx}Cart [data-uc]`)].filter(x => x.checked).map(x => +x.dataset.uc);
 
 // ================== Posteo en sistema general (desembolsadas) ==================
 // Después de desembolsar: registrar el préstamo en el sistema general, en refi/reingreso pagar intereses y capital
@@ -2762,7 +3088,7 @@ function pintarSuave(){
   if ((S.dlgs || []).some(w => w.isConnected)) return;
   if (document.body.classList.contains('arrastrando-kc')) return;   // no repintar mientras se arrastra una tarjeta
   const a = document.activeElement; if (a && /^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName) && a.id !== 'q') return;
-  if (['stats','pagos','params','usuarios','refi','referidos','vercomo'].includes(S.tab)) return;   // pantallas pesadas: se actualizan al entrar
+  if (['stats','pagos','params','usuarios','refi','referidos','vercomo','gestor'].includes(S.tab)) return;   // pantallas pesadas: se actualizan al entrar
   const y = window.scrollY, M = $('#main'), sc = [...M.querySelectorAll('*')].map((e, i) => [i, e.scrollLeft, e.scrollTop]).filter(x => x[1] || x[2]);
   const h0 = M.offsetHeight; M.style.minHeight = h0 + 'px';
   const fin = () => { const els = M.querySelectorAll('*'); sc.forEach(([i, l, t]) => { const e = els[i]; if (e){ e.scrollLeft = l; e.scrollTop = t; } }); window.scrollTo(0, y); M.style.minHeight = ''; };
@@ -2774,6 +3100,7 @@ function pintar(){
   const tab = tabsRol().find(t => t[0] === S.tab);
   $('#main').classList.toggle('wide', ['tablero','historial','referidos'].includes(S.tab));
   $('#main').classList.toggle('board-wide', S.tab === 'tablero');
+  if (S.tab === 'gestor') return pintarGestor();
   if (S.tab === 'trabajo') return pintarTrabajo();
   if (S.tab === 'tablero') return pintarTablero();
   if (S.tab === 'historial') return pintarHistorial();
@@ -3116,53 +3443,6 @@ const referidor = s => s.origen_canal === 'referido_empleado'
 const origenTxt = s => !s.origen_canal ? null : CANAL[s.origen_canal] + (esReferido(s.origen_canal) ? ': ' + referidor(s) : s.referido_nombre ? ': ' + s.referido_nombre : '') + (s.origen_asumido ? ' (asumido)' : '');
 $('#fab').onclick = () => nuevaSolicitudDlg();
 // pre = datos para llenar el formulario (p. ej. desde un prospecto del bot): { nombre, dni, tel, tipo, lead }
-function nuevaSolicitudDlg(pre = {}){
-  const w = dialogo(`
-    <h3>Nueva solicitud${pre.lead ? ' · prospecto del bot' : ''}</h3>
-    <label class="f">Tipo</label>
-    <div class="seg" id="nTipo">${Object.entries(TIPO).map(([k,t],i) => `<button type="button" data-v="${k}" class="${i?'':'on'}">${t}</button>`).join('')}</div>
-    <label class="f">Nombre completo del cliente</label><input id="nNombre" autocomplete="off">
-    <label class="f">Número de identidad</label><input id="nDni" inputmode="numeric" maxlength="15" placeholder="0501-1990-12345" autocomplete="off">
-    ${rol() === 'admin' ? `<label class="f">Asesor responsable</label><select id="nAsesor">${Object.values(S.perfiles).filter(p => p.activo && ['asesor','admin'].includes(p.rol)).map(p => `<option value="${p.id}" ${p.id === S.me.id ? 'selected' : ''}>${esc(p.nombre)}${p.rol === 'admin' ? ' (admin)' : ''}</option>`).join('')}</select>` : ''}
-    <label class="f">Teléfono (opcional)</label><input id="nTel" inputmode="tel" autocomplete="off">
-    <div id="nIngF" class="hidden"><label class="f">Fecha de ingreso del cliente (antigüedad)</label><input id="nIng" type="date" max="${hoyHN()}"></div>
-    <div id="nOrigen">${origenCampos()}</div>
-    <div id="nHelp" class="alert info small">Se crea con el nombre; luego agrega los ingresos y la envía a análisis.</div>
-    <div id="nCoin"></div>
-    <div class="btns"><button class="btn ghost" data-close>Cancelar</button><button class="btn pri" id="nOk">Crear</button></div>`);
-  let tipo = 'nuevo';
-  w.querySelectorAll('#nTipo button').forEach(b => b.onclick = () => {
-    tipo = b.dataset.v; w.querySelectorAll('#nTipo button').forEach(x => x.classList.toggle('on', x === b));
-    const nuevo = tipo === 'nuevo';
-    $('#nOk').textContent = 'Crear';
-    $('#nIngF').classList.toggle('hidden', nuevo);
-    $('#nOrigen').classList.toggle('hidden', !nuevo);
-    $('#nHelp').textContent = nuevo ? 'Se crea con el nombre; luego agrega los ingresos y, cuando esté lista, la envía a análisis.'
-      : 'Se crea con el nombre y puede enviarla a análisis de una vez: en refinanciamientos y reingresos los ingresos los puede agregar el analista.';
-  });
-  const coin = () => { $('#nCoin').innerHTML = coincidencias({ id:0, nombre_cliente: $('#nNombre').value, telefono: $('#nTel').value, dni: $('#nDni').value }); };
-  $('#nNombre').oninput = coin;
-  $('#nDni').oninput = () => { $('#nDni').value = RD.fmtId($('#nDni').value); coin(); };
-  $('#nNombre').focus();
-  origenEnlazar(w);
-  if (pre.nombre) $('#nNombre').value = pre.nombre;
-  if (pre.dni) $('#nDni').value = RD.fmtId(pre.dni);
-  if (pre.tel) $('#nTel').value = pre.tel;
-  if (pre.tipo && pre.tipo !== 'nuevo') w.querySelector(`#nTipo button[data-v="${pre.tipo}"]`)?.click();
-  if (pre.lead && w.querySelector('#oCanal')){ const oc = w.querySelector('#oCanal'), c = String(pre.lead.canal || 'whatsapp').toLowerCase(); oc.value = [...oc.options].some(o => o.value === c) ? c : 'whatsapp'; oc.onchange?.(); }
-  if (pre.nombre || pre.dni) coin();
-  $('#nOk').onclick = e => run(e.target, async () => {
-    if ($('#nDni').value.replace(/\D/g,'').length !== 13) throw new Error('Ingrese el número de identidad (13 dígitos)');
-    const origen = tipo === 'nuevo' ? origenLeer(w, true) : null;
-    const id = await rpc('crear_solicitud', { p_dni: $('#nDni').value, p_nombre: $('#nNombre').value, p_tipo: tipo, p_telefono: $('#nTel').value || null, p_enviar: false, p_fecha_ingreso: tipo !== 'nuevo' ? ($('#nIng').value || null) : null, p_asesor: $('#nAsesor')?.value || null });
-    if (origen) await rpc('guardar_origen_cliente', { p_id:id, ...origen });
-    // Si venía de un prospecto del bot, queda ligado a la solicitud (solo con señal: necesita el número real)
-    if (pre.lead && id > 0){ try { await pbActualizar(pre.lead.id, { estado:'convertido', solicitud_id:id, atendido_por:S.me.id, atendido_en:new Date().toISOString() }, true); } catch(e){ console.error(e); toast('La solicitud se creó, pero el prospecto no se pudo marcar. Márquelo de nuevo al tener señal.', true); } }
-    await cerrarDialogo(w); await cargarSolicitudes(); pintarTabs(); pintar();
-    toast(tipo === 'nuevo' ? 'Solicitud creada. Agregue los ingresos.' : 'Solicitud creada. Puede enviarla a análisis; los ingresos son opcionales.');
-    abrirDetalle(id);
-  });
-}
 function dialogo(html){
   const w = document.createElement('div'); w.className = 'dlg-wrap';
   w.innerHTML = `<div class="dlg">${html}</div>`;
@@ -3395,6 +3675,8 @@ function renderDetalle(){
       <dt>Asesor</dt><dd>${rol() === 'admin' && !CERRADAS.includes(s.estado) ? `<select id="dAsesor" style="padding:4px 8px">${Object.values(S.perfiles).filter(p => p.activo && ['asesor','admin'].includes(p.rol)).map(p => `<option value="${p.id}" ${p.id === s.asesor_id ? 'selected' : ''}>${esc(p.nombre)}</option>`).join('')}</select>` : esc(nombre(s.asesor_id))}</dd>
       ${s.telefono ? `<dt>Teléfono</dt><dd><a href="tel:${esc(s.telefono)}">${esc(s.telefono)}</a> · <a href="https://wa.me/504${esc(s.telefono.replace(/\D/g,'').slice(-8))}" target="_blank">WhatsApp</a>${s.estado === 'por_verificar' ? ' · <a href="#" id="dWaPl">💬 Plantillas</a>' : ''}</dd>` : ''}
       ${s.dni ? `<dt>DNI</dt><dd>${esc(s.dni)}</dd>` : ''}
+      <dt>Cartera</dt><dd>${s.cartera_id ? esc(carteraNombre(s.cartera_id) || '') : '<span class="muted">Sin cartera</span>'}${es('asesor', 'analista') && s.id > 0 ? ' · <a href="#" id="dCartera">' + (s.cartera_id ? 'Cambiar' : 'Asignar') + '</a>' : ''}</dd>
+      ${deGestor(s) ? `<dt>Registrada por</dt><dd>${esc(nombre(s.creado_por))} <span class="small muted">(gestor de cobro)</span></dd>` : ''}
       ${s.tipo === 'nuevo' ? `<dt>Cómo llegó</dt><dd>${s.origen_canal ? esc(origenTxt(s)) + (s.referido_telefono ? ` · <a href="tel:${esc(s.referido_telefono)}">${esc(s.referido_telefono)}</a>` : '') : '<span class="muted">Sin dato</span>'}${puedeOrigen(s) ? ' · <a href="#" id="dOrigen">' + (s.origen_asumido ? 'Revisar' : s.origen_canal ? 'Cambiar' : 'Agregar') + '</a>' : ''}
         ${esReferido(s.origen_canal) && s.estado === 'desembolsada' ? `<br>${s.bono_pagado_en ? `<span class="chip c-green">Bono pagado${s.bono_monto ? ' ' + L(s.bono_monto) : ''} · ${fDate(s.bono_pagado_en)}</span>` : '<span class="chip c-amber">Bono por referido pendiente</span>'}` : ''}</dd>` : ''}
       <dt>Creada</dt><dd>${fDT(s.creado_en)}</dd>
@@ -3909,6 +4191,7 @@ function enlazarDetalle(s, c){
   })();
   if ($('#dWaPl')) $('#dWaPl').onclick = ev => { ev.preventDefault(); abrirWhatsApp(s); };
   document.querySelectorAll('[data-dvwa]').forEach(a => a.onclick = ev => { ev.preventDefault(); abrirWhatsApp(s); });
+  if ($('#dCartera')) $('#dCartera').onclick = ev => { ev.preventDefault(); cambiarCartera(s, () => abrirDetalle(s.id, true)); };
   if ($('#dOrigen')) $('#dOrigen').onclick = ev => { ev.preventDefault(); abrirOrigen(s, () => abrirDetalle(s.id, true)); };
   if ($('#dAsesor')) $('#dAsesor').onchange = e => run(e.target, async () => { await rpc('reasignar_asesor', { p_id: s.id, p_asesor: e.target.value }); toast('Asesor reasignado'); await refrescar(); });
   // Asesor: enviar
@@ -6556,7 +6839,7 @@ async function pintarEmpleados(){
 function pintarUsuarios(){
   const us = Object.values(S.perfiles);
   $('#main').innerHTML = `<div class="btns" style="margin:0 0 10px"><button class="btn pri" id="uNuevo">＋ Nuevo usuario</button></div>
-    ${us.map(u => `<div class="card row">${av(u.id)}<div style="flex:1;min-width:0"><b>${esc(u.nombre)}</b> ${u.activo ? '' : '<span class="chip c-red">Inactivo</span>'}<div class="small muted">${esc(u.email||'')} · ${ROL[u.rol] || u.rol}${u.avisos === 'transferencias' ? ' · 💸 recibe las transferencias por confirmar' : ''}</div><div class="small" data-pn="${u.id}"></div></div><button class="btn sm ghost" data-u="${u.id}">Editar</button></div>`).join('')}`;
+    ${us.map(u => `<div class="card row">${av(u.id)}<div style="flex:1;min-width:0"><b>${esc(u.nombre)}</b> ${u.activo ? '' : '<span class="chip c-red">Inactivo</span>'}<div class="small muted">${esc(u.email||'')} · ${esc(rolTxt(u))}${u.rol === 'gestor' ? ' · ' + esc((u.carteras || []).map(carteraNombre).filter(Boolean).join(', ') || 'sin carteras') : ''}${u.avisos === 'transferencias' ? ' · 💸 recibe las transferencias por confirmar' : ''}</div><div class="small" data-pn="${u.id}"></div></div><button class="btn sm ghost" data-u="${u.id}">Editar</button></div>`).join('')}`;
   rpc('push_estado_usuarios').then(d => { const m = {}; (d || []).forEach(x => m[x.user_id] = x);
     document.querySelectorAll('[data-pn]').forEach(el => { const x = m[el.dataset.pn], u = S.perfiles[el.dataset.pn]; if (!u || !u.activo) return;
       el.innerHTML = x ? `<span style="color:var(--green)">🔔 Notificaciones activas · ${x.dispositivos} dispositivo${x.dispositivos > 1 ? 's' : ''} · ${fDT(x.ultimo)}</span>` : '<span style="color:var(--red);font-weight:600">🔕 Sin notificaciones: no recibe avisos</span>'; }); }).catch(() => {});
@@ -6567,14 +6850,24 @@ function pintarUsuarios(){
       <label class="f">Nombre</label><input id="uN"><label class="f">Correo</label><input id="uE" type="email">
       <label class="f">Contraseña (mín. 6)</label><input id="uP" type="text">
       <label class="f">Rol</label><select id="uR">${Object.entries(ROL).map(([k,v]) => `<option value="${k}">${v}</option>`).join('')}</select>
+      ${usrRolExtraHTML(null, 'u')}
       <label class="f">Notificaciones</label><select id="uAv"><option value="rol">Las de su rol</option><option value="transferencias">Solo transferencias por confirmar (gerente)</option></select>
       <div class="btns"><button class="btn ghost" data-close>Cancelar</button><button class="btn pri" id="uOk">Crear</button></div>`);
+    usrRolExtraEnlazar(w, 'u', 'uR');
     w.querySelector('#uOk').onclick = e => run(e.target, async () => {
-      const correo = $('#uE').value.trim().toLowerCase(), av = $('#uAv').value;
-      await fnUsuarios({ accion:'crear', nombre: $('#uN').value, email: $('#uE').value, password: $('#uP').value, rol: $('#uR').value });
+      const correo = $('#uE').value.trim().toLowerCase(), av = $('#uAv').value, rolN = $('#uR').value, carts = usrCarteras(w, 'u'), ger = $('#uGer').checked && ['analista','asesor','admin'].includes(rolN);
+      if (rolN === 'gestor' && !carts.length) throw new Error('Marque al menos una cartera para el gestor');
+      // El gestor se crea como asesor y de inmediato se cambia a gestor con sus carteras
+      await fnUsuarios({ accion:'crear', nombre: $('#uN').value, email: $('#uE').value, password: $('#uP').value, rol: rolN === 'gestor' ? 'asesor' : rolN });
       cerrarDialogo(w); await cargarPerfiles();
-      if (av !== 'rol'){ const nu = Object.values(S.perfiles).find(x => (x.email || '').toLowerCase() === correo);
-        if (nu){ await rpc('fijar_avisos', { p_id: nu.id, p_avisos: av }); await cargarPerfiles(); } else toast('Usuario creado. Abra Editar para elegir sus notificaciones.', true); }
+      const nu = Object.values(S.perfiles).find(x => (x.email || '').toLowerCase() === correo);
+      if (!nu && (av !== 'rol' || rolN === 'gestor' || ger)) toast('Usuario creado. Abra Editar para terminar de configurarlo.', true);
+      if (nu){
+        if (rolN === 'gestor') await rpc('configurar_gestor', { p_id: nu.id, p_carteras: carts });
+        if (ger) await rpc('fijar_roles_extra', { p_id: nu.id, p_roles: ['gerente'] });
+        if (av !== 'rol') await rpc('fijar_avisos', { p_id: nu.id, p_avisos: av });
+        await cargarPerfiles();
+      }
       pintarUsuarios(); toast('Usuario creado');
     });
   };
@@ -6583,12 +6876,19 @@ function pintarUsuarios(){
     const w = dialogo(`<h3>${esc(u.nombre)}</h3>
       <label class="f">Nombre</label><input id="eN" value="${esc(u.nombre)}">
       <label class="f">Rol</label><select id="eR">${Object.entries(ROL).map(([k,v]) => `<option value="${k}" ${u.rol===k?'selected':''}>${v}</option>`).join('')}</select>
+      ${usrRolExtraHTML(u, 'e')}
       <label class="f">Notificaciones</label><select id="eAv"><option value="rol"${u.avisos !== 'transferencias' ? ' selected' : ''}>Las de su rol</option><option value="transferencias"${u.avisos === 'transferencias' ? ' selected' : ''}>Solo transferencias por confirmar (gerente)</option></select>
       <label class="chk" style="margin-top:10px"><input type="checkbox" id="eA" ${u.activo?'checked':''}> Activo</label>
       <label class="f">Nueva contraseña (opcional)</label><input id="eP" type="text" placeholder="Dejar vacío para no cambiar">
       <div class="btns"><button class="btn ghost" data-close>Cancelar</button><button class="btn pri" id="eOk">Guardar</button></div>`);
+    usrRolExtraEnlazar(w, 'e', 'eR');
     w.querySelector('#eOk').onclick = e => run(e.target, async () => {
-      await rpc('actualizar_perfil', { p_id: u.id, p_nombre: $('#eN').value, p_rol: $('#eR').value, p_activo: $('#eA').checked });
+      const rolN = $('#eR').value, carts = usrCarteras(w, 'e');
+      if (rolN === 'gestor' && !carts.length) throw new Error('Marque al menos una cartera para el gestor');
+      await rpc('actualizar_perfil', { p_id: u.id, p_nombre: $('#eN').value, p_rol: rolN, p_activo: $('#eA').checked });
+      if (rolN === 'gestor') await rpc('configurar_gestor', { p_id: u.id, p_carteras: carts });
+      else { const ger = $('#eGer').checked && ['analista','asesor','admin'].includes(rolN);
+        if (ger !== esGerente(u)) await rpc('fijar_roles_extra', { p_id: u.id, p_roles: ger ? ['gerente'] : [] }); }
       if ($('#eAv').value !== (u.avisos || 'rol')) await rpc('fijar_avisos', { p_id: u.id, p_avisos: $('#eAv').value });
       if ($('#eP').value) await fnUsuarios({ accion:'password', user_id: u.id, password: $('#eP').value });
       cerrarDialogo(w); await cargarPerfiles(); pintarUsuarios(); toast('Guardado');
@@ -6723,8 +7023,19 @@ function abrirAgregarVisita(sid){
 }
 function pintarParams(){
   $('#main').innerHTML = `<div class="alert info small">Estos valores controlan el cálculo del análisis de ingresos (igual que la hoja de Excel).</div>
-    ${S.paramsRows.map(p => `<div class="card"><label class="f" style="margin-top:0">${esc(p.descripcion)}</label>
+    <h4 class="sec" style="margin-top:4px">Carteras</h4>
+    <div class="card"><label class="f" style="margin-top:0">Cartera a la que pasan las solicitudes nuevas</label>
+      <div class="row"><select id="pCartN">${carterasLista().map(c => `<option value="${c.id}" ${c.id === carteraNuevas() ? 'selected' : ''}>${esc(c.nombre)}</option>`).join('')}</select><button class="btn sm pri" id="pCartNOk">Guardar</button></div>
+      <div class="small muted">En refinanciamientos y reingresos la cartera se elige al crear la solicitud.</div>
+      <label class="f">Asesor que recibe las solicitudes que registran los gestores de cobro</label>
+      <div class="row"><select id="pAsG"><option value="">Automático (el asesor con menos pendientes)</option>${Object.values(S.perfiles).filter(p => p.activo && ['asesor','admin'].includes(p.rol)).map(p => `<option value="${p.id}">${esc(p.nombre)}</option>`).join('')}</select><button class="btn sm pri" id="pAsGOk">Guardar</button></div></div>
+    <h4 class="sec">Valores del análisis</h4>
+    ${S.paramsRows.filter(p => p.clave !== 'cartera_nuevas').map(p => `<div class="card"><label class="f" style="margin-top:0">${esc(p.descripcion)}</label>
       <div class="row"><input data-p="${esc(p.clave)}" value="${p.valor}" inputmode="decimal"><button class="btn sm pri" data-ps="${esc(p.clave)}">Guardar</button></div></div>`).join('')}`;
+  $('#pCartNOk').onclick = e => run(e.target, async () => { await rpc('actualizar_parametro', { p_clave:'cartera_nuevas', p_valor: +$('#pCartN').value }); await cargarParams(); toast('Cartera de nuevas actualizada'); });
+  sb.from('config_app').select('valor').eq('clave', 'asesor_gestores').maybeSingle().then(({ data }) => { if (data?.valor && $('#pAsG')) $('#pAsG').value = data.valor; });
+  $('#pAsGOk').onclick = e => run(e.target, async () => {
+    const { error } = await sb.from('config_app').upsert({ clave:'asesor_gestores', valor: $('#pAsG').value || null }); if (error) throw error; toast('Guardado'); });
   $('#main').insertAdjacentHTML('beforeend', `<h4 class="sec">Feriados (no cuentan como tiempo hábil)</h4>
     <div class="card"><table class="t"><tbody>${S.feriadosRows.map(f => `<tr><td>${fDate(f.fecha+'T12:00')}</td><td>${esc(f.descripcion)}</td><td style="width:30px"><button class="x" data-fd="${f.fecha}">×</button></td></tr>`).join('') || '<tr><td class="muted">Sin feriados</td></tr>'}</tbody></table>
     <div class="addrow" style="grid-template-columns:1fr 1.4fr auto"><input type="date" id="fFecha"><input id="fDesc" placeholder="Descripción"><button class="btn pri" id="fAdd">Agregar</button></div></div>
@@ -6863,6 +7174,7 @@ function pintarProspectos(){
 // ================== Tiempo real ==================
 let tRe = null, canal = null;
 function suscribir(){
+  if (esGestor()) return;
   if (canal) sb.removeChannel(canal);
   canal = sb.channel('vc')
     .on('postgres_changes', { event:'*', schema:'public', table:'solicitudes' }, p => { avisar(p); programarRecarga(p); })
