@@ -58,9 +58,11 @@ async function evento(ev: Record<string, any>) {
   const gerentes = [...soloTransf];
   const normales = (ids: string[]) => ids.filter((id) => !soloTransf.has(id));
   let sol = ev;
+  // Nombre de quien hizo el cambio (va en el aviso)
+  const actorNom = async () => { if (!ev.actor) return ''; const { data } = await sb.from('perfiles').select('nombre').eq('id', ev.actor).maybeSingle(); return (data?.nombre || '').trim(); };
   if (ev.tabla === 'meta') {   // meta diaria alcanzada: se avisa a todo el equipo
     const L = (n: number) => 'L ' + Math.round(n).toLocaleString('es-HN');
-    return enviar((perf || []).map((p) => p.id as string), { title: '🎉 ¡Meta del día alcanzada!', body: `Colocado ${L(ev.monto)} de ${L(ev.meta)}. ¡Excelente trabajo, equipo!` });
+    return enviar((perf || []).map((p) => p.id as string), { title: '¡Meta del día alcanzada!', body: `Colocado ${L(ev.monto)} de ${L(ev.meta)}. ¡Excelente trabajo, equipo!` });
   }
   if (ev.tabla === 'directo') {   // aviso armado por la base (seguimientos, alertas): va solo a las personas indicadas
     const activos = new Set((perf || []).map((p) => p.id as string));
@@ -72,37 +74,38 @@ async function evento(ev: Record<string, any>) {
     if (!data) return 0;
     const { data: au } = await sb.from('perfiles').select('nombre').eq('id', ev.autor).maybeSingle();
     return enviar(normales(sin([data.asesor_id, data.analista_id, data.verificador_id, ...admins].filter((id) => id !== ev.autor))),
-      { title: `💬 ${au?.nombre || 'Comentario'} en ${data.nombre_cliente}`, body: ev.texto || '', id: data.id });
+      { title: `${au?.nombre || 'Comentario'} comentó en ${data.nombre_cliente}`, body: ev.texto || '', id: data.id });
   }
   const cli = `${sol.cliente} · ${TIPO[sol.tipo] || sol.tipo}${sol.codigo ? ' · ' + sol.codigo : ''}`;
   if (ev.tabla === 'asignacion') {   // se asignó (o cambió) el verificador de una solicitud por verificar
     const avisos = (ev.nuevos || []) as { id: string; lugar: string }[];
-    let n = 0;
+    let n = 0; const quien = await actorNom();
     for (const a of avisos) {
       if (!a.id || a.id === ev.actor) continue;   // quien toma la visita no recibe su propio aviso
-      n += await enviar([a.id], { title: '🔎 Verificación asignada a usted', body: `${a.lugar ? a.lugar + ' · ' : ''}${cli}`, id: sol.id });
+      n += await enviar([a.id], { title: quien ? `${quien} le asignó una verificación` : 'Verificación asignada a usted', body: `${a.lugar ? a.lugar + ' · ' : ''}${cli}`, id: sol.id });
     }
     return n;
   }
-  let t = '', ids: string[] = [];
+  let t = '', ids: string[] = [], verbo = 'Por';
   switch (sol.estado) {
-    case 'en_analisis': t = sol.antes === 'borrador' || !sol.antes ? '📥 Nueva solicitud en análisis' : '📥 Solicitud en análisis'; ids = analistas; break;
-    case 'aprobada': t = '✅ Solicitud aprobada'; ids = [sol.asesor]; break;
-    case 'denegada': t = '❌ Solicitud denegada'; ids = [sol.asesor]; break;
-    case 'borrador': t = '↩️ Solicitud devuelta para corregir'; ids = [sol.asesor]; break;
+    case 'en_analisis': t = sol.antes === 'borrador' || !sol.antes ? 'Nueva solicitud en análisis' : 'Solicitud en análisis'; verbo = 'Enviada por'; ids = analistas; break;
+    case 'aprobada': t = 'Solicitud aprobada'; verbo = 'Aprobada por'; ids = [sol.asesor]; break;
+    case 'denegada': t = 'Solicitud denegada'; verbo = 'Denegada por'; ids = [sol.asesor]; break;
+    case 'borrador': t = 'Solicitud devuelta para corregir'; verbo = 'Devuelta por'; ids = [sol.asesor]; break;
     // Solo al verificador asignado (domicilio y, si es otro, trabajo). Sin asignar: no se avisa a los verificadores;
     // les llega el aviso cuando se les asigna en Por verificar (evento 'asignacion').
-    case 'por_verificar': t = '🔎 Nueva verificación asignada'; ids = [sol.verificador, sol.verificador_trabajo].filter(Boolean); break;
+    case 'por_verificar': t = 'Nueva verificación asignada'; verbo = 'Enviada por'; ids = [sol.verificador, sol.verificador_trabajo].filter(Boolean); break;
     // Transferencia por confirmar: al gerente (quien tenga avisos = 'transferencias'); si nadie está configurado, a los analistas
-    case 'desembolso_pendiente': t = '💸 Transferencia por confirmar'; ids = gerentes.length ? gerentes : analistas; break;
-    case 'desembolsada': t = '💰 Solicitud desembolsada'; ids = [sol.asesor]; break;
-    case 'rechazada_verificacion': t = '⚠️ Rechazada en verificación'; ids = [sol.asesor, ...analistas]; break;
-    case 'desistida': t = '🚫 Cliente desistió'; ids = [sol.asesor, ...analistas]; break;
+    case 'desembolso_pendiente': t = 'Transferencia por confirmar'; verbo = 'Enviada por'; ids = gerentes.length ? gerentes : analistas; break;
+    case 'desembolsada': t = 'Solicitud desembolsada'; verbo = 'Desembolsada por'; ids = [sol.asesor]; break;
+    case 'rechazada_verificacion': t = 'Rechazada en verificación'; verbo = 'Rechazada por'; ids = [sol.asesor, ...analistas]; break;
+    case 'desistida': t = 'Cliente desistió'; verbo = 'Marcada por'; ids = [sol.asesor, ...analistas]; break;
     default: t = `Solicitud: ${EST[sol.estado] || sol.estado}`;
   }
   // El administrador se entera de todos los cambios
   const dest = sin([...ids, ...admins]);
-  return enviar(sol.estado === 'desembolso_pendiente' ? dest : normales(dest), { title: t, body: cli, id: sol.id });
+  const quien = await actorNom();
+  return enviar(sol.estado === 'desembolso_pendiente' ? dest : normales(dest), { title: t, body: (quien ? `${verbo} ${quien} · ` : '') + cli, id: sol.id });
 }
 
 Deno.serve(async (req) => {
@@ -129,14 +132,14 @@ Deno.serve(async (req) => {
       const { data: act } = await sb.from('perfiles').select('id').eq('activo', true);
       const validos = new Set((act || []).map((p) => p.id as string));
       const ids = (Array.isArray(a.ids) ? a.ids : []).filter((id: string) => validos.has(id));
-      const n = await enviar(ids, { title: '📢 ' + tit, body: msg, k: String(a.k || 'm' + Date.now()).slice(0, 40), voz: typeof a.voz === 'string' ? a.voz.slice(0, 500) : undefined });
+      const n = await enviar(ids, { title: tit, body: msg, k: String(a.k || 'm' + Date.now()).slice(0, 40), voz: typeof a.voz === 'string' ? a.voz.slice(0, 500) : undefined });
       return json({ enviados: n, personas: ids.length });
     }
     if (body.prueba) {
       const jwt = (req.headers.get('Authorization') || '').replace(/^Bearer\s+/i, '');
       const { data: u, error } = await sb.auth.getUser(jwt);
       if (error || !u?.user) return json({ error: 'Sesión no válida' }, 401);
-      const n = await enviar([u.user.id], { title: '🔔 Notificaciones activadas', body: 'Así le llegarán los avisos de VerifyCredit.' });
+      const n = await enviar([u.user.id], { title: 'Notificaciones activadas', body: 'Así le llegarán los avisos de VerifyCredit.' });
       return json({ enviados: n });
     }
     return json({ error: 'Solicitud no reconocida' }, 400);

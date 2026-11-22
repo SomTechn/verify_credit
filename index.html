@@ -809,7 +809,7 @@ header.top .iconbtn svg.ic{width:18px;height:18px;vertical-align:-4px}
 // App disponible sin señal (sw.js debe estar junto a index.html). Va primero para registrarse aunque falle otra cosa.
 if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) navigator.serviceWorker.register('sw.js').catch(() => {});
 // Versión de esta copia de la app: cambia en cada entrega. La app la compara con la publicada y se actualiza sola.
-const APP_VER = '2026-11-21.1930';
+const APP_VER = '2026-11-21.2030';
 // 'admin' = cambio solo para el administrador: los demás usuarios no ven el aviso de versión nueva (se actualiza en silencio)
 // y sus NOVEDADES deben llevar r:['admin']. 'todos' = cambio que ven los usuarios.
 const APP_AVISO = 'todos';
@@ -817,6 +817,11 @@ const APP_AVISO = 'todos';
 // Al publicar cambios: subir APP_VER y agregar aquí una entrada con la misma versión.
 // r = roles que la ven (sin r = todos; el admin ve todo).
 const NOVEDADES = [
+  { v:'2026-11-21.2030', f:'21 de noviembre de 2026', items:[
+    { i:'•', t:'Gerente con permisos de asesor y analista', r:['admin','analista','asesor'],
+      d:'Quien tenga marcado "También es gerente" puede hacer lo del asesor (crear solicitudes, completarlas con el cliente) y lo del analista, y ve las pestañas de ambos.' },
+    { i:'•', t:'Avisos con el nombre de quien hizo el cambio',
+      d:'Las notificaciones ahora dicen quién movió la solicitud, por ejemplo "Aprobada por Nery Chirinos" o "Enviada por Tania Santos".' } ] },
   { v:'2026-11-21.1900', f:'21 de noviembre de 2026', items:[
     { i:'•', t:'Nueva solicitud: primero la identidad',
       d:'Al crear una solicitud se escribe primero el número de identidad. Si el cliente ya tuvo solicitudes, se llenan solos el nombre, el teléfono y la antigüedad, y al crear se copian el domicilio y el trabajo de la anterior. También avisa si el cliente ya tiene una solicitud en proceso.' },
@@ -993,7 +998,9 @@ const AVC = ['#2a78d6','#eb6834','#1baf7a','#c98500','#d55181','#6a3fb5','#0e7c6
 const avColor = id => AVC[[...String(id)].reduce((a,c) => a + c.charCodeAt(0), 0) % AVC.length];
 const av = (id, sm) => `<div class="av ${sm?'sm':''}" style="background:${avColor(id)}">${esc(iniciales(nombre(id)))}</div>`;
 const rol = () => S.me?.rol;
-const es = (...r) => r.includes(rol()) || rol() === 'admin';
+// El gerente (rol adicional) tiene además los permisos de asesor y de analista
+const gerenteAct = () => (S.me?.roles_extra || []).includes('gerente') && !['gestor','admin'].includes(rol());
+const es = (...r) => r.includes(rol()) || rol() === 'admin' || (gerenteAct() && r.some(x => x === 'asesor' || x === 'analista'));
 function edad(fn){ if(!fn) return null; const b = new Date(fn), h = new Date(); let a = h.getFullYear()-b.getFullYear();
   if (h.getMonth()<b.getMonth() || (h.getMonth()===b.getMonth() && h.getDate()<b.getDate())) a--; return a; }
 // Botón para copiar (ícono SVG); [data-cpy] lo maneja el listener global sin abrir la tarjeta o fila
@@ -1702,7 +1709,8 @@ function tabsRol(){
     verificador:['trabajo','verificar','tablero','verificadas','historial','stats'],
     gestor:['gestor'],
     admin:['trabajo','tablero','alertas','prospectos','solicitudes','revisadas','analisis','verificar','desembolsos','posteo','todas','refi','referidos','historial','stats','pagos','vercomo','usuarios','params'] };
-  return m[rol()].map(k => T[k]);
+  const lista = gerenteAct() ? [...new Set([...m[rol()], ...m.asesor, ...m.analista])] : m[rol()];
+  return lista.map(k => T[k]);
 }
 function pintarTabs(){
   const sx = $('#tabs').scrollLeft;
@@ -1900,7 +1908,7 @@ function trabajoDatos(){
   const add = (s, tono, motivo, acc, chips = '') => toca.push({ s, tono, motivo, acc, chips });
   const esp = (k, t, i) => { (esperaMap[k] = esperaMap[k] || { t, i, n:0 }).n++; };
   const tAg = s => `lleva ${hace(s.estado_desde || s.creado_en).replace(/^hace /, '')}`;
-  if (r === 'asesor' || r === 'admin'){
+  if (r === 'asesor' || r === 'admin' || gerenteAct()){
     abiertas.filter(s => s.asesor_id === yo).forEach(s => {
       const al = alertaDe(s);
       if (s.en_espera){
@@ -2131,7 +2139,7 @@ function celebracionHTML(){
     racha >= 2 ? `Racha de ${racha} días con bandeja limpia` : ''].filter(Boolean);
   const extra = hito ? ` Llevas ${racha} días seguidos dejando la bandeja limpia.` : '';
   const sug = rol() === 'verificador' ? [['verificar', 'Ver visitas sin asignar', 'pin']]
-    : rol() === 'asesor' ? [['prospectos', 'Ver prospectos', 'inbox'], ['refi', 'Refinanciamientos disponibles', 'refresh']]
+    : rol() === 'asesor' || gerenteAct() ? [['prospectos', 'Ver prospectos', 'inbox'], ['refi', 'Refinanciamientos disponibles', 'refresh']]
     : [['refi', 'Refinanciamientos disponibles', 'refresh'], ['tablero', 'Ver el tablero', 'board']];
   const fiesta = S.mtUltToca > 0;   // se acaba de limpiar en esta sesión
   return `<div class="mt-cel ${cat}${fiesta ? ' fiesta' : ''}">${fiesta ? '<div class="conf">' + Array.from({ length:18 }, (_, i) => `<i style="--i:${i}"></i>`).join('') + '</div>' : ''}
@@ -2143,7 +2151,7 @@ function celebracionHTML(){
 
 function pintarTrabajo(){
   const d = trabajoDatos(), coms = trabajoComentarios(), r = rol();
-  const titulo = r === 'analista' ? 'Mi trabajo · análisis y transferencias' : r === 'verificador' ? 'Mis visitas' : 'Mi trabajo de hoy';
+  const titulo = r === 'analista' && !gerenteAct() ? 'Mi trabajo · análisis y transferencias' : r === 'verificador' ? 'Mis visitas' : 'Mi trabajo de hoy';
   const fecha = new Date().toLocaleDateString('es-HN', { timeZone:TZ, weekday:'long', day:'numeric', month:'long' });
   $('#main').innerHTML = `<div class="mt-hdr"><div><h2>${titulo}</h2><div class="muted small">${fecha.charAt(0).toUpperCase() + fecha.slice(1)} · lo más urgente aparece primero</div></div>
       ${es('asesor') ? `<button class="mt-b mt-nueva" data-nueva>${ico('plus')}Nueva solicitud</button>` : ''}
