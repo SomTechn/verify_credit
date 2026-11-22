@@ -809,7 +809,7 @@ header.top .iconbtn svg.ic{width:18px;height:18px;vertical-align:-4px}
 // App disponible sin señal (sw.js debe estar junto a index.html). Va primero para registrarse aunque falle otra cosa.
 if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) navigator.serviceWorker.register('sw.js').catch(() => {});
 // Versión de esta copia de la app: cambia en cada entrega. La app la compara con la publicada y se actualiza sola.
-const APP_VER = '2026-11-21.1900';
+const APP_VER = '2026-11-21.1915';
 // 'admin' = cambio solo para el administrador: los demás usuarios no ven el aviso de versión nueva (se actualiza en silencio)
 // y sus NOVEDADES deben llevar r:['admin']. 'todos' = cambio que ven los usuarios.
 const APP_AVISO = 'todos';
@@ -821,7 +821,7 @@ const NOVEDADES = [
     { i:'•', t:'Nueva solicitud: primero la identidad',
       d:'Al crear una solicitud se escribe primero el número de identidad. Si el cliente ya tuvo solicitudes, se llenan solos el nombre, el teléfono y la antigüedad, y al crear se copian el domicilio y el trabajo de la anterior. También avisa si el cliente ya tiene una solicitud en proceso.' },
     { i:'•', t:'Cartera de cada solicitud',
-      d:'Cada solicitud tiene ahora su cartera (Cartera, Gestión Telefónica, Gestión Presencial o Gestión Telefónica #2). En refinanciamientos y reingresos se elige al crearla; la app sugiere la del cliente según la última lista de préstamos. Las nuevas toman la cartera predeterminada. Se ve y se cambia en el detalle.' },
+      d:'Cada solicitud tiene ahora su cartera (Gestión Telefónica, Gestión Telefónica #2 o Gestión Presencial). En refinanciamientos y reingresos se elige al crearla; la app sugiere la del cliente según la última lista de préstamos. Las nuevas toman la cartera predeterminada en Parámetros, si hay una. Se ve y se cambia en el detalle.' },
     { i:'•', t:'Gestores de cobro', r:['asesor','analista'],
       d:'Los gestores de cobro pueden registrar refinanciamientos y reingresos de su cartera. Le llegan al asesor en Mi trabajo marcadas "De (nombre) (gestor)", para revisarlas y enviarlas a análisis. El gestor solo ve en qué paso va cada solicitud, no el análisis.' },
     { i:'•', t:'Menú lateral ocultable (computadora)',
@@ -2219,10 +2219,10 @@ const esGerente = (u = S.me) => (u?.roles_extra || []).includes('gerente');
 const rolTxt = (u = S.me) => (ROL[u?.rol] || u?.rol || '') + (esGerente(u) ? ' · Gerente' : '');
 const esGestor = () => rol() === 'gestor';
 const puedeCrear = () => es('asesor') || esGestor();
-const CARTERAS_DEF = [{ id:1, nombre:'Cartera' }, { id:2, nombre:'Gestión Telefónica' }, { id:3, nombre:'Gestión Presencial' }, { id:4, nombre:'Gestión Telefónica #2' }];
+const CARTERAS_DEF = [{ id:2, nombre:'Gestión Telefónica' }, { id:3, nombre:'Gestión Presencial' }, { id:4, nombre:'Gestión Telefónica #2' }];
 const carterasLista = () => (S.carteras && S.carteras.length ? S.carteras : CARTERAS_DEF).filter(c => c.activa !== false);
 const carteraNombre = id => (S.carteras || CARTERAS_DEF).find(c => c.id === +id)?.nombre || null;
-const carteraNuevas = () => +(S.params?.cartera_nuevas ?? 1) || 1;
+const carteraNuevas = () => { const v = +(S.params?.cartera_nuevas ?? 0) || 0; return carterasLista().some(c => c.id === v) ? v : 0; };
 async function cargarCarteras(){
   try { if (!navigator.onLine) throw 0; const { data, error } = await sb.from('carteras').select('*').order('orden'); if (error) throw error;
     S.carteras = data || []; localStorage.setItem('vc_carteras', JSON.stringify(S.carteras));
@@ -2294,7 +2294,7 @@ function nuevaSolicitudDlg(pre = {}){
     q('#nIngF').classList.toggle('hidden', nuevo);
     q('#nOrigen')?.classList.toggle('hidden', !nuevo);
     q('#nCartF').classList.toggle('hidden', nuevo);
-    q('#nCartNueva').innerHTML = nuevo ? `${ico('briefcase', 'sm')} Cartera: <b>${esc(carteraNombre(carteraNuevas()) || '—')}</b> (predeterminada para nuevas en Parámetros)` : '';
+    q('#nCartNueva').innerHTML = !nuevo ? '' : carteraNuevas() ? `${ico('briefcase', 'sm')} Cartera: <b>${esc(carteraNombre(carteraNuevas()))}</b> (predeterminada para nuevas en Parámetros)` : '';
     q('#nHelp').textContent = gestor ? 'La solicitud le llega al asesor para que la revise y la envíe a análisis. Usted verá aquí en qué paso va.'
       : nuevo ? 'Se crea con el nombre; luego agrega los ingresos y, cuando esté lista, la envía a análisis.'
       : 'Se crea con el nombre y puede enviarla a análisis de una vez: en refinanciamientos y reingresos los ingresos los puede agregar el analista.';
@@ -7025,7 +7025,7 @@ function pintarParams(){
   $('#main').innerHTML = `<div class="alert info small">Estos valores controlan el cálculo del análisis de ingresos (igual que la hoja de Excel).</div>
     <h4 class="sec" style="margin-top:4px">Carteras</h4>
     <div class="card"><label class="f" style="margin-top:0">Cartera a la que pasan las solicitudes nuevas</label>
-      <div class="row"><select id="pCartN">${carterasLista().map(c => `<option value="${c.id}" ${c.id === carteraNuevas() ? 'selected' : ''}>${esc(c.nombre)}</option>`).join('')}</select><button class="btn sm pri" id="pCartNOk">Guardar</button></div>
+      <div class="row"><select id="pCartN"><option value="0" ${!carteraNuevas() ? 'selected' : ''}>Sin cartera (se asigna después)</option>${carterasLista().map(c => `<option value="${c.id}" ${c.id === carteraNuevas() ? 'selected' : ''}>${esc(c.nombre)}</option>`).join('')}</select><button class="btn sm pri" id="pCartNOk">Guardar</button></div>
       <div class="small muted">En refinanciamientos y reingresos la cartera se elige al crear la solicitud.</div>
       <label class="f">Asesor que recibe las solicitudes que registran los gestores de cobro</label>
       <div class="row"><select id="pAsG"><option value="">Automático (el asesor con menos pendientes)</option>${Object.values(S.perfiles).filter(p => p.activo && ['asesor','admin'].includes(p.rol)).map(p => `<option value="${p.id}">${esc(p.nombre)}</option>`).join('')}</select><button class="btn sm pri" id="pAsGOk">Guardar</button></div></div>
