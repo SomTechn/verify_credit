@@ -749,6 +749,28 @@ header.top .iconbtn svg.ic{width:18px;height:18px;vertical-align:-4px}
 @media (max-width:520px){ .gs-c .gp-s span{display:none} .gs-c .gp{margin-top:7px} .gp-s span{font-size:9px;letter-spacing:-.1px} .gs-f .seg{min-width:100%} }
 .dlg .kv a{color:var(--brand)}
 @media (prefers-color-scheme: dark){ .ns-enc.si{background:#12301F;border-color:#2E6B47} }
+
+/* Verificación paso a paso y recorrido */
+.vp{display:flex;gap:4px;margin:10px 0 2px}
+.vp-s{flex:1;min-width:0}.vp-s i{display:block;height:5px;border-radius:4px;background:var(--line)}
+.vp-s span{display:block;font-size:11.5px;color:var(--muted);margin-top:4px}.vp-s small{display:block;font-size:11px;color:var(--ink2);min-height:14px}
+.vp-s.ok i{background:var(--green)}.vp-s.ok span{color:var(--ink2);font-weight:600}.vp-s.on i{background:var(--brand)}.vp-s.on span{color:var(--brand);font-weight:700}
+.vp-acc{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:8px}.vp-b{display:inline-flex;gap:6px;align-items:center}
+.vp-hint{display:inline-flex;gap:6px;align-items:center;color:var(--green)}
+.vp-ck{margin-top:10px}.vp-ck.off{opacity:.65}
+.rc{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:14px;margin-bottom:16px}
+.rc-hd{display:flex;justify-content:space-between;align-items:center;gap:10px}.rc-hd b{font:800 16px Poppins,Inter,sans-serif;color:var(--ink)}
+.rc-pct{font:800 22px Poppins,Inter,sans-serif;color:var(--green)}
+.rc-l{margin-top:12px;display:flex;flex-direction:column;gap:8px}
+.rc-p{display:flex;gap:10px;align-items:center;border:1px solid var(--line);border-radius:8px;padding:10px 12px}
+.rc-p.en_camino,.rc-p.llegada{border-color:var(--brand);background:var(--brand2)}
+.rc-n{flex:none;width:26px;height:26px;border-radius:50%;background:var(--gray-bg);color:var(--ink2);display:grid;place-items:center;font:800 12px Inter,sans-serif}
+.rc-p.en_camino .rc-n,.rc-p.llegada .rc-n{background:var(--brand);color:#fff}
+.rc-tx{flex:1;min-width:0}.rc-t{display:flex;gap:6px;align-items:center;flex-wrap:wrap}.rc-t svg.ic{width:16px;height:16px;color:var(--muted)}
+.rc-h{margin-top:12px}.rc-h summary{cursor:pointer;font-size:13px;color:var(--ink2);font-weight:600}
+.rc-hh{display:flex;gap:8px;align-items:center;font-size:13px;padding:5px 0;border-bottom:1px solid var(--line);color:var(--ink2)}.rc-hh svg.ic{width:15px;height:15px;color:var(--green)}
+.mt-b.ok{background:var(--green);color:#fff}
+@media (max-width:520px){ .rc-p{flex-wrap:wrap} .rc-p .mt-acc{width:100%;justify-content:flex-end} }
 </style>
 </head>
 <body>
@@ -809,7 +831,7 @@ header.top .iconbtn svg.ic{width:18px;height:18px;vertical-align:-4px}
 // App disponible sin señal (sw.js debe estar junto a index.html). Va primero para registrarse aunque falle otra cosa.
 if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) navigator.serviceWorker.register('sw.js').catch(() => {});
 // Versión de esta copia de la app: cambia en cada entrega. La app la compara con la publicada y se actualiza sola.
-const APP_VER = '2026-11-21.1930';
+const APP_VER = '2026-11-21.2000';
 // 'admin' = cambio solo para el administrador: los demás usuarios no ven el aviso de versión nueva (se actualiza en silencio)
 // y sus NOVEDADES deben llevar r:['admin']. 'todos' = cambio que ven los usuarios.
 const APP_AVISO = 'todos';
@@ -817,6 +839,11 @@ const APP_AVISO = 'todos';
 // Al publicar cambios: subir APP_VER y agregar aquí una entrada con la misma versión.
 // r = roles que la ven (sin r = todos; el admin ve todo).
 const NOVEDADES = [
+  { v:'2026-11-21.2000', f:'21 de noviembre de 2026', items:[
+    { i:'•', t:'Verificación paso a paso', r:['verificador','asesor','analista'],
+      d:'En cada visita el verificador marca "Voy en camino" al salir y "Llegué" al llegar (con la ubicación del teléfono); después marca Verificado. Así queda la hora de cada paso, el tiempo de trayecto y el tiempo en el lugar. En Mis visitas aparece "Mi recorrido de hoy" con las paradas que le quedan, en orden, y las que ya hizo.' },
+    { i:'•', t:'Avisos con el nombre de quien hizo el cambio',
+      d:'Las notificaciones ahora dicen quién movió la solicitud, por ejemplo "Aprobada por Nery Chirinos" o "Enviada por Tania Santos".' } ] },
   { v:'2026-11-21.1900', f:'21 de noviembre de 2026', items:[
     { i:'•', t:'Nueva solicitud: primero la identidad',
       d:'Al crear una solicitud se escribe primero el número de identidad. Si el cliente ya tuvo solicitudes, se llenan solos el nombre, el teléfono y la antigüedad, y al crear se copian el domicilio y el trabajo de la anterior. También avisa si el cliente ya tiene una solicitud en proceso.' },
@@ -1035,8 +1062,8 @@ const lsSet = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } ca
 const outbox = () => lsGet(OB_KEY(), []), fallidos = () => lsGet(OBF_KEY(), []);
 // Acciones que se pueden hacer sin señal (las de administración requieren conexión)
 const COLA = new Set(['crear_solicitud','enviar_analisis','dictaminar','completar_solicitud','guardar_item','finalizar_verificacion','marcar_desembolsada','desistir',
-  'poner_en_espera','reanudar','guardar_ubicacion','asignar_verificador','actualizar_datos_refi','actualizar_datos_analisis','registrar_reconocimiento','regresar_a_revisadas','guardar_origen','guardar_origen_cliente','fijar_tasa']);
-const OB_DESC = { fijar_tasa:'Fijar tasa de interés', crear_solicitud:'Crear solicitud', enviar_analisis:'Enviar a análisis', dictaminar:'Dictamen', completar_solicitud:'Completar con el cliente',
+  'poner_en_espera','reanudar','guardar_ubicacion','asignar_verificador','actualizar_datos_refi','actualizar_datos_analisis','registrar_reconocimiento','regresar_a_revisadas','guardar_origen','guardar_origen_cliente','fijar_tasa','marcar_paso_verificacion']);
+const OB_DESC = { marcar_paso_verificacion:'Paso de la visita', fijar_tasa:'Fijar tasa de interés', crear_solicitud:'Crear solicitud', enviar_analisis:'Enviar a análisis', dictaminar:'Dictamen', completar_solicitud:'Completar con el cliente',
   guardar_item:'Verificación', finalizar_verificacion:'Cerrar verificación', marcar_desembolsada:'Marcar desembolsada', desistir:'Cerrar (desistió)',
   poner_en_espera:'Poner en espera', reanudar:'Reanudar', guardar_ubicacion:'Ubicación', asignar_verificador:'Asignar verificador',
   actualizar_datos_refi:'Datos del préstamo', actualizar_datos_analisis:'Datos de análisis', registrar_reconocimiento:'Contrato de línea de crédito',
@@ -1113,6 +1140,12 @@ function aplicarOp(op, nuevo){
       return destino; }
     case 'guardar_item': { const it = det(a.p_id).items.find(i => i.item === a.p_item);
       if (it) Object.assign(it, { completado:a.p_completado, nota:a.p_nota, lat:a.p_lat ?? it.lat, lng:a.p_lng ?? it.lng, actualizado_por:S.me.id, actualizado_en:op.ts, _pend:true }); return; }
+    case 'marcar_paso_verificacion': { const it = det(a.p_id).items.find(i => i.item === a.p_item); if (!it) return;
+      const ts = a.p_ts || op.ts;
+      if (a.p_paso === 'en_camino'){ if (!it.en_camino_en) it.en_camino_en = ts; }
+      else if (a.p_paso === 'llegada'){ if (nuevo && !it.en_camino_en) throw new Error('Primero marque "Voy en camino"'); if (!it.llegada_en) Object.assign(it, { llegada_en:ts, llegada_lat:a.p_lat ?? null, llegada_lng:a.p_lng ?? null }); }
+      else { if (nuevo && it.completado) throw new Error('Primero quite la marca de verificado'); if (it.llegada_en) Object.assign(it, { llegada_en:null, llegada_lat:null, llegada_lng:null }); else it.en_camino_en = null; }
+      it._pend = true; return; }
     case 'finalizar_verificacion': {
       if (!s) return;
       if (nuevo && a.p_resultado === 'ok'){ const f = det(s.id).items.filter(i => !i.completado && itemAplica(s, i.item)).length; if (f) throw new Error(`Faltan ${f} ítem(s) por completar`); }
@@ -2159,6 +2192,7 @@ function pintarTrabajo(){
             <div class="mt-meta">${esc(s.codigo)} · ${esc(EST[s.estado]?.t || s.estado)}</div>
             <div class="mt-why"><b>${esc(nombre(u.autor_id))}</b> ${hace(u.creado_en)}: ${esc((u.texto || '').slice(0, 140))}</div></div>
             <div class="mt-acc"><button class="mt-b" data-ma="com" data-id="${s.id}">${ico('chat')}Leer y responder</button></div></div>`; }).join('')}` : ''}
+      ${r === 'verificador' ? '<div id="mtRec"></div>' : ''}
       <div class="mt-sec">${r === 'verificador' ? 'Visitas asignadas' : 'Te toca a ti'} <small>${d.toca.length} solicitud(es)</small></div>
       ${d.toca.length ? d.toca.map(trabajoCard).join('') : coms.length ? `<div class="mt-vacio">${ico('check')}<div><b>Nada más pendiente.</b><div class="muted small">Solo le quedan los comentarios de arriba.</div></div></div>` : celebracionHTML()}
     </div><div class="mt-side">
@@ -2182,6 +2216,7 @@ function pintarTrabajo(){
   function enlazarProg(){ document.querySelectorAll('[data-semana]').forEach(b => b.onclick = () => dialogoSemana(false)); }
   enlazarProg();
   main.querySelectorAll('[data-nueva]').forEach(b => b.onclick = () => nuevaSolicitudDlg());
+  if (r === 'verificador'){ pintarRecorrido(); if (!S.visHoyAt || Date.now() - S.visHoyAt > 60000) cargarVisitasHoy().then(() => { if (S.tab === 'trabajo') pintarRecorrido(); }); }
   clearInterval(S.mtTimer);
   S.mtTimer = setInterval(() => {
     if (S.tab !== 'trabajo') return clearInterval(S.mtTimer);
@@ -2482,6 +2517,94 @@ function usrRolExtraEnlazar(w, pfx, selId){
   sel.addEventListener('change', upd); upd();
 }
 const usrCarteras = (w, pfx) => [...w.querySelectorAll(`#${pfx}Cart [data-uc]`)].filter(x => x.checked).map(x => +x.dataset.uc);
+
+// ---------- Verificación paso a paso y recorrido del verificador ----------
+ICO.flag = '<path d="M5 21V4M5 4h11l-2 4 2 4H5"/>';
+const VP_PASOS = [['en_camino', 'En camino'], ['llegada', 'Llegó'], ['verificado', 'Verificado']];
+const horaC = d => d ? new Date(d).toLocaleTimeString('es-HN', { timeZone:TZ, hour:'numeric', minute:'2-digit' }) : '';
+const durC = (a, b) => { if (!a || !b) return ''; const m = Math.max(0, Math.round((new Date(b) - new Date(a)) / 60000)); return m < 60 ? m + ' min' : Math.floor(m / 60) + ' h ' + (m % 60 ? (m % 60) + ' min' : ''); };
+const vpEstado = i => i.completado ? 'verificado' : i.llegada_en ? 'llegada' : i.en_camino_en ? 'en_camino' : 'pendiente';
+// Línea de pasos de un lugar (domicilio o trabajo)
+function vpLinea(i){
+  const t = { en_camino:i.en_camino_en, llegada:i.llegada_en, verificado:i.completado ? i.actualizado_en : null };
+  const e = vpEstado(i), ord = ['pendiente', 'en_camino', 'llegada', 'verificado'].indexOf(e);
+  return `<div class="vp">${VP_PASOS.map(([k, tx], j) => `<div class="vp-s${j < ord ? ' ok' : ''}${j === ord - 1 && e !== 'verificado' ? ' on' : ''}"><i></i><span>${tx}</span><small>${t[k] ? horaC(t[k]) : ''}</small></div>`).join('')}</div>
+    ${i.llegada_en && i.completado ? `<div class="small muted" style="margin-top:4px">Trayecto ${durC(i.en_camino_en, i.llegada_en) || '—'} · en el lugar ${durC(i.llegada_en, i.actualizado_en) || '—'}</div>` : ''}`;
+}
+// Botón del siguiente paso
+function vpBoton(s, i){
+  if (!['domicilio', 'trabajo'].includes(i.item) || i.completado) return '';
+  const e = vpEstado(i), lug = i.item === 'domicilio' ? 'al domicilio' : 'al trabajo';
+  if (e === 'pendiente') return `<button class="btn sm pri vp-b" data-vp="en_camino" data-vi="${i.item}" data-vs="${s.id}">${ico('nav', 'sm')}Voy en camino ${lug}</button>`;
+  if (e === 'en_camino') return `<button class="btn sm pri vp-b" data-vp="llegada" data-vi="${i.item}" data-vs="${s.id}">${ico('pin', 'sm')}Llegué</button><button class="btn sm ghost vp-b" data-vp="deshacer" data-vi="${i.item}" data-vs="${s.id}">Deshacer</button>`;
+  return `<span class="small vp-hint">${ico('checksq', 'sm')}Al terminar, marque <b>Verificado</b></span><button class="btn sm ghost vp-b" data-vp="deshacer" data-vi="${i.item}" data-vs="${s.id}">Deshacer llegada</button>`;
+}
+const gpsAhora = () => new Promise(r => navigator.geolocation ? navigator.geolocation.getCurrentPosition(p => r(p.coords), () => r(null), { enableHighAccuracy:true, timeout:10000, maximumAge:60000 }) : r(null));
+async function marcarPaso(btn, sid, item, paso, despues){
+  return run(btn, async () => {
+    if (paso === 'deshacer' && !confirm('¿Quitar el último paso marcado?')) return;
+    const pos = paso === 'llegada' ? await gpsAhora() : null;
+    await rpc('marcar_paso_verificacion', { p_id:sid, p_item:item, p_paso:paso, p_lat:pos ? pos.latitude : null, p_lng:pos ? pos.longitude : null, p_ts:new Date().toISOString() });
+    // Al tener señal, trae los ítems actualizados
+    if (navigator.onLine && sid > 0){ const { data } = await sb.from('verificacion_items').select('*').eq('solicitud_id', sid).order('id'); if (data && S.detCache[sid]){ S.detCache[sid].items = data; guardarCache(); } }
+    toast(paso === 'en_camino' ? 'En camino: se registró la hora' : paso === 'llegada' ? (pos ? 'Llegada registrada con ubicación' : 'Llegada registrada (sin GPS)') : 'Paso quitado');
+    despues && await despues();
+  });
+}
+
+// Paradas del verificador: lugares asignados a él en solicitudes por verificar
+function recorridoParadas(){
+  const yo = S.me?.id, ps = [];
+  S.sols.filter(s => s.estado === 'por_verificar' && !s.importado && (s.verificador_id === yo || s.verificador_trabajo_id === yo)).forEach(s => {
+    let items = (S.detCache?.[s.id]?.items || []).filter(i => itemAplica(s, i.item));
+    if (!items.length) items = ['domicilio', 'trabajo', 'entrega_efectivo'].filter(k => itemAplica(s, k)).map(k => ({ item:k, completado:false, _sin:true }));
+    items.filter(i => i.item === 'trabajo' ? (s.verificador_trabajo_id ? s.verificador_trabajo_id === yo : s.verificador_id === yo) : s.verificador_id === yo)
+      .forEach(i => ps.push({ s, i }));
+  });
+  const rank = p => ({ llegada:0, en_camino:1, pendiente:2, verificado:3 }[vpEstado(p.i)]);
+  return ps.sort((a, b) => rank(a) - rank(b) || new Date(a.s.estado_desde) - new Date(b.s.estado_desde) || (a.i.item === 'entrega_efectivo') - (b.i.item === 'entrega_efectivo'));
+}
+async function cargarVisitasHoy(){
+  try { if (!navigator.onLine) throw 0;
+    const { data, error } = await sb.from('visitas').select('id, item_id, tipo, resultado, nombre_cliente, solicitud_id, creado_en').eq('verificador_id', S.me.id).gte('creado_en', hoyIni().toISOString()).order('creado_en');
+    if (error) throw error; S.visHoy = data || []; S.visHoyAt = Date.now();
+  } catch(e){ S.visHoy = S.visHoy || []; }
+}
+function recorridoHTML(){
+  const ps = recorridoParadas(), pend = ps.filter(p => !p.i.completado), vh = S.visHoy || [];
+  const ids = new Set(vh.map(v => v.item_id).filter(Boolean)), hechasHoy = vh.length + ps.filter(p => p.i.completado && !ids.has(p.i.id) && diaHN(p.i.actualizado_en) === hoyHN()).length;
+  const total = hechasHoy + pend.length;
+  if (!total) return '';
+  const lugIco = k => k === 'domicilio' ? 'home' : k === 'trabajo' ? 'briefcase' : 'cash';
+  const lugTx = k => k === 'domicilio' ? 'Domicilio' : k === 'trabajo' ? 'Trabajo' : 'Entregar efectivo';
+  const donde = (s, k) => { const p = k === 'trabajo' ? 'trab' : 'dom'; return [s[p + '_sector'], s[p + '_ciudad']].filter(Boolean).join(', '); };
+  const nav = (s, k) => { const p = k === 'trabajo' ? 'trab' : 'dom'; return s[p + '_lat'] != null ? `<a class="mt-b gh ic" href="https://www.google.com/maps/dir/?api=1&destination=${s[p + '_lat']},${s[p + '_lng']}" target="_blank" rel="noopener" title="Cómo llegar" data-stop>${ico('nav')}</a>` : ''; };
+  const parada = ({ s, i }, n) => {
+    const e = vpEstado(i);
+    const est = i.item === 'entrega_efectivo' ? `Entregar <b>${L(montoLibre(s))}</b>` : e === 'llegada' ? `En el lugar desde ${horaC(i.llegada_en)}` : e === 'en_camino' ? `En camino desde ${horaC(i.en_camino_en)}` : 'Pendiente';
+    const acc = i._sin || i.item === 'entrega_efectivo' ? `<button class="mt-b gh" data-rab="${s.id}">${ico('arrow')}Abrir</button>`
+      : e === 'pendiente' ? `<button class="mt-b" data-vp="en_camino" data-vi="${i.item}" data-vs="${s.id}">${ico('nav')}Voy en camino</button>`
+      : e === 'en_camino' ? `<button class="mt-b" data-vp="llegada" data-vi="${i.item}" data-vs="${s.id}">${ico('pin')}Llegué</button>`
+      : `<button class="mt-b ok" data-rab="${s.id}">${ico('checksq')}Verificar</button>`;
+    return `<div class="rc-p ${e}"><div class="rc-n">${n}</div><div class="rc-tx"><div class="rc-t">${ico(lugIco(i.item), 'sm')}<b>${lugTx(i.item)}</b> · ${esc(s.nombre_cliente)}</div>
+      <div class="small muted">${esc(donde(s, i.item) || (i.item === 'entrega_efectivo' ? 'En la visita al cliente' : 'Sin sector registrado'))} · ${est}</div></div>
+      <div class="mt-acc">${i.item !== 'entrega_efectivo' ? nav(s, i.item) : ''}${acc}</div></div>`;
+  };
+  const hechas = vh.slice().reverse();
+  return `<div class="rc"><div class="rc-hd"><div><b>Mi recorrido de hoy</b><div class="small muted">${pend.length ? `Le quedan <b>${pend.length}</b> parada${pend.length > 1 ? 's' : ''}` : 'Recorrido completo'} · ${hechasHoy} hecha${hechasHoy === 1 ? '' : 's'}</div></div>
+      <div class="rc-pct">${total ? Math.round(hechasHoy / total * 100) : 0}%</div></div>
+    <div class="pg-bar big"><i style="width:${total ? Math.round(hechasHoy / total * 100) : 0}%"></i></div>
+    ${pend.length ? `<div class="rc-l">${pend.map((p, j) => parada(p, j + 1)).join('')}</div>` : ''}
+    ${hechas.length ? `<details class="rc-h"><summary>Hechas hoy (${hechas.length})</summary>${hechas.map(v => `<div class="rc-hh">${ico(v.resultado === 'rechazada' ? 'x' : 'check', 'sm')}<span>${horaC(v.creado_en)}</span><span>${esc(v.tipo === 'desembolso' ? 'Efectivo entregado' : v.tipo === 'trabajo' ? 'Trabajo' : 'Domicilio')} · ${esc(v.nombre_cliente || '')}</span></div>`).join('')}</details>` : ''}
+  </div>`;
+}
+function pintarRecorrido(){
+  const el = $('#mtRec'); if (!el) return;
+  el.innerHTML = recorridoHTML();
+  el.querySelectorAll('[data-stop]').forEach(a => a.onclick = e => e.stopPropagation());
+  el.querySelectorAll('[data-rab]').forEach(b => b.onclick = () => abrirDetalle(+b.dataset.rab));
+  el.querySelectorAll('[data-vp]').forEach(b => b.onclick = () => marcarPaso(b, +b.dataset.vs, b.dataset.vi, b.dataset.vp, async () => { await cargarVisitasHoy(); if (S.tab === 'trabajo') pintarRecorrido(); }));
+}
 
 // ================== Posteo en sistema general (desembolsadas) ==================
 // Después de desembolsar: registrar el préstamo en el sistema general, en refi/reingreso pagar intereses y capital
@@ -4098,16 +4221,20 @@ function verificacionHTML(s, items){
   const hechos = items.filter(i => i.completado).length;
   return `<div class="card" id="verifCard"><h4 class="sec" style="margin-top:0">Verificación (${hechos}/${items.length})</h4>
     ${datosVisitaHTML(s)}
-    ${items.map(i => `<div class="item ${i.completado?'done':''}" data-item="${i.item}">
-      <div class="hd"><input type="checkbox" ${i.completado?'checked':''} ${edit?'':'disabled'} data-ck>${ITEM[i.item]}<span class="spacer"></span>
-        ${i.lat ? `<a class="small" target="_blank" href="https://maps.google.com/?q=${i.lat},${i.lng}">📍 Mapa</a>` : ''}</div>
+    ${items.map(i => { const lugar = ['domicilio','trabajo'].includes(i.item), bloq = edit && lugar && !i.completado && !i.llegada_en && rol() !== 'admin';
+      return `<div class="item ${i.completado?'done':''}" data-item="${i.item}">
+      <div class="hd"><b>${ITEM[i.item]}</b><span class="spacer"></span>
+        ${i.lat ? `<a class="small" target="_blank" href="https://maps.google.com/?q=${i.lat},${i.lng}">Ver en el mapa</a>` : ''}</div>
+      ${lugar ? vpLinea(i) : ''}
+      ${edit && lugar ? `<div class="vp-acc">${vpBoton(s, i)}</div>` : ''}
+      <label class="chk vp-ck${bloq ? ' off' : ''}" ${bloq ? 'title="Primero marque Voy en camino y Llegué"' : ''}><input type="checkbox" ${i.completado?'checked':''} ${edit && !bloq ? '' : 'disabled'} data-ck> ${i.item === 'entrega_efectivo' ? 'Efectivo entregado' : 'Verificado'}${bloq ? ' <span class="small muted">· primero marque Voy en camino y Llegué</span>' : ''}</label>
       ${edit ? `<input data-nota placeholder="Nota" value="${esc(i.nota||'')}" style="margin-top:8px">
         <div class="row" style="margin-top:8px">
-          <button class="btn sm ghost" data-gps>📍 ${i.lat ? 'Actualizar GPS' : 'Capturar GPS'}</button>
+          <button class="btn sm ghost" data-gps>${ico('pin', 'sm')}${i.lat ? 'Actualizar GPS' : 'Capturar GPS'}</button>
           <span class="small muted" data-st>${i.actualizado_por ? 'Guardado ' + hace(i.actualizado_en) : ''}</span></div>`
       : (i.nota ? `<div class="small" style="margin-top:6px">${esc(i.nota)}</div>` : '')}
       ${i.foto_path ? `<div class="thumbs"><img data-path="${esc(i.foto_path)}" alt="foto"></div>` : ''}
-    </div>`).join('')}
+    </div>`; }).join('')}
     ${fin ? `<label class="f">Observación final</label><textarea id="vNota" rows="2"></textarea>
       ${s.forma_desembolso === 'efectivo' ? fechaColocHTML(s, 'vFc') : ''}
       <div class="btns"><button class="btn ok" id="vOk">Verificación exitosa${s.forma_desembolso==='efectivo'?' · efectivo entregado':''}</button><button class="btn bad" id="vBad">Rechazar</button></div>` : ''}
@@ -4307,6 +4434,7 @@ function enlazarDetalle(s, c){
       await guardar({ foto: path });
     });
   });
+  B.querySelectorAll('[data-vp]').forEach(b => b.onclick = () => marcarPaso(b, s.id, b.dataset.vi, b.dataset.vp, refrescar));
   B.querySelectorAll('img[data-path]').forEach(async img => {
     const { data } = await sb.storage.from('evidencias').createSignedUrl(img.dataset.path, 3600);
     if (data?.signedUrl){ img.src = data.signedUrl; img.onclick = () => window.open(data.signedUrl, '_blank'); }
