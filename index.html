@@ -831,7 +831,7 @@ header.top .iconbtn svg.ic{width:18px;height:18px;vertical-align:-4px}
 // App disponible sin señal (sw.js debe estar junto a index.html). Va primero para registrarse aunque falle otra cosa.
 if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) navigator.serviceWorker.register('sw.js').catch(() => {});
 // Versión de esta copia de la app: cambia en cada entrega. La app la compara con la publicada y se actualiza sola.
-const APP_VER = '2026-11-21.2030';
+const APP_VER = '2026-11-21.2100';
 // 'admin' = cambio solo para el administrador: los demás usuarios no ven el aviso de versión nueva (se actualiza en silencio)
 // y sus NOVEDADES deben llevar r:['admin']. 'todos' = cambio que ven los usuarios.
 const APP_AVISO = 'todos';
@@ -839,9 +839,10 @@ const APP_AVISO = 'todos';
 // Al publicar cambios: subir APP_VER y agregar aquí una entrada con la misma versión.
 // r = roles que la ven (sin r = todos; el admin ve todo).
 const NOVEDADES = [
-  { v:'2026-11-21.2000', f:'21 de noviembre de 2026', items:[
+  { v:'2026-11-21.2100', f:'21 de noviembre de 2026', items:[
     { i:'•', t:'Verificación paso a paso', r:['verificador','asesor','analista'],
-      d:'En cada visita el verificador marca "Voy en camino" al salir y "Llegué" al llegar (con la ubicación del teléfono); después marca Verificado. Así queda la hora de cada paso, el tiempo de trayecto y el tiempo en el lugar. En Mis visitas aparece "Mi recorrido de hoy" con las paradas que le quedan, en orden, y las que ya hizo.' },
+      d:'En cada visita el verificador marca "Voy en camino" al salir y "Llegué" al llegar (con la ubicación del teléfono); después marca Verificado. Así queda la hora de cada paso, el tiempo de trayecto y el tiempo en el lugar. En Mis visitas aparece "Mi recorrido de hoy" con las paradas que le quedan, en orden, y las que ya hizo.' } ] },
+  { v:'2026-11-21.2030', f:'21 de noviembre de 2026', items:[
     { i:'•', t:'Gerente con permisos de asesor y analista', r:['admin','analista','asesor'],
       d:'Quien tenga marcado "También es gerente" puede hacer lo del asesor (crear solicitudes, completarlas con el cliente) y lo del analista, y ve las pestañas de ambos.' },
     { i:'•', t:'Avisos con el nombre de quien hizo el cambio',
