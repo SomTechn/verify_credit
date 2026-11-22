@@ -831,7 +831,7 @@ header.top .iconbtn svg.ic{width:18px;height:18px;vertical-align:-4px}
 // App disponible sin señal (sw.js debe estar junto a index.html). Va primero para registrarse aunque falle otra cosa.
 if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) navigator.serviceWorker.register('sw.js').catch(() => {});
 // Versión de esta copia de la app: cambia en cada entrega. La app la compara con la publicada y se actualiza sola.
-const APP_VER = '2026-11-21.2100';
+const APP_VER = '2026-11-21.2115';
 // 'admin' = cambio solo para el administrador: los demás usuarios no ven el aviso de versión nueva (se actualiza en silencio)
 // y sus NOVEDADES deben llevar r:['admin']. 'todos' = cambio que ven los usuarios.
 const APP_AVISO = 'todos';
@@ -839,6 +839,9 @@ const APP_AVISO = 'todos';
 // Al publicar cambios: subir APP_VER y agregar aquí una entrada con la misma versión.
 // r = roles que la ven (sin r = todos; el admin ve todo).
 const NOVEDADES = [
+  { v:'2026-11-21.2115', f:'21 de noviembre de 2026', items:[
+    { i:'•', t:'Récord y semana más claros', r:['asesor','analista','verificador'],
+      d:'El récord diario, "Esta semana" y "Mi ritmo" ahora cuentan una sola cosa según su rol: el asesor, solicitudes enviadas a análisis; el analista, dictámenes (aprobadas o denegadas); el verificador, visitas a domicilio o trabajo.' } ] },
   { v:'2026-11-21.2100', f:'21 de noviembre de 2026', items:[
     { i:'•', t:'Verificación paso a paso', r:['verificador','asesor','analista'],
       d:'En cada visita el verificador marca "Voy en camino" al salir y "Llegué" al llegar (con la ubicación del teléfono); después marca Verificado. Así queda la hora de cada paso, el tiempo de trayecto y el tiempo en el lugar. En Mis visitas aparece "Mi recorrido de hoy" con las paradas que le quedan, en orden, y las que ya hizo.' } ] },
@@ -2043,7 +2046,8 @@ function ritmoResumen(){
   let hoyN = 0, n30 = 0, dias = 0, pesoHoy = 0, pesoProm = 0;
   pasos.forEach(([k]) => { const x = r[k]; hoyN += x.hoy_n || 0; n30 += x.n30 || 0; dias = Math.max(dias, x.dias30 || 0);
     if (x.hoy_n && x.prom30 != null && x.hoy_prom != null){ pesoHoy += x.hoy_prom * x.hoy_n; pesoProm += x.prom30 * x.hoy_n; } });
-  const diario = dias ? n30 / dias : 0, ratio = pesoProm > 0 ? pesoHoy / pesoProm : null;
+  let diario = dias ? n30 / dias : 0; const ratio = pesoProm > 0 ? pesoHoy / pesoProm : null;
+  if (S.prog){ hoyN = S.prog.hoy_n || 0; diario = +S.prog.prom_diario30 || 0; }   // misma medida que el récord (según el rol)
   return { pasos, hoyN, diario, ratio };
 }
 function ritmoHTML(){
@@ -2060,7 +2064,7 @@ function ritmoHTML(){
   const g = ratio == null ? '' : ratio <= 1 ? `<span class="rt-b ok">${ico('check', 'sm')}Hoy vas dentro de tu promedio</span>` : `<span class="rt-b mal">${ico('clock', 'sm')}Hoy vas fuera de tu promedio</span>`;
   return `<div class="mt-sec">Mi ritmo <small>tiempo hábil por solicitud</small></div>
     <div class="mt-box rt">
-      <div class="rt-g"><div><b>${hoyN}</b><span>completadas hoy</span></div><div><b>${diario ? diario.toFixed(1).replace('.0', '') : '—'}</b><span>tu promedio diario</span></div></div>
+      <div class="rt-g"><div><b>${hoyN}</b><span>${esc(progUni())} hoy</span></div><div><b>${diario ? diario.toFixed(1).replace('.0', '') : '—'}</b><span>tu promedio diario</span></div></div>
       ${g ? `<div style="margin:2px 0 8px">${g}</div>` : ''}
       ${pasos.map(fila).join('')}
       <div class="muted small" style="padding:6px 0 8px">Promedio de sus últimos 30 días, sin contar el 10% más lento.</div></div>`;
@@ -2086,6 +2090,7 @@ async function registrarLimpia(){
       if (S.tab === 'trabajo') document.querySelectorAll('.mt-prog').forEach(el => el.innerHTML = progresoHTML()); }
   } catch(e){}
 }
+const progUni = () => S.prog?.unidad || (rol() === 'asesor' ? 'enviadas a análisis' : rol() === 'verificador' ? 'visitas' : 'dictámenes');
 const semMeta = p => Math.max(1, Math.ceil((p?.semana?.anterior?.n || 0) * 1.05));
 function progresoHTML(){
   const p = S.prog; if (!p) return '';
@@ -2095,9 +2100,9 @@ function progresoHTML(){
   const racha = p.racha || 0;
   const rachaSub = racha ? (p.hoy_limpia ? 'Hoy ya cuenta' : 'Deja la bandeja limpia hoy para mantenerla') : 'Deja la bandeja limpia antes del cierre para empezar';
   return `<div class="pg-t${racha >= 3 ? ' on' : ''}"><div class="pg-ic fl">${ico('flame')}</div><div><span>Racha de bandeja limpia</span><b>${racha} día${racha === 1 ? '' : 's'}</b><small>${rachaSub}${p.mejor_racha > racha ? ` · mejor: ${p.mejor_racha}` : ''}</small></div></div>
-    <div class="pg-t${nuevoRec ? ' on' : ''}"><div class="pg-ic tr">${ico('trophy')}</div><div><span>${nuevoRec ? 'Nuevo récord personal' : 'Tu récord diario'}</span><b>${nuevoRec ? hoy : md ? md.n : '—'}${nuevoRec ? ' hoy' : md ? ` <em>${fDia(md.dia)}</em>` : ''}</b>
+    <div class="pg-t${nuevoRec ? ' on' : ''}"><div class="pg-ic tr">${ico('trophy')}</div><div><span>${nuevoRec ? 'Nuevo récord personal' : 'Tu récord diario · ' + progUni()}</span><b>${nuevoRec ? hoy : md ? md.n : '—'}${nuevoRec ? ' hoy' : md ? ` <em>${fDia(md.dia)}</em>` : ''}</b>
       <small>${nuevoRec ? `Superaste tu marca anterior de ${md.n}` : md ? `Hoy llevas ${hoy}${md.n - hoy > 0 ? ` · te faltan ${md.n - hoy + 1} para superarlo` : ''}` : 'Aún sin historial'}</small></div></div>
-    <button class="pg-t pg-sem" data-semana><div class="pg-ic wk">${ico('week')}</div><div><span>Esta semana</span><b>${a.n || 0} completadas</b>
+    <button class="pg-t pg-sem" data-semana><div class="pg-ic wk">${ico('week')}</div><div><span>Esta semana</span><b>${a.n || 0} ${progUni()}</b>
       <small>${b.n ? `Semana pasada ${b.n}${var_ != null ? ` · ${var_ >= 0 ? '+' : ''}${var_}%` : ''}` : 'Ver resumen'} · meta ${semMeta(p)}</small>
       <div class="pg-bar"><i style="width:${Math.min(100, Math.round((a.n || 0) / semMeta(p) * 100))}%"></i></div></div></button>`;
 }
@@ -2111,7 +2116,7 @@ function dialogoSemana(enfasisAnterior){
   const ant = enfasisAnterior && b.n ? `<div class="alert ok small" style="margin:8px 0">La semana pasada completaste <b>${b.n}</b> solicitudes${b.dias_trab ? ` en ${b.dias_trab} día(s)` : ''}${b.mejor_dia ? `; tu mejor día fue el ${fDia(b.mejor_dia.dia)} con ${b.mejor_dia.n}` : ''}. Meta sugerida para esta semana: <b>${semMeta(p)}</b>.</div>` : '';
   dialogo(`<h3 style="margin-top:0;display:flex;gap:8px;align-items:center">${ico('week')}Tu semana</h3>${ant}
     <table class="tbl pg-tbl"><tr><th></th><th>Esta semana</th><th>Semana pasada</th><th></th></tr>
-      ${fila('Completadas', a.n || 0, b.n || 0, cmp(a.n, b.n))}
+      ${fila(progUni().charAt(0).toUpperCase() + progUni().slice(1), a.n || 0, b.n || 0, cmp(a.n, b.n))}
       ${fila(`Tiempo promedio de ${paso}`, a.prom != null ? fmtDur(a.prom) : '—', b.prom != null ? fmtDur(b.prom) : '—', cmp(a.prom, b.prom, true))}
       ${fila('Días con bandeja limpia', a.dias_limpia || 0, b.dias_limpia || 0, '')}
       ${fila('Mejor día', a.mejor_dia ? `${a.mejor_dia.n} (${fDia(a.mejor_dia.dia)})` : '—', b.mejor_dia ? `${b.mejor_dia.n} (${fDia(b.mejor_dia.dia)})` : '—', '')}
@@ -2135,7 +2140,7 @@ const FRASES = {
   estrella:[
     'Día sobresaliente: {n} solicitudes y {pct}% más rápido que tu promedio. Así se nota la diferencia.',
     'Ritmo de primera: más trabajo que tu promedio diario y en menos tiempo. Tus clientes lo agradecen.',
-    'Excelente: {n} completadas hoy y vas {pct}% por encima de tu propia marca de velocidad.'],
+    'Excelente: {n} {u} hoy y vas {pct}% por encima de tu propia marca de velocidad.'],
   rapido:[
     'Bandeja al día y {pct}% más rápido que tu promedio. Cada minuto que ahorras es un cliente que recibe antes su dinero.',
     'Rápido y ordenado: hoy trabajas {pct}% más ágil que en los últimos 30 días.',
@@ -2143,14 +2148,14 @@ const FRASES = {
   volumen:[
     'Ya completaste {n} hoy, más que tu promedio diario de {prom}. Gran avance.',
     'Hoy llevas {n} solicitudes, por encima de tu promedio de {prom}. Tu esfuerzo se ve en los resultados.',
-    'Día productivo: {n} completadas y la bandeja limpia.'],
+    'Día productivo: {n} {u} y la bandeja limpia.'],
   constante:[
     'Bandeja limpia. La constancia es lo que mantiene al equipo funcionando.',
     'Todo al día. Mantener la bandeja limpia es la mejor forma de no dejar a ningún cliente esperando.',
     'Lo pendiente quedó resuelto. Buen trabajo.'],
   record:[
-    'Nuevo récord personal: {n} completadas hoy, más que cualquier día anterior. Excelente trabajo.',
-    'Superaste tu mejor día: {n} completadas. Así se construye un gran mes.'],
+    'Nuevo récord personal: {n} {u} hoy, más que cualquier día anterior. Excelente trabajo.',
+    'Superaste tu mejor día: {n} {u}. Así se construye un gran mes.'],
   inicio:[
     'Todo al día por ahora. Buen momento para adelantar seguimientos.',
     'No tienes nada pendiente. Aprovecha para revisar prospectos y refinanciamientos disponibles.',
@@ -2162,11 +2167,11 @@ function celebracionHTML(){
   const pg = S.prog, record = pg?.mejor_dia && (pg.hoy_n || 0) > pg.mejor_dia.n;
   const cat = record ? 'record' : !hoyN ? 'inicio' : rapido && mucho ? 'estrella' : rapido ? 'rapido' : mucho ? 'volumen' : 'constante';
   const l = FRASES[cat], dia = Math.floor(Date.now() / 864e5), frase = l[(dia + hoyN) % l.length]
-    .replace('{n}', cat === 'record' ? pg.hoy_n : hoyN).replace('{pct}', pct).replace('{prom}', diario ? diario.toFixed(1).replace('.0', '') : '0');
+    .replace('{n}', cat === 'record' ? pg.hoy_n : hoyN).replace('{u}', progUni()).replace('{pct}', pct).replace('{prom}', diario ? diario.toFixed(1).replace('.0', '') : '0');
   const titulo = { record:'Nuevo récord personal', estrella:'Día sobresaliente', rapido:'Bandeja limpia y a buen ritmo', volumen:'Bandeja limpia', constante:'Bandeja limpia', inicio:'Todo al día' }[cat];
   const racha = pg ? (pg.racha || 0) + (pg.hoy_limpia ? 0 : 1) : 0, hito = [3, 5, 10, 15, 20, 30, 50].includes(racha);
   const nChip = record ? pg.hoy_n : hoyN;
-  const chips = [nChip ? `${nChip} completada${nChip > 1 ? 's' : ''} hoy` : '', rapido ? `${pct}% más rápido que tu promedio` : '', mucho ? 'Sobre tu promedio diario' : '',
+  const chips = [nChip ? `${nChip} ${progUni()} hoy` : '', rapido ? `${pct}% más rápido que tu promedio` : '', mucho ? 'Sobre tu promedio diario' : '',
     racha >= 2 ? `Racha de ${racha} días con bandeja limpia` : ''].filter(Boolean);
   const extra = hito ? ` Llevas ${racha} días seguidos dejando la bandeja limpia.` : '';
   const sug = rol() === 'verificador' ? [['verificar', 'Ver visitas sin asignar', 'pin']]
@@ -2216,7 +2221,7 @@ function pintarTrabajo(){
   if (recienLimpia) cargarRitmo(true).then(() => { if (S.tab !== 'trabajo') return; document.querySelectorAll('.mt-ritmo').forEach(el => el.innerHTML = ritmoHTML());
     const c = document.querySelector('.mt-cel'); if (c){ const p = S.mtUltToca; S.mtUltToca = 1; c.outerHTML = celebracionHTML(); S.mtUltToca = p; } });
   else if (!S.rend || Date.now() - (S.rendAt || 0) > 120000) cargarRitmo().then(() => { if (S.tab === 'trabajo') document.querySelectorAll('.mt-ritmo').forEach(el => el.innerHTML = ritmoHTML()); });
-  const repProg = () => { if (S.tab !== 'trabajo') return; document.querySelectorAll('.mt-prog').forEach(el => el.innerHTML = progresoHTML()); enlazarProg(); };
+  const repProg = () => { if (S.tab !== 'trabajo') return; document.querySelectorAll('.mt-prog').forEach(el => el.innerHTML = progresoHTML()); document.querySelectorAll('.mt-ritmo').forEach(el => el.innerHTML = ritmoHTML()); enlazarProg(); };
   cargarProgreso(recienLimpia).then(() => { repProg(); quizaSemana(); });
   if (!d.toca.length && !coms.length) registrarLimpia();
   function enlazarProg(){ document.querySelectorAll('[data-semana]').forEach(b => b.onclick = () => dialogoSemana(false)); }
