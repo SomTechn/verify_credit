@@ -809,7 +809,7 @@ header.top .iconbtn svg.ic{width:18px;height:18px;vertical-align:-4px}
 // App disponible sin señal (sw.js debe estar junto a index.html). Va primero para registrarse aunque falle otra cosa.
 if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) navigator.serviceWorker.register('sw.js').catch(() => {});
 // Versión de esta copia de la app: cambia en cada entrega. La app la compara con la publicada y se actualiza sola.
-const APP_VER = '2026-11-21.1915';
+const APP_VER = '2026-11-21.1930';
 // 'admin' = cambio solo para el administrador: los demás usuarios no ven el aviso de versión nueva (se actualiza en silencio)
 // y sus NOVEDADES deben llevar r:['admin']. 'todos' = cambio que ven los usuarios.
 const APP_AVISO = 'todos';
@@ -832,8 +832,8 @@ const NOVEDADES = [
     { i:'•', t:'Mi trabajo: su ritmo, rachas, récords y "Tu semana"',
       d:'En Mi trabajo verá su tiempo promedio por solicitud comparado con sus últimos 30 días (dentro o fuera de su promedio). También su racha de días dejando la bandeja limpia antes del cierre, su récord personal de solicitudes en un día y cuántas lleva esta semana contra la semana pasada. Toque "Esta semana" para ver el resumen completo; cada lunes le aparecerá el resumen de la semana anterior. Al limpiar la bandeja recibirá una felicitación según su rendimiento.' } ] },
   { v:'2026-11-21.1600', f:'21 de noviembre de 2026', items:[
-    { i:'•', t:'Versión de prueba del nuevo diseño',
-      d:'Esta es una versión de prueba con los mismos datos reales. Ahora la app abre en "Mi trabajo": solo lo que le toca a usted, lo más urgente primero, con un botón para cada acción. El tablero general sigue disponible en "Tablero". En computadora el menú está a la izquierda y en el celular abajo; lo demás está en "Más". Los comentarios nuevos aparecen arriba en Mi trabajo, en rojo en las tarjetas y al abrir la solicitud. Lo que haga aquí cuenta igual que en la app normal.' } ] },
+    { i:'•', t:'Nuevo diseño de VerifyCredit',
+      d:'Ahora la app abre en "Mi trabajo": solo lo que le toca a usted, lo más urgente primero, con un botón para cada acción. El tablero general sigue disponible en "Tablero". En computadora el menú está a la izquierda y en el celular abajo; lo demás está en "Más". Los comentarios nuevos aparecen arriba en Mi trabajo, en rojo en las tarjetas y al abrir la solicitud.' } ] },
   { v:'2026-11-21.1250', f:'21 de noviembre de 2026', items:[
     { i:'📅', t:'Posteo: rango de fechas y de monto siempre a la vista', r:['admin'],
       d:'En Filtros ahora están siempre los campos "Del … al …" del día de colocación (al tocar Hoy, Ayer o Esta semana se llenan solos; si escribe una fecha pasa a rango personalizado) y "Monto del préstamo de L … a L …".' } ] },
