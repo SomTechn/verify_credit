@@ -834,7 +834,7 @@ header.top .iconbtn svg.ic{width:18px;height:18px;vertical-align:-4px}
 // App disponible sin señal (sw.js debe estar junto a index.html). Va primero para registrarse aunque falle otra cosa.
 if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) navigator.serviceWorker.register('sw.js').catch(() => {});
 // Versión de esta copia de la app: cambia en cada entrega. La app la compara con la publicada y se actualiza sola.
-const APP_VER = '2026-11-23.1230';
+const APP_VER = '2026-11-23.1400';
 // 'admin' = cambio solo para el administrador: los demás usuarios no ven el aviso de versión nueva (se actualiza en silencio)
 // y sus NOVEDADES deben llevar r:['admin']. 'todos' = cambio que ven los usuarios.
 const APP_AVISO = 'todos';
@@ -842,6 +842,9 @@ const APP_AVISO = 'todos';
 // Al publicar cambios: subir APP_VER y agregar aquí una entrada con la misma versión.
 // r = roles que la ven (sin r = todos; el admin ve todo).
 const NOVEDADES = [
+  { v:'2026-11-23.1400', f:'23 de noviembre de 2026', items:[
+    { i:'•', t:'Fotos del contrato más legibles', r:['asesor','analista','verificador'],
+      d:'Al subir las fotos del contrato firmado, el acabado "Documento" ahora deja el papel blanco sin tonos amarillos, la letra más oscura y nítida, y respeta los colores (logo, foto de la identidad, firma). Si una hoja no queda bien, toque Ajustar y elija "Original" para dejar la foto tal cual, solo recortada.' } ] },
   { v:'2026-11-21.2115', f:'21 de noviembre de 2026', items:[
     { i:'•', t:'Récord y semana más claros', r:['asesor','analista','verificador'],
       d:'El récord diario, "Esta semana" y "Mi ritmo" ahora cuentan una sola cosa según su rol: el asesor, solicitudes enviadas a análisis; el analista, dictámenes (aprobadas o denegadas); el verificador, visitas a domicilio o trabajo.' } ] },
@@ -5627,29 +5630,58 @@ const SCAN = (() => {
     if (filtro !== 'orig') limpiar(o, ow, oh, filtro === 'bn');
     ctx.putImageData(od, 0, 0); return out;
   }
-  // Quita sombras y deja el papel blanco: estima el fondo por bloques (máximo) y divide; luego sube el contraste
+  // Limpieza tipo escáner, fiel a los colores:
+  //  1) sombra: fondo local por bloques (percentil 90 de la luminosidad), suavizado
+  //  2) balance de blancos GLOBAL tomado de las zonas de papel (no por bloque: así fotos y logos no cambian de color)
+  //  3) ganancia limitada (las zonas que no son papel, como la foto de la identidad, no se blanquean)
+  //  4) nitidez suave y curva que oscurece la tinta sin quemar el papel
   function limpiar(o, W, H, bn){
-    const bs = Math.max(12, Math.round(Math.max(W, H) / 36)), gw = Math.ceil(W / bs), gh = Math.ceil(H / bs);
-    let bg = new Float32Array(gw * gh);
+    const bs = Math.max(16, Math.round(Math.max(W, H) / 32)), gw = Math.ceil(W / bs), gh = Math.ceil(H / bs), nb = gw * gh;
+    let bgL = new Float32Array(nb); const papel = [];
     for (let by = 0; by < gh; by++) for (let bx = 0; bx < gw; bx++){
-      const hist = new Uint16Array(256); let cnt = 0;
-      for (let y = by * bs; y < Math.min(H, (by + 1) * bs); y += 2) for (let x = bx * bs; x < Math.min(W, (bx + 1) * bs); x += 2){ const i = (y * W + x) * 4; hist[(o[i] * 0.3 + o[i+1] * 0.59 + o[i+2] * 0.11) | 0]++; cnt++; }
-      let acc = 0, v = 255; const meta = cnt * 0.1; for (v = 255; v > 0; v--){ acc += hist[v]; if (acc >= meta) break; } // percentil 90
-      bg[by * gw + bx] = Math.max(v, 40);
+      const hist = new Uint16Array(256); let cnt = 0, sr = 0, sg = 0, sb = 0, sc = 0;
+      for (let y = by * bs; y < Math.min(H, (by + 1) * bs); y += 2) for (let x = bx * bs; x < Math.min(W, (bx + 1) * bs); x += 2){
+        const i = (y * W + x) * 4, l = (o[i] * 0.3 + o[i+1] * 0.59 + o[i+2] * 0.11) | 0; hist[l]++; cnt++; }
+      let acc = 0, v; const meta = cnt * 0.1; for (v = 255; v > 0; v--){ acc += hist[v]; if (acc >= meta) break; }
+      bgL[by * gw + bx] = Math.max(v, 30);
+      // color medio de los píxeles más claros del bloque (candidatos a papel)
+      for (let y = by * bs; y < Math.min(H, (by + 1) * bs); y += 2) for (let x = bx * bs; x < Math.min(W, (bx + 1) * bs); x += 2){
+        const i = (y * W + x) * 4, l = o[i] * 0.3 + o[i+1] * 0.59 + o[i+2] * 0.11; if (l >= v - 4){ sr += o[i]; sg += o[i+1]; sb += o[i+2]; sc++; } }
+      if (sc){ const r = sr / sc, g = sg / sc, b = sb / sc, mx = Math.max(r, g, b), mn = Math.min(r, g, b); papel.push({ l: v, r, g, b, sat: mx ? (mx - mn) / mx : 1 }); }
     }
-    for (let pase = 0; pase < 2; pase++){ const nb = new Float32Array(gw * gh);
-      for (let y = 0; y < gh; y++) for (let x = 0; x < gw; x++){ let s2 = 0, c = 0; for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++){ const yy = y + dy, xx = x + dx; if (yy >= 0 && yy < gh && xx >= 0 && xx < gw){ s2 += bg[yy * gw + xx]; c++; } } nb[y * gw + x] = s2 / c; }
-      bg = nb; }
-    const lo = bn ? 70 : 40, hi = 225, esc3 = 255 / (hi - lo);
+    // Papel global: bloques claros y poco saturados
+    const claros = papel.filter(p => p.sat < 0.35).sort((a, b) => b.l - a.l), top = claros.slice(0, Math.max(3, Math.round(claros.length * 0.4)));
+    const P = top.length ? top.reduce((a, p) => ({ l: a.l + p.l, r: a.r + p.r, g: a.g + p.g, b: a.b + p.b }), { l: 0, r: 0, g: 0, b: 0 }) : null;
+    const Gl = P ? P.l / top.length : 220, wr = P ? (P.l / P.r) : 1, wg = P ? (P.l / P.g) : 1, wb = P ? (P.l / P.b) : 1;
+    // balance de blancos moderado (no más de 35% por canal)
+    const lim = x => Math.min(1.35, Math.max(0.75, x)), WB = [lim(wr), lim(wg), lim(wb)];
+    for (let pase = 0; pase < 2; pase++){ const n2 = new Float32Array(nb);
+      for (let y = 0; y < gh; y++) for (let x = 0; x < gw; x++){ let s2 = 0, c = 0;
+        for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++){ const yy = y + dy, xx = x + dx; if (yy >= 0 && yy < gh && xx >= 0 && xx < gw){ s2 += bgL[yy * gw + xx]; c++; } }
+        n2[y * gw + x] = s2 / c; }
+      bgL = n2; }
+    const piso = Gl * 0.6, META = 246;
+    // 1-3: sombra + balance de blancos + ganancia limitada → luminosidad en L
+    const L = new Float32Array(W * H);
     for (let y = 0; y < H; y++){
-      const gy = Math.min(gh - 1.001, Math.max(0, y / bs - 0.5)), y0 = gy | 0, fy = gy - y0;
+      const gy = Math.min(gh - 1.001, Math.max(0, y / bs - 0.5)), y0 = gy | 0, fy = gy - y0, y1 = Math.min(gh - 1, y0 + 1);
       for (let x = 0; x < W; x++){
-        const gx = Math.min(gw - 1.001, Math.max(0, x / bs - 0.5)), x0 = gx | 0, fx = gx - x0, y1 = Math.min(gh - 1, y0 + 1), x1 = Math.min(gw - 1, x0 + 1);
-        const b = (bg[y0 * gw + x0] * (1 - fx) + bg[y0 * gw + x1] * fx) * (1 - fy) + (bg[y1 * gw + x0] * (1 - fx) + bg[y1 * gw + x1] * fx) * fy;
-        const i = (y * W + x) * 4, f = 255 / b;
-        if (bn){ const l = (o[i] * 0.3 + o[i+1] * 0.59 + o[i+2] * 0.11) * f, v = Math.max(0, Math.min(255, (l - lo) * esc3)); o[i] = o[i+1] = o[i+2] = v; }
-        else for (let c = 0; c < 3; c++){ const v = o[i + c] * f; o[i + c] = Math.max(0, Math.min(255, (v - lo) * esc3)); }
+        const gx = Math.min(gw - 1.001, Math.max(0, x / bs - 0.5)), x0 = gx | 0, fx = gx - x0, x1 = Math.min(gw - 1, x0 + 1);
+        const b = (bgL[y0 * gw + x0] * (1 - fx) + bgL[y0 * gw + x1] * fx) * (1 - fy) + (bgL[y1 * gw + x0] * (1 - fx) + bgL[y1 * gw + x1] * fx) * fy;
+        const k = Math.min(1.9, META / Math.max(b, piso)), i = (y * W + x) * 4;
+        o[i] = Math.min(255, o[i] * k * WB[0]); o[i+1] = Math.min(255, o[i+1] * k * WB[1]); o[i+2] = Math.min(255, o[i+2] * k * WB[2]);
+        L[y * W + x] = o[i] * 0.3 + o[i+1] * 0.59 + o[i+2] * 0.11;
       }
+    }
+    // 4: nitidez (máscara de enfoque 3x3 sobre la luminosidad) y curva de tinta
+    const am = bn ? 0.9 : 0.6, g0 = bn ? 1.5 : 1.3, neg = bn ? 0.16 : 0.1;
+    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++){
+      const p = y * W + x, l = L[p];
+      let s = 0, c = 0; for (let dy = -1; dy <= 1; dy++){ const yy = y + dy; if (yy < 0 || yy >= H) continue; for (let dx = -1; dx <= 1; dx++){ const xx = x + dx; if (xx < 0 || xx >= W) continue; s += L[yy * W + xx]; c++; } }
+      const ls = Math.max(0, l + am * (l - s / c));
+      const t = Math.min(1, Math.max(0, (ls / META - neg) / (0.93 - neg))), lo = 255 * Math.pow(t, g0), i = p * 4;
+      if (bn){ o[i] = o[i+1] = o[i+2] = lo; }
+      else { const k = l > 1 ? lo / l : 0; o[i] = Math.min(255, o[i] * k); o[i+1] = Math.min(255, o[i+1] * k); o[i+2] = Math.min(255, o[i+2] * k); }
     }
   }
   return { detectar, procesar, aCanvas };
@@ -5658,11 +5690,12 @@ const SCAN = (() => {
 function editorEscaneo(f){
   return new Promise(resolve => {
     let pts = f.pts.map(p => [...p]), filtro = f.filtro || 'doc', fin = false;
-    const w = dialogo(`<h3>✂ Ajustar hoja</h3><div class="small muted">Arrastre los 4 puntos azules a las esquinas de la hoja.</div>
+    const w = dialogo(`<h3>Ajustar hoja</h3><div class="small muted">Arrastre los 4 puntos azules a las esquinas de la hoja.</div>
       <div style="position:relative;margin-top:8px;text-align:center"><canvas id="seCv" style="touch-action:none;max-width:100%;border-radius:8px;background:#222"></canvas></div>
       <label class="f">Acabado</label>
-      <div class="seg" id="seFil"><button type="button" data-f="doc">📄 Documento</button><button type="button" data-f="bn">⚫ Blanco y negro</button><button type="button" data-f="orig">🖼 Original</button></div>
-      <div class="btns" style="margin-top:12px"><button class="btn ghost" id="seAuto">↺ Detectar de nuevo</button><button class="btn ghost" id="seTodo">⛶ Toda la foto</button><button class="btn ok" id="seOk">✓ Listo</button></div>`);
+      <div class="seg" id="seFil"><button type="button" data-f="doc">${ico('file', 'sm')} Documento</button><button type="button" data-f="bn">Blanco y negro</button><button type="button" data-f="orig">${ico('camera', 'sm')} Original</button></div>
+      <div class="small muted" style="margin-top:6px">Documento: papel blanco, letra más oscura y colores fieles. Original: la foto tal cual, solo recortada.</div>
+      <div class="btns" style="margin-top:12px"><button class="btn ghost" id="seAuto">${ico('refresh', 'sm')} Detectar de nuevo</button><button class="btn ghost" id="seTodo">Toda la foto</button><button class="btn ok" id="seOk">${ico('check', 'sm')} Listo</button></div>`);
     const cv = w.querySelector('#seCv'), base = SCAN.aCanvas(f.orig, 900);
     const maxW = Math.min(480, window.innerWidth - 48), maxH = window.innerHeight * 0.5, k = Math.min(maxW / base.width, maxH / base.height);
     cv.width = Math.round(base.width * k); cv.height = Math.round(base.height * k);
