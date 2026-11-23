@@ -103,6 +103,7 @@ label.f{display:block;font-size:12px;color:var(--ink2);margin:10px 0 4px;font-we
 .cpy-wrap{display:inline-flex;align-items:center;gap:1px;max-width:100%}
 .sheet .bar .cpy{padding:5px}.sheet .bar .cpy svg{width:18px;height:18px}
 .sol .name{font-weight:650;font-size:15.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+@media (max-width:520px){ .sol .name{white-space:normal;overflow:visible} }
 .sol .sub{font-size:12.5px;color:var(--ink2);margin-top:3px;display:flex;flex-wrap:wrap;gap:4px 10px}
 .sol .right{text-align:right;flex:none}
 .sol .amt{font-weight:700;font-variant-numeric:tabular-nums}
@@ -589,6 +590,8 @@ body.marco-cel #sheet > *{max-width:430px;margin-left:auto;margin-right:auto}
 /* ===== Rediseño: navegación por rol, Mi trabajo, menos redondez ===== */
 svg.ic{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex:none;vertical-align:-3px}
 svg.ic.sm{width:14px;height:14px;vertical-align:-2px}
+svg.ic.em{width:1.05em;height:1.05em;vertical-align:-.16em;margin-right:.1em}
+a{color:var(--brand)}
 header.top .tabs{display:none!important}
 .sidenav{display:none}
 .botnav{position:fixed;left:0;right:0;bottom:0;z-index:18;background:var(--card);border-top:1px solid var(--line);display:flex;justify-content:space-around;padding:6px 4px calc(8px + env(safe-area-inset-bottom));box-shadow:0 -2px 10px rgba(10,42,102,.06)}
@@ -766,7 +769,7 @@ header.top .iconbtn svg.ic{width:18px;height:18px;vertical-align:-4px}
 .rc-p.en_camino,.rc-p.llegada{border-color:var(--brand);background:var(--brand2)}
 .rc-n{flex:none;width:26px;height:26px;border-radius:50%;background:var(--gray-bg);color:var(--ink2);display:grid;place-items:center;font:800 12px Inter,sans-serif}
 .rc-p.en_camino .rc-n,.rc-p.llegada .rc-n{background:var(--brand);color:#fff}
-.rc-tx{flex:1;min-width:0}.rc-t{display:flex;gap:6px;align-items:center;flex-wrap:wrap}.rc-t svg.ic{width:16px;height:16px;color:var(--muted)}
+.rc-tx{flex:1;min-width:0}.rc-cli{font-weight:600;color:var(--ink);margin:1px 0}.rc-est{color:var(--ink2);margin-top:1px}.rc-p.en_camino .rc-est,.rc-p.llegada .rc-est{color:var(--brand);font-weight:600}.rc-t{display:flex;gap:6px;align-items:center;flex-wrap:wrap}.rc-t svg.ic{width:16px;height:16px;color:var(--muted)}
 .rc-h{margin-top:12px}.rc-h summary{cursor:pointer;font-size:13px;color:var(--ink2);font-weight:600}
 .rc-hh{display:flex;gap:8px;align-items:center;font-size:13px;padding:5px 0;border-bottom:1px solid var(--line);color:var(--ink2)}.rc-hh svg.ic{width:15px;height:15px;color:var(--green)}
 .mt-b.ok{background:var(--green);color:#fff}
@@ -831,7 +834,7 @@ header.top .iconbtn svg.ic{width:18px;height:18px;vertical-align:-4px}
 // App disponible sin señal (sw.js debe estar junto a index.html). Va primero para registrarse aunque falle otra cosa.
 if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) navigator.serviceWorker.register('sw.js').catch(() => {});
 // Versión de esta copia de la app: cambia en cada entrega. La app la compara con la publicada y se actualiza sola.
-const APP_VER = '2026-11-21.2115';
+const APP_VER = '2026-11-23.1230';
 // 'admin' = cambio solo para el administrador: los demás usuarios no ven el aviso de versión nueva (se actualiza en silencio)
 // y sus NOVEDADES deben llevar r:['admin']. 'todos' = cambio que ven los usuarios.
 const APP_AVISO = 'todos';
@@ -1813,6 +1816,38 @@ const ICO = {
 };
 // Botones del encabezado (celular) con íconos SVG
 ['btnInstall:phoneDl','btnAviso:megaphone','btnNov:star','btnOut:out','btnBell:bell'].forEach(x => { const [id, n] = x.split(':'); const b = document.getElementById(id); if (b) b.innerHTML = `<svg class="ic" viewBox="0 0 24 24" aria-hidden="true">${ICO[n] || ''}</svg>`; });
+// Emojis que todavía quedan en textos de pantalla → íconos SVG (preferencia de diseño: sin emojis)
+Object.assign(ICO, {
+  building:'<rect x="4" y="3" width="16" height="18" rx="1"/><path d="M9 21v-4h6v4M8 7h2M14 7h2M8 11h2M14 11h2"/>',
+  edit:'<path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/>',
+  print:'<path d="M6 9V2h12v7"/><rect x="6" y="14" width="12" height="8"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/>',
+  lock:'<rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/>',
+  camera:'<path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/>',
+  idcard:'<rect x="2" y="5" width="20" height="14" rx="2"/><circle cx="8" cy="12" r="2.5"/><path d="M14 10h5M14 14h4"/>',
+  map:'<path d="M1 6v16l7-4 8 4 7-4V2l-7 4-8-4z"/><path d="M8 2v16M16 6v16"/>',
+  undo:'<path d="M9 14L4 9l5-5"/><path d="M4 9h11a5 5 0 0 1 0 10h-3"/>'
+});
+const EMO_ICO = { '💵':'cash','💰':'cash','💲':'cash','💸':'send','🏢':'building','🏠':'home','📅':'cal','🗓':'cal','🏦':'bank','⏸':'pause','✅':'check','✔':'check','✓':'check',
+  '⚠':'alert','📍':'pin','✏':'edit','📝':'edit','⏱':'clock','⏳':'clock','💬':'chat','🙋':'hand','✨':'star','👁':'eye','👤':'user','👥':'users','🖨':'print','🔔':'bell',
+  '🔕':'bellOff','🔎':'search','🔍':'search','📋':'file','📄':'file','📎':'file','↩':'undo','📢':'megaphone','🔒':'lock','📸':'camera','🛵':'nav','🧭':'nav','📲':'phone',
+  '📱':'phone','📞':'phone','☎':'phone','➕':'plus','🪪':'idcard','🚫':'x','✕':'x','🗺':'map','☰':'list','➡':'arrow','➤':'arrow','🔁':'refresh','↻':'refresh','🚀':'send','🖼':'camera' };
+const EMO_RE = new RegExp('(' + Object.keys(EMO_ICO).map(k => k.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|') + ')\ufe0f?', 'gu');
+function iconizar(root){
+  if (!root) return;
+  const w = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, { acceptNode: n => { EMO_RE.lastIndex = 0;
+    return EMO_RE.test(n.nodeValue) && !n.parentElement.closest('textarea,pre,script,style,option,select,[contenteditable],.no-ico') ? 1 : 3; } });
+  const ns = []; while (w.nextNode()) ns.push(w.currentNode);
+  ns.forEach(n => { const tmp = document.createElement('span');
+    tmp.innerHTML = esc(n.nodeValue).replace(EMO_RE, (m, e) => ico(EMO_ICO[e], 'em'));
+    n.replaceWith(...tmp.childNodes); });
+}
+function vigilarIconos(){
+  let pend = false;
+  const correr = () => { pend = false; iconizar($('#main')); iconizar($('#sheetBody')); iconizar($('#sheetTitle')); };
+  const obs = new MutationObserver(() => { if (!pend){ pend = true; requestAnimationFrame(correr); } });
+  ['#main', '#sheetBody'].forEach(s => { const el = $(s); if (el) obs.observe(el, { childList:true, subtree:true, characterData:true }); });
+  correr();
+}
 const ico = (n, cls = '') => `<svg class="ic ${cls}" viewBox="0 0 24 24" aria-hidden="true">${ICO[n] || ''}</svg>`;
 
 // Ícono de cada pestaña
@@ -2103,7 +2138,7 @@ function progresoHTML(){
     <div class="pg-t${nuevoRec ? ' on' : ''}"><div class="pg-ic tr">${ico('trophy')}</div><div><span>${nuevoRec ? 'Nuevo récord personal' : 'Tu récord diario · ' + progUni()}</span><b>${nuevoRec ? hoy : md ? md.n : '—'}${nuevoRec ? ' hoy' : md ? ` <em>${fDia(md.dia)}</em>` : ''}</b>
       <small>${nuevoRec ? `Superaste tu marca anterior de ${md.n}` : md ? `Hoy llevas ${hoy}${md.n - hoy > 0 ? ` · te faltan ${md.n - hoy + 1} para superarlo` : ''}` : 'Aún sin historial'}</small></div></div>
     <button class="pg-t pg-sem" data-semana><div class="pg-ic wk">${ico('week')}</div><div><span>Esta semana</span><b>${a.n || 0} ${progUni()}</b>
-      <small>${b.n ? `Semana pasada ${b.n}${var_ != null ? ` · ${var_ >= 0 ? '+' : ''}${var_}%` : ''}` : 'Ver resumen'} · meta ${semMeta(p)}</small>
+      <small>${b.n ? `Semana pasada ${b.n}${var_ != null && var_ >= 0 ? ` · +${var_}%` : ''}` : 'Ver resumen'} · meta ${semMeta(p)}</small>
       <div class="pg-bar"><i style="width:${Math.min(100, Math.round((a.n || 0) / semMeta(p) * 100))}%"></i></div></div></button>`;
 }
 function dialogoSemana(enfasisAnterior){
@@ -2112,11 +2147,12 @@ function dialogoSemana(enfasisAnterior){
   const cmp = (x, y, menorMejor) => (x == null || y == null || !y) ? '' : (menorMejor ? x <= y : x >= y) ? `<span class="rt-b ok">${ico('check', 'sm')}Mejor</span>` : `<span class="rt-b mal">Por debajo</span>`;
   const fila = (t, va, vb, c) => `<tr><td>${t}</td><td><b>${va}</b></td><td>${vb}</td><td>${c || ''}</td></tr>`;
   const msg = !b.n ? 'Esta es tu primera semana con resumen. Cada semana podrás comparar tu avance.'
-    : a.n >= b.n ? `Vas por buen camino: ya igualaste o superaste la semana pasada.` : `Te faltan ${b.n - a.n} para igualar la semana pasada y ${Math.max(0, semMeta(p) - a.n)} para tu meta.`;
-  const ant = enfasisAnterior && b.n ? `<div class="alert ok small" style="margin:8px 0">La semana pasada completaste <b>${b.n}</b> solicitudes${b.dias_trab ? ` en ${b.dias_trab} día(s)` : ''}${b.mejor_dia ? `; tu mejor día fue el ${fDia(b.mejor_dia.dia)} con ${b.mejor_dia.n}` : ''}. Meta sugerida para esta semana: <b>${semMeta(p)}</b>.</div>` : '';
+    : a.n >= semMeta(p) ? `Ya cumpliste tu meta de la semana. Excelente trabajo.` : a.n >= b.n ? `Ya igualaste la semana pasada: te faltan ${semMeta(p) - a.n} para tu meta.`
+    : `La semana va en curso: llevas ${a.n} de ${semMeta(p)} para tu meta.`;
+  const ant = enfasisAnterior && b.n ? `<div class="alert ok small" style="margin:8px 0">La semana pasada hiciste <b>${b.n}</b> ${progUni()}${b.dias_trab ? ` en ${b.dias_trab} día(s)` : ''}${b.mejor_dia ? `; tu mejor día fue el ${fDia(b.mejor_dia.dia)} con ${b.mejor_dia.n}` : ''}. Meta sugerida para esta semana: <b>${semMeta(p)}</b>.</div>` : '';
   dialogo(`<h3 style="margin-top:0;display:flex;gap:8px;align-items:center">${ico('week')}Tu semana</h3>${ant}
     <table class="tbl pg-tbl"><tr><th></th><th>Esta semana</th><th>Semana pasada</th><th></th></tr>
-      ${fila(progUni().charAt(0).toUpperCase() + progUni().slice(1), a.n || 0, b.n || 0, cmp(a.n, b.n))}
+      ${fila(progUni().charAt(0).toUpperCase() + progUni().slice(1), a.n || 0, b.n || 0, b.n && a.n >= b.n ? cmp(a.n, b.n) : '')}
       ${fila(`Tiempo promedio de ${paso}`, a.prom != null ? fmtDur(a.prom) : '—', b.prom != null ? fmtDur(b.prom) : '—', cmp(a.prom, b.prom, true))}
       ${fila('Días con bandeja limpia', a.dias_limpia || 0, b.dias_limpia || 0, '')}
       ${fila('Mejor día', a.mejor_dia ? `${a.mejor_dia.n} (${fDia(a.mejor_dia.dia)})` : '—', b.mejor_dia ? `${b.mejor_dia.n} (${fDia(b.mejor_dia.dia)})` : '—', '')}
@@ -2193,6 +2229,7 @@ function pintarTrabajo(){
       ${es('asesor') ? `<button class="mt-b mt-nueva" data-nueva>${ico('plus')}Nueva solicitud</button>` : ''}
       <div class="mt-srch">${ico('search', 'sm')}<input id="mtQ" placeholder="Buscar cliente, código o identidad"></div></div>
     <div class="mt-kpis">${trabajoKpis(d)}</div>
+    ${r === 'verificador' ? '<div id="mtRec"></div>' : ''}
     <div class="mt-prog">${progresoHTML()}</div>
     <div id="mtRes"></div>
     <div class="mt-ritmo mt-ritmo-cel">${ritmoHTML()}</div>
@@ -2203,7 +2240,6 @@ function pintarTrabajo(){
             <div class="mt-meta">${esc(s.codigo)} · ${esc(EST[s.estado]?.t || s.estado)}</div>
             <div class="mt-why"><b>${esc(nombre(u.autor_id))}</b> ${hace(u.creado_en)}: ${esc((u.texto || '').slice(0, 140))}</div></div>
             <div class="mt-acc"><button class="mt-b" data-ma="com" data-id="${s.id}">${ico('chat')}Leer y responder</button></div></div>`; }).join('')}` : ''}
-      ${r === 'verificador' ? '<div id="mtRec"></div>' : ''}
       <div class="mt-sec">${r === 'verificador' ? 'Visitas asignadas' : 'Te toca a ti'} <small>${d.toca.length} solicitud(es)</small></div>
       ${d.toca.length ? d.toca.map(trabajoCard).join('') : coms.length ? `<div class="mt-vacio">${ico('check')}<div><b>Nada más pendiente.</b><div class="muted small">Solo le quedan los comentarios de arriba.</div></div></div>` : celebracionHTML()}
     </div><div class="mt-side">
@@ -2597,8 +2633,9 @@ function recorridoHTML(){
       : e === 'pendiente' ? `<button class="mt-b" data-vp="en_camino" data-vi="${i.item}" data-vs="${s.id}">${ico('nav')}Voy en camino</button>`
       : e === 'en_camino' ? `<button class="mt-b" data-vp="llegada" data-vi="${i.item}" data-vs="${s.id}">${ico('pin')}Llegué</button>`
       : `<button class="mt-b ok" data-rab="${s.id}">${ico('checksq')}Verificar</button>`;
-    return `<div class="rc-p ${e}"><div class="rc-n">${n}</div><div class="rc-tx"><div class="rc-t">${ico(lugIco(i.item), 'sm')}<b>${lugTx(i.item)}</b> · ${esc(s.nombre_cliente)}</div>
-      <div class="small muted">${esc(donde(s, i.item) || (i.item === 'entrega_efectivo' ? 'En la visita al cliente' : 'Sin sector registrado'))} · ${est}</div></div>
+    return `<div class="rc-p ${e}"><div class="rc-n">${n}</div><div class="rc-tx"><div class="rc-t">${ico(lugIco(i.item), 'sm')}<b>${lugTx(i.item)}</b></div>
+      <div class="rc-cli">${esc(s.nombre_cliente)}</div>
+      <div class="small muted">${esc(donde(s, i.item) || (i.item === 'entrega_efectivo' ? 'En la visita al cliente' : 'Sin sector registrado'))}</div><div class="small rc-est">${est}</div></div>
       <div class="mt-acc">${i.item !== 'entrega_efectivo' ? nav(s, i.item) : ''}${acc}</div></div>`;
   };
   const hechas = vh.slice().reverse();
@@ -3405,7 +3442,7 @@ function pintarVerificar(lista, extra){
     <div class="search"><input id="q" placeholder="Buscar por nombre, código, DNI o teléfono" value="${esc(S.q)}"></div>
     <div class="vtool">
       <div class="seg"><button data-vo="antig" class="${S.vOrden==='antig'?'on':''}">Antigüedad</button><button data-vo="cerca" class="${S.vOrden==='cerca'?'on':''}">Cercanía</button><button data-vo="sector" class="${S.vOrden==='sector'?'on':''}">Sector</button></div>
-      <div class="seg"><button data-vv="lista" class="${S.vVista==='lista'?'on':''}">☰ Lista</button><button data-vv="mapa" class="${S.vVista==='mapa'?'on':''}">🗺 Mapa</button></div>
+      <div class="seg" style="white-space:nowrap"><button data-vv="lista" class="${S.vVista==='lista'?'on':''}">${ico('list', 'sm')} Lista</button><button data-vv="mapa" class="${S.vVista==='mapa'?'on':''}">${ico('map', 'sm')} Mapa</button></div>
       <button class="btn sm ghost" id="vYo">📍 ${S.miPos ? 'Actualizar mi ubicación' : 'Mi ubicación'}</button>
       ${es('analista','asesor') ? `<select id="vVerif"><option value="">Todos los verificadores</option><option value="sin" ${S.vVerif==='sin'?'selected':''}>Sin asignar</option>${vs.map(p => `<option value="${p.id}" ${S.vVerif===p.id?'selected':''}>${esc(p.nombre)}</option>`).join('')}</select>` : ''}
     </div>
@@ -4151,7 +4188,7 @@ function accionesHTML(s, c){
     h += `<div class="btns"><button class="btn ghost sm" id="tBack">↩ Regresar a revisadas del asesor</button></div>`;
   }
   if (abierta && !s.en_espera)
-    h += `<div class="btns"><button class="btn ghost sm" data-al="rep" data-sid="${s.id}">📅 Reprogramar seguimiento</button><button class="btn ghost sm" id="ePoner" style="color:var(--gray)">⏸ Poner en espera</button></div>`;
+    h += `<div class="btns" style="margin-bottom:14px"><button class="btn ghost sm" data-al="rep" data-sid="${s.id}">📅 Reprogramar seguimiento</button><button class="btn ghost sm" id="ePoner" style="color:var(--gray)">⏸ Poner en espera</button></div>`;
   if (abierta && es('asesor','analista') && s.estado !== 'desembolso_pendiente')
     h += `<div class="btns"><button class="btn ghost sm" id="aDesistir" style="color:var(--red)">Cliente desistió / cerrar</button></div>`;
   if (puedeRepetir(s))
@@ -4238,7 +4275,7 @@ function verificacionHTML(s, items){
         ${i.lat ? `<a class="small" target="_blank" href="https://maps.google.com/?q=${i.lat},${i.lng}">Ver en el mapa</a>` : ''}</div>
       ${lugar ? vpLinea(i) : ''}
       ${edit && lugar ? `<div class="vp-acc">${vpBoton(s, i)}</div>` : ''}
-      <label class="chk vp-ck${bloq ? ' off' : ''}" ${bloq ? 'title="Primero marque Voy en camino y Llegué"' : ''}><input type="checkbox" ${i.completado?'checked':''} ${edit && !bloq ? '' : 'disabled'} data-ck> ${i.item === 'entrega_efectivo' ? 'Efectivo entregado' : 'Verificado'}${bloq ? ' <span class="small muted">· primero marque Voy en camino y Llegué</span>' : ''}</label>
+      <label class="chk vp-ck${bloq ? ' off' : ''}" ${bloq ? 'title="Primero marque Voy en camino y Llegué"' : ''}><input type="checkbox" ${i.completado?'checked':''} ${edit && !bloq ? '' : 'disabled'} data-ck > ${i.item === 'entrega_efectivo' ? 'Efectivo entregado' : 'Verificado'}</label>${bloq ? '<div class="small muted" style="margin-top:4px">Se habilita después de marcar "Voy en camino" y "Llegué".</div>' : ''}
       ${edit ? `<input data-nota placeholder="Nota" value="${esc(i.nota||'')}" style="margin-top:8px">
         <div class="row" style="margin-top:8px">
           <button class="btn sm ghost" data-gps>${ico('pin', 'sm')}${i.lat ? 'Actualizar GPS' : 'Capturar GPS'}</button>
@@ -7458,6 +7495,7 @@ document.addEventListener('visibilitychange', async () => {
 setInterval(async () => { if (S.me && !document.hidden && $('#sheet').classList.contains('hidden')){ await cargarSolicitudes(); pintarTabs(); pintarSuave(); } }, 60000);
 
 sb.auth.onAuthStateChange(ev => { if (ev === 'SIGNED_OUT') location.reload(); });
+try { vigilarIconos(); } catch(e){ console.error(e); }
 init();
 </script>
 </body>
