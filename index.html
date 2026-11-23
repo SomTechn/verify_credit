@@ -280,6 +280,12 @@ table.ht tbody tr:hover td{background:var(--rb,rgba(24,119,242,.06))}
 table.ht .num{text-align:right;font-variant-numeric:tabular-nums}
 table.ht tfoot td{position:sticky;bottom:0;background:var(--bg);font-weight:700;border-top:2px solid var(--line)}
 table.ht td.cli{max-width:220px;overflow:hidden;text-overflow:ellipsis}
+table.ht th.hsel,table.ht td.hsel{width:34px;padding:7px 4px 7px 10px;text-align:center;cursor:default}
+table.ht .hsel input{width:17px;height:17px;margin:2px 0 0;cursor:pointer;accent-color:var(--brand)}
+table.ht tbody tr.sel td{background:var(--brand2)}
+table.ht tbody tr.ult td{box-shadow:inset 0 2px 0 var(--brand),inset 0 -2px 0 var(--brand)}
+.hsel-bar{display:flex;flex-wrap:wrap;gap:6px 14px;align-items:center;margin:0 0 8px;padding:8px 12px;border:1px solid var(--brand);background:var(--brand2);border-radius:8px;font-size:13px;color:var(--ink)}
+.hsel-bar .spacer{flex:1}
 table.ht td.nota{max-width:220px;overflow:hidden;text-overflow:ellipsis;color:var(--ink2)}
 .hpag{display:flex;gap:8px;align-items:center;justify-content:flex-end;margin-top:8px;font-size:13px}
 .addrow{display:grid;grid-template-columns:1.2fr 1fr auto auto;gap:6px;margin-top:8px}
@@ -834,7 +840,7 @@ header.top .iconbtn svg.ic{width:18px;height:18px;vertical-align:-4px}
 // App disponible sin señal (sw.js debe estar junto a index.html). Va primero para registrarse aunque falle otra cosa.
 if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) navigator.serviceWorker.register('sw.js').catch(() => {});
 // Versión de esta copia de la app: cambia en cada entrega. La app la compara con la publicada y se actualiza sola.
-const APP_VER = '2026-11-23.1400';
+const APP_VER = '2026-11-23.1430';
 // 'admin' = cambio solo para el administrador: los demás usuarios no ven el aviso de versión nueva (se actualiza en silencio)
 // y sus NOVEDADES deben llevar r:['admin']. 'todos' = cambio que ven los usuarios.
 const APP_AVISO = 'todos';
@@ -842,6 +848,11 @@ const APP_AVISO = 'todos';
 // Al publicar cambios: subir APP_VER y agregar aquí una entrada con la misma versión.
 // r = roles que la ven (sin r = todos; el admin ve todo).
 const NOVEDADES = [
+  { v:'2026-11-23.1430', f:'23 de noviembre de 2026', items:[
+    { i:'•', t:'Volver al mismo lugar de la lista',
+      d:'Al abrir una solicitud y regresar, la lista queda donde estaba (incluida la tabla del Historial), y la última que abrió queda marcada con un borde.' },
+    { i:'•', t:'Seleccionar solicitudes en el Historial', r:['admin','analista','asesor'],
+      d:'Cada fila del Historial tiene una casilla para marcarla mientras revisa. Arriba se ve cuántas lleva marcadas y sus montos; puede ver solo las seleccionadas o quitar la selección. Las marcas se guardan en este dispositivo.' } ] },
   { v:'2026-11-23.1400', f:'23 de noviembre de 2026', items:[
     { i:'•', t:'Fotos del contrato más legibles', r:['asesor','analista','verificador'],
       d:'Al subir las fotos del contrato firmado, el acabado "Documento" ahora deja el papel blanco sin tonos amarillos, la letra más oscura y nítida, y respeta los colores (logo, foto de la identidad, firma). Si una hoja no queda bien, toque Ajustar y elija "Original" para dejar la foto tal cual, solo recortada.' } ] },
@@ -3258,15 +3269,19 @@ function rfCambio(p, corte){
 
 // ================== Listas ==================
 // Repintado en segundo plano (tiempo real / cada minuto): no mueve la pantalla ni interrumpe al usuario
+// Vuelve a pintar la pantalla sin perder dónde estaba el usuario (ventana y listas/tablas con scroll propio)
+function pintarConservando(y = window.scrollY){
+  const M = $('#main'), sc = [...M.querySelectorAll('*')].map((e, i) => [i, e.scrollLeft, e.scrollTop]).filter(x => x[1] || x[2]);
+  const h0 = M.offsetHeight; M.style.minHeight = h0 + 'px';
+  const fin = () => { const els = M.querySelectorAll('*'); sc.forEach(([i, l, t]) => { const e = els[i]; if (e){ e.scrollLeft = l; e.scrollTop = t; } }); window.scrollTo(0, y); M.style.minHeight = ''; };
+  const r = pintar(); if (r && typeof r.then === 'function') r.then(fin, fin); else { fin(); requestAnimationFrame(fin); setTimeout(fin, 80); }
+}
 function pintarSuave(){
   if ((S.dlgs || []).some(w => w.isConnected)) return;
   if (document.body.classList.contains('arrastrando-kc')) return;   // no repintar mientras se arrastra una tarjeta
   const a = document.activeElement; if (a && /^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName) && a.id !== 'q') return;
   if (['stats','pagos','params','usuarios','refi','referidos','vercomo','gestor'].includes(S.tab)) return;   // pantallas pesadas: se actualizan al entrar
-  const y = window.scrollY, M = $('#main'), sc = [...M.querySelectorAll('*')].map((e, i) => [i, e.scrollLeft, e.scrollTop]).filter(x => x[1] || x[2]);
-  const h0 = M.offsetHeight; M.style.minHeight = h0 + 'px';
-  const fin = () => { const els = M.querySelectorAll('*'); sc.forEach(([i, l, t]) => { const e = els[i]; if (e){ e.scrollLeft = l; e.scrollTop = t; } }); window.scrollTo(0, y); M.style.minHeight = ''; };
-  const r = pintar(); if (r && typeof r.then === 'function') r.then(fin, fin); else { fin(); requestAnimationFrame(fin); }
+  pintarConservando();
 }
 function pintar(){
   // Si la pestaña actual ya no está disponible para este usuario (p. ej. cambió un permiso), vuelve a la primera
@@ -3797,7 +3812,8 @@ function coincidencias(s){
 async function abrirDetalle(id, keepScroll){
   const s = S.sols.find(x => x.id === id); if (!s) return;
   S.det = id; S.replyTo = null; S.dirty = false;
-  if ($('#sheet').classList.contains('hidden')){ $('#sheet').classList.remove('hidden'); history.pushState({ sheet:1 }, ''); document.body.style.overflow = 'hidden'; }
+  if ($('#sheet').classList.contains('hidden')){ S.yAntesDet = window.scrollY; $('#sheet').classList.remove('hidden'); history.pushState({ sheet:1 }, ''); document.body.style.overflow = 'hidden'; }
+  S.ultDet = id;
   $('#sheetTitle').textContent = s.nombre_cliente; $('#sheetCopy').dataset.cpy = s.nombre_cliente; $('#sheetCopy').innerHTML = ICO_COPIAR; $('#sheetChip').innerHTML = chip(s.estado);
   if (!keepScroll){ $('#sheetBody').innerHTML = '<div class="empty">Cargando…</div>'; $('#sheet').scrollTop = 0; }
   let ing = { error:{ message:'Failed to fetch' } }, items = ing, evs = ing;
@@ -3822,7 +3838,7 @@ function cerrarDetalle(fromPop){
   if ($('#sheet').classList.contains('hidden')) return;
   if (S.dirty && !confirm('Hay datos sin enviar. ¿Salir de todos modos?')){ if (fromPop) history.pushState({ sheet:1 }, ''); return; }
   $('#sheet').classList.add('hidden'); document.body.style.overflow = ''; S.det = null; S.dirty = false;
-  pintarTabs(); pintar();
+  pintarTabs(); pintarConservando(S.yAntesDet ?? window.scrollY); S.yAntesDet = null;
   if (!fromPop) return histBack();
 }
 $('#sheetBack').onclick = () => cerrarDetalle();
@@ -6428,12 +6444,18 @@ function hOrdenar(l){
     const na = va == null || va === '', nb = vb == null || vb === ''; if (na || nb) return na === nb ? 0 : na ? 1 : -1;   // vacíos siempre al final
     return (typeof va === 'number' && typeof vb === 'number' ? va - vb : String(va).localeCompare(String(vb), 'es', { numeric:true })) * dir; });
 }
+// Filas marcadas en el historial (para revisiones): se guardan en este dispositivo
+const hSelKey = () => 'vc_hsel_' + (S.me?.id || '');
+function hSel(){ if (!S.hSel){ try { S.hSel = new Set(JSON.parse(localStorage.getItem(hSelKey()) || '[]')); } catch(e){ S.hSel = new Set(); } } return S.hSel; }
+function hSelGuardar(){ try { localStorage.setItem(hSelKey(), JSON.stringify([...hSel()])); } catch(e){} }
 function pintarHistorial(){
   const R = hRangos();
   if (!S.h) S.h = { base:'cierre', preset:'mes', desde:R.mes[1][0], hasta:R.mes[1][1], estado:'', tipo:'', canal:'', asesor:'', verificador:'', forma:'', origen:'', q:'', sort:'fecha', dir:-1, page:0, size:100 };
-  const f = S.h;
-  const lista = hOrdenar(hFiltrar());
+  const f = S.h, SEL = hSel();
+  const lista = hOrdenar(hFiltrar()).filter(s => !f.soloSel || SEL.has(s.id));
   const cols = H_COLS.filter(c => !c.oculta);
+  const marcadas = S.sols.filter(s => SEL.has(s.id)), mDes = marcadas.filter(s => s.estado === 'desembolsada');
+  const sumSel = k => { const c = H_COLS.find(x => x.k === k); return marcadas.reduce((a, s) => a + (+c.v(s) || 0), 0); };
   const pags = Math.max(1, Math.ceil(lista.length / f.size)); if (f.page >= pags) f.page = pags - 1;
   const vis = lista.slice(f.page * f.size, (f.page + 1) * f.size);
   const sum = k => { const c = H_COLS.find(x => x.k === k); return lista.reduce((a, s) => a + (+c.v(s) || 0), 0); };
@@ -6462,12 +6484,14 @@ function pintarHistorial(){
     <div class="htot"><span><b>${lista.length}</b> solicitud(es)</span><span>Desembolsadas <b>${des.length}</b></span>
       <span>Préstamos <b>${L(des.reduce((a, s) => a + (+(s.monto_solicitado || s.monto_aprobado) || 0), 0))}</b></span>
       <span>Entregado <b>${L(sum('entregado'))}</b></span><span>Capital colocado <b style="color:var(--green)">${L(sum('colocado'))}</b></span>
-      <span class="muted">Clic en un encabezado para ordenar · clic en una fila para abrir</span></div>
-    ${lista.length ? `<div class="tbl-wrap"><table class="ht"><thead><tr>${cols.map(c => `<th data-hs="${c.k}" class="${c.num ? 'num' : ''} ${f.sort === c.k ? 'on' : ''}">${c.t}${f.sort === c.k ? (f.dir > 0 ? ' ▲' : ' ▼') : ''}</th>`).join('')}</tr></thead>
-      <tbody>${vis.map(s => `<tr data-id="${s.id}" style="${rcVars(colorDe(s.estado))}">${cols.map(c => { const v = c.v(s);
+      <span class="muted">Clic en un encabezado para ordenar · clic en una fila para abrir · marque la casilla para seleccionar</span></div>
+    ${SEL.size || f.soloSel ? `<div class="hsel-bar"><b>${SEL.size} seleccionada${SEL.size === 1 ? '' : 's'}</b>${mDes.length ? `<span>Desembolsadas ${mDes.length}</span><span>Entregado <b>${L(sumSel('entregado'))}</b></span><span>Capital <b>${L(sumSel('colocado'))}</b></span>` : ''}
+      <span class="spacer"></span><label class="chk"><input type="checkbox" id="hSolo" ${f.soloSel ? 'checked' : ''}> Ver solo las seleccionadas</label><button class="btn sm ghost" id="hSelNo">Quitar selección</button></div>` : ''}
+    ${lista.length ? `<div class="tbl-wrap"><table class="ht"><thead><tr><th class="hsel" title="Seleccionar las de esta página"><input type="checkbox" id="hSelPag" ${vis.length && vis.every(s => SEL.has(s.id)) ? 'checked' : ''}></th>${cols.map(c => `<th data-hs="${c.k}" class="${c.num ? 'num' : ''} ${f.sort === c.k ? 'on' : ''}">${c.t}${f.sort === c.k ? (f.dir > 0 ? ' ▲' : ' ▼') : ''}</th>`).join('')}</tr></thead>
+      <tbody>${vis.map(s => `<tr data-id="${s.id}" class="${SEL.has(s.id) ? 'sel' : ''}${S.ultDet === s.id ? ' ult' : ''}" style="${rcVars(colorDe(s.estado))}"><td class="hsel"><input type="checkbox" data-hsel="${s.id}" ${SEL.has(s.id) ? 'checked' : ''} aria-label="Seleccionar"></td>${cols.map(c => { const v = c.v(s);
         const cell = c.h ? c.h(s) : c.num ? (v == null ? '—' : L(v)) : (v === '' || v == null ? '—' : esc(v));
         return `<td class="${c.num ? 'num' : ''} ${c.cls || ''}"${c.cls === 'nota' && v ? ` title="${esc(v)}"` : ''}>${cell}</td>`; }).join('')}</tr>`).join('')}</tbody>
-      <tfoot><tr>${cols.map((c, i) => `<td class="${c.num ? 'num' : ''}">${i === 0 ? 'Total' : c.sum ? L(sum(c.k)) : ''}</td>`).join('')}</tr></tfoot></table></div>
+      <tfoot><tr><td class="hsel"></td>${cols.map((c, i) => `<td class="${c.num ? 'num' : ''}">${i === 0 ? 'Total' : c.sum ? L(sum(c.k)) : ''}</td>`).join('')}</tr></tfoot></table></div>
       ${pags > 1 ? `<div class="hpag"><button class="btn sm ghost" data-pg="-1" ${f.page ? '' : 'disabled'}>‹ Anterior</button><span>Página ${f.page + 1} de ${pags} · ${f.size} por página</span><button class="btn sm ghost" data-pg="1" ${f.page < pags - 1 ? '' : 'disabled'}>Siguiente ›</button></div>` : ''}`
       : '<div class="empty">No hay solicitudes con estos filtros.</div>'}`;
   const M = $('#main');
@@ -6482,7 +6506,14 @@ function pintarHistorial(){
   M.querySelectorAll('[data-hs]').forEach(th => th.onclick = () => { const k = th.dataset.hs;
     if (f.sort === k) f.dir = -f.dir; else { f.sort = k; f.dir = H_COLS.find(c => c.k === k).num || k === 'fecha' ? -1 : 1; } f.page = 0; pintarHistorial(); });
   M.querySelectorAll('[data-pg]').forEach(b => b.onclick = () => { f.page += +b.dataset.pg; pintarHistorial(); M.querySelector('.tbl-wrap')?.scrollTo(0, 0); });
-  M.querySelectorAll('tbody tr[data-id]').forEach(tr => tr.onclick = () => abrirDetalle(+tr.dataset.id));
+  M.querySelectorAll('tbody tr[data-id]').forEach(tr => tr.onclick = e => { if (e.target.closest('.hsel')) return; abrirDetalle(+tr.dataset.id); });
+  // Selección: casilla por fila, toda la página, solo seleccionadas y quitar
+  const reSel = () => { hSelGuardar(); pintarConservando(); };
+  M.querySelectorAll('td.hsel').forEach(td => td.onclick = e => { e.stopPropagation(); const cb = td.querySelector('input'); if (cb && e.target !== cb){ cb.checked = !cb.checked; cb.onchange(); } });
+  M.querySelectorAll('[data-hsel]').forEach(cb => cb.onchange = () => { const id = +cb.dataset.hsel; cb.checked ? SEL.add(id) : SEL.delete(id); reSel(); });
+  if ($('#hSelPag')) $('#hSelPag').onchange = e => { vis.forEach(s => e.target.checked ? SEL.add(s.id) : SEL.delete(s.id)); reSel(); };
+  if ($('#hSolo')) $('#hSolo').onchange = e => { f.soloSel = e.target.checked; f.page = 0; pintarHistorial(); };
+  if ($('#hSelNo')) $('#hSelNo').onclick = () => { if (SEL.size > 3 && !confirm(`¿Quitar la selección de ${SEL.size} solicitudes?`)) return; SEL.clear(); f.soloSel = false; reSel(); };
   M.querySelectorAll('[data-org]').forEach(b => b.onclick = e => { e.stopPropagation(); abrirOrigen(S.sols.find(x => x.id === +b.dataset.org), pintarHistorial); });
   M.querySelectorAll('[data-rep]').forEach(b => b.onclick = e => { e.stopPropagation(); repetirSolicitud(S.sols.find(x => x.id === +b.dataset.rep), b); });
   $('#hLimpiar').onclick = () => { S.h = null; pintarHistorial(); };
