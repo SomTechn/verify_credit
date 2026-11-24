@@ -608,7 +608,7 @@ header.top .tabs{display:none!important}
 .botnav .nb{position:absolute;top:0;left:calc(50% + 6px);margin:0}.nb.dot{width:9px;height:9px;padding:0}
 main{padding-bottom:120px}
 .fab{bottom:calc(80px + env(safe-area-inset-bottom));right:14px}
-@media (max-width:1023px){ .fab{width:54px;height:54px;padding:0;border-radius:50%;font-size:0;display:grid;place-items:center;box-shadow:0 6px 16px rgba(10,42,102,.25)} .fab::before{content:'+';font:700 30px/1 Inter,sans-serif;color:var(--accent-ink)}
+@media (max-width:1023px){ .fab{width:54px;height:54px;padding:0;border-radius:50%;font-size:0;display:grid;place-items:center;box-shadow:0 6px 16px rgba(10,42,102,.25)} .fab::before{content:'+';font:700 30px/1 Inter,sans-serif;color:var(--accent-ink)} .fab > *{display:none}
   .mt-kpis{grid-template-columns:repeat(3,1fr);gap:8px} .mt-kpi{padding:9px 10px} .mt-kpi b{font-size:17px} .mt-kpi span{font-size:11.5px} }
 header.top .iconbtn svg.ic{width:18px;height:18px;vertical-align:-4px}
 .mas-l{display:flex;flex-direction:column;gap:2px;margin:6px 0 10px}
@@ -622,7 +622,10 @@ header.top .iconbtn svg.ic{width:18px;height:18px;vertical-align:-4px}
   header.top .row > img, header.top h1, header.top .who, header.top .iconbtn{display:none}
   header.top .row{justify-content:flex-end;min-height:0}
   header.top:not(:has(.netpill:not(.hidden))){display:none}
-  .fab{display:none!important}
+  .fab{right:28px;bottom:24px;display:inline-flex;align-items:center;gap:8px;padding:13px 22px;font:700 15px Inter,sans-serif;box-shadow:0 8px 22px rgba(10,42,102,.28)}
+  .fab .ic{width:20px;height:20px}
+  .fab:hover{filter:brightness(1.05);transform:translateY(-1px)}
+  body:has(#fab:not(.hidden)) main{padding-bottom:110px}
   main{padding:20px 28px 60px;max-width:1320px}
   main.board-wide{max-width:none}
   .sheet{left:236px}
@@ -847,7 +850,7 @@ header.top .iconbtn svg.ic{width:18px;height:18px;vertical-align:-4px}
 // App disponible sin señal (sw.js debe estar junto a index.html). Va primero para registrarse aunque falle otra cosa.
 if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) navigator.serviceWorker.register('sw.js').catch(() => {});
 // Versión de esta copia de la app: cambia en cada entrega. La app la compara con la publicada y se actualiza sola.
-const APP_VER = '2026-11-24.1100';
+const APP_VER = '2026-11-24.1200';
 // 'admin' = cambio solo para el administrador: los demás usuarios no ven el aviso de versión nueva (se actualiza en silencio)
 // y sus NOVEDADES deben llevar r:['admin']. 'todos' = cambio que ven los usuarios.
 const APP_AVISO = 'admin';
@@ -3646,6 +3649,7 @@ function abrirOrigen(s, despues){
 const referidor = s => s.origen_canal === 'referido_empleado'
   ? ((S.empleados || []).find(e => e.id === s.referido_empleado_id)?.nombre || (s.referido_empleado ? nombre(s.referido_empleado) : s.referido_nombre) || '—') : s.referido_nombre || '—';
 const origenTxt = s => !s.origen_canal ? null : CANAL[s.origen_canal] + (esReferido(s.origen_canal) ? ': ' + referidor(s) : s.referido_nombre ? ': ' + s.referido_nombre : '') + (s.origen_asumido ? ' (asumido)' : '');
+$('#fab').innerHTML = `${ico('plus')}<span>Nueva solicitud</span>`; $('#fab').setAttribute('aria-label', 'Nueva solicitud');
 $('#fab').onclick = () => nuevaSolicitudDlg();
 // pre = datos para llenar el formulario (p. ej. desde un prospecto del bot): { nombre, dni, tel, tipo, lead }
 function dialogo(html){
