@@ -847,7 +847,7 @@ header.top .iconbtn svg.ic{width:18px;height:18px;vertical-align:-4px}
 // App disponible sin señal (sw.js debe estar junto a index.html). Va primero para registrarse aunque falle otra cosa.
 if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) navigator.serviceWorker.register('sw.js').catch(() => {});
 // Versión de esta copia de la app: cambia en cada entrega. La app la compara con la publicada y se actualiza sola.
-const APP_VER = '2026-11-23.1915';
+const APP_VER = '2026-11-24.0100';
 // 'admin' = cambio solo para el administrador: los demás usuarios no ven el aviso de versión nueva (se actualiza en silencio)
 // y sus NOVEDADES deben llevar r:['admin']. 'todos' = cambio que ven los usuarios.
 const APP_AVISO = 'todos';
@@ -855,6 +855,11 @@ const APP_AVISO = 'todos';
 // Al publicar cambios: subir APP_VER y agregar aquí una entrada con la misma versión.
 // r = roles que la ven (sin r = todos; el admin ve todo).
 const NOVEDADES = [
+  { v:'2026-11-24.0100', f:'24 de noviembre de 2026', items:[
+    { i:'•', t:'Se desactivó la política tipo B', r:['analista','asesor'],
+      d:'Ya no aparece el botón "Aplicar política tipo B" ni la sugerencia. Un cliente con ingreso menor al mínimo queda como ingresos insuficientes. Las solicitudes que ya tenían tipo B se siguen mostrando igual.' },
+    { i:'•', t:'Nueva regla de tasa preferencial', r:['analista','asesor'],
+      d:'La tasa preferencial ya no aplica a clientes de primer ingreso. En refinanciamientos y reingresos aplica si el cliente tiene al menos 4 meses de antigüedad y como máximo 2 pagos tardíos de hasta 15 días, o 3 pagos tardíos menores a 7 días. Ya no depende del salario. El análisis muestra por qué aplica o no.' } ] },
   { v:'2026-11-23.1915', f:'23 de noviembre de 2026', items:[
     { i:'•', t:'Prospectos en vivo', r:['admin','analista','asesor'],
       d:'La lista de Prospectos se actualiza sola, sin tocar "Actualizar": cuando el bot de WhatsApp recibe un cliente nuevo aparece al momento, marcado como "Recién llegado", y si está en otra pantalla le sale un aviso. Si el teléfono estuvo bloqueado o sin señal, se pone al día solo al volver.' } ] },
@@ -1325,7 +1330,7 @@ function calcular(ingresos, tipoPago, rubro){
   const techo = rubro ? P.techo_rubro_especial : P.techo_regular;
   let limite, motivo;
   if (promedio === 0){ limite = 0; motivo = 'Sin ingresos registrados.'; }
-  else if (promedio < (P.tipob_ingreso_min ?? 10000)){ limite = null; motivo = 'Ingresos insuficientes.'; }
+  else if (promedio < (tipoBActiva() ? (P.tipob_ingreso_min ?? 10000) : P.ingreso_minimo)){ limite = null; motivo = 'Ingresos insuficientes.'; }
   else if (promedio < P.ingreso_minimo){ limite = Math.min(P.tipob_limite ?? 5000, Math.floor(promedio * P.porcentaje_limite / 1000) * 1000);
     motivo = `Cliente tipo B por ingreso: tasa ${+((P.tipob_tasa ?? 0.2) * 100).toFixed(2)}% nivelado, máximo ${L(P.tipob_limite ?? 5000)}, plazo ${P.tipob_plazo ?? 3} meses.`; }
   else {
@@ -1339,9 +1344,11 @@ function calcular(ingresos, tipoPago, rubro){
     if (rubro) aumento = 'NO ELEGIBLE';
     else { const d = new Date(hoyHN()+'T12:00'); d.setMonth(d.getMonth()+3); aumento = fDate(d); }
   }
-  const tipoB = promedio >= (P.tipob_ingreso_min ?? 10000) && promedio < P.ingreso_minimo;
-  return { promedio, limite, motivo, tasaPref: !tipoB && promedio > P.umbral_tasa_preferencial, aumento, tipoB,
-    insuficiente: promedio > 0 && promedio < (P.tipob_ingreso_min ?? 10000), nSal: sal.length, nCom: com.length, promPago: avg(sal), factor };
+  const ingMin = tipoBActiva() ? (P.tipob_ingreso_min ?? 10000) : P.ingreso_minimo;
+  const tipoB = tipoBActiva() && promedio >= (P.tipob_ingreso_min ?? 10000) && promedio < P.ingreso_minimo;
+  // Tasa preferencial: ya no aplica a clientes de primer ingreso (24-nov-2026); en refi/reingreso la calcula calcRefi
+  return { promedio, limite, motivo, tasaPref: false, aumento, tipoB,
+    insuficiente: promedio > 0 && promedio < ingMin, nSal: sal.length, nCom: com.length, promPago: avg(sal), factor };
 }
 
 // ================== Sesión ==================
@@ -3665,6 +3672,8 @@ function pedirTexto(titulo, placeholder, okTxt, cls='pri'){
 // ================== Seguimiento reprogramado y alertas ==================
 const ALERTA_H = () => +S.params.alerta_horas || 48;
 const asesorDesembolsa = () => +S.params.asesor_desembolsa === 1;
+// Política tipo B: desactivada desde el 24-nov-2026 (parámetro tipob_activa = 0). Las solicitudes que ya la tenían se siguen mostrando.
+const tipoBActiva = () => +(S.params.tipob_activa ?? 0) === 1;
 const puedeDesembolsar = () => es('analista') || (rol() === 'asesor' && asesorDesembolsa());
 // Alerta de una solicitud abierta: seguimiento cuya hora ya llegó, o más de N horas desde que se creó sin confirmar.
 // Con un seguimiento programado a futuro no alerta.
@@ -3981,7 +3990,7 @@ function renderDetalle(){
           <div class="small" style="font-weight:600;color:var(--brand)">${autorizadoPor(s, 'ajuste_monto')}</div>${c.limite !== +s.monto_aprobado ? `<div class="small muted">Calculado: ${c.limite == null ? 'Insuficiente' : L(c.limite)}</div>` : ''}</div>`
         : `<div class="box" style="${c.insuficiente && !s.politica_b ?'background:var(--red-bg)':''}"><div class="l">Límite aprobado${s.politica_b || c.tipoB ? ' · tipo B' : ''}</div><div class="v">${s.politica_b || c.tipoB ? L(limNuevo(s, c)) : c.limite == null ? 'Insuficiente' : L(c.limite)}</div></div>`}
         ${c.tipoB || s.politica_b ? `<div class="box" style="background:var(--r-verificacion-bg,#f3e8ff)"><div class="l">Tasa</div><div class="v">🅱️ Tipo B · ${+((S.params.tipob_tasa ?? 0.2) * 100).toFixed(2)}%</div><div class="small muted">nivelado · ${S.params.tipob_plazo ?? 3} meses</div></div>` : ''}
-        <div class="box" ${c.tipoB || s.politica_b ? 'style="display:none"' : ''}><div class="l">Tasa preferencial</div><div class="v">${(s.dictamen_en && s.tasa_preferencial != null ? s.tasa_preferencial : c.tasaPref) ? 'SÍ' : 'NO'}</div>
+        <div class="box" ${c.tipoB || s.politica_b ? 'style="display:none"' : ''}><div class="l">Tasa preferencial</div><div class="v">${(s.dictamen_en && s.tasa_preferencial != null ? s.tasa_preferencial : c.tasaPref) ? 'SÍ' : 'NO'}</div>${!s.dictamen_en ? '<div class="small muted">No aplica a primer ingreso</div>' : ''}
           ${s.dictamen_en && s.tasa_preferencial != null && !!s.tasa_preferencial !== c.tasaPref ? `<div class="small muted">Calculada: ${c.tasaPref ? 'SÍ' : 'NO'}</div>` : ''}</div>
         <div class="box"><div class="l">Próximo aumento</div><div class="v" style="font-size:15px">${c.aumento || 'N/A'}</div></div>
         <div class="box full"><div class="l">Techo aplicado</div><div style="font-weight:600">${c.motivo}</div>
@@ -4201,7 +4210,7 @@ function accionesHTML(s, c){
     if (s.tipo === 'nuevo' && (c.tipoB || s.politica_b) && !s.dictamen_en) c = { ...c, limite: limNuevo(s, c) };
     const refi = s.tipo !== 'nuevo';
     h += `<div class="card"><h4 class="sec" style="margin-top:0">Dictamen</h4>
-      ${c.insuficiente ? `<div class="alert err small">Ingresos por debajo del mínimo (${L(S.params.tipob_ingreso_min ?? 10000)}).</div>` : ''}
+      ${c.insuficiente ? `<div class="alert err small">Ingresos por debajo del mínimo (${L(tipoBActiva() ? (S.params.tipob_ingreso_min ?? 10000) : S.params.ingreso_minimo)}).</div>` : ''}
       ${s.tipo === 'nuevo' ? nuevoBHTML(s, c) : ''}
       ${refi ? `<div id="dSug">${dictamenRefiHTML(calcRefi(s, c))}</div>` : ''}
       <label class="f">Monto aprobado</label><input id="dMonto" inputmode="decimal" value="${s.tipo==='nuevo' ? (limNuevo(s, c) || '') : (calcRefi(s, c).limAprob || '')}" placeholder="L">
@@ -4431,7 +4440,7 @@ function enlazarDetalle(s, c){
       if (tipo === 'aprobada' && !cs.politica_b && ((rf && rf.ingresoB) || (!rf && c.tipoB))) await rpc('actualizar_datos_refi', { p_id: s.id, p_datos: { politica_b: true, plazo_meses: S.params.tipob_plazo ?? 3 } });
       if (tipo === 'aprobada' && rf && rf.dictamen === 'RECHAZADO' && !confirm(`El análisis sugiere RECHAZADO (${rf.motivos.join('; ')}). ¿Aprobar de todos modos?`)) return;
       if (tipo === 'aprobada' && rf && rf.limAprob && num($('#dMonto').value) > rf.limAprob && !confirm(`El monto supera el límite aprobado calculado (${L(rf.limAprob)}). ¿Aprobar de todos modos?`)) return;
-      const snap = rf ? { tipo:'refinanciamiento', ...rf, cuotas: rf.cuotas, promedio: rf.prom } : { tipo:'nuevo', ...c };
+      const snap = rf ? { tipo:'refinanciamiento', ...rf, cuotas: rf.cuotas, promedio: rf.prom } : { tipo:'nuevo', ...c, tasa_preferencial: false };
       await rpc('dictaminar', { p_id: s.id, p_dictamen: tipo, p_nota: $('#dNota').value || null, p_monto: num($('#dMonto').value),
         p_saldo_capital: rf ? (+cs.saldo_capital || 0) : null, p_saldo_intereses: rf ? (+cs.saldo_intereses || 0) : null, p_analisis: snap });
       toast(tipo === 'aprobada' ? 'Aprobada · pasa a revisadas del asesor' : tipo === 'denegada' ? 'Denegada' : 'Devuelta al asesor');
@@ -4828,9 +4837,10 @@ function calcRefi(s, c){
   // Política tipo B: 20% nivelado, máx. L 5,000, plazo 3 meses. Entra automático si el ingreso está entre L 10,000 y el mínimo normal (13,000);
   // por pagos tardíos sin mucha mora lo decide el analista
   const B = { tasa: P.tipob_tasa ?? 0.20, limite: P.tipob_limite ?? 5000, minT: P.tipob_min_tardios ?? 3, maxD: P.tipob_max_dias ?? 15, plazo: P.tipob_plazo ?? 3, ingMin: P.tipob_ingreso_min ?? 10000 };
-  const ingresoB = prom >= B.ingMin && prom < (P.ingreso_minimo ?? 13000), ingresoBajo = prom > 0 && prom < B.ingMin;
+  const bOn = tipoBActiva();
+  const ingresoB = bOn && prom >= B.ingMin && prom < (P.ingreso_minimo ?? 13000), ingresoBajo = prom > 0 && prom < (bOn ? B.ingMin : (P.ingreso_minimo ?? 13000));
   const politicaB = !!s.politica_b || ingresoB;
-  const sugB = s.tipo !== 'nuevo' && tard3 >= B.minT && maxDif <= B.maxD && !bloq45;
+  const sugB = bOn && s.tipo !== 'nuevo' && tard3 >= B.minT && maxDif <= B.maxD && !bloq45;
   const limB = Math.min(B.limite, mround(sugerido, 1000) || B.limite);
   const limCalc = politicaB ? limB : bloqueado ? 0 : limPen;
   const penTxt = politicaB ? `política tipo B: máximo ${L(B.limite)}` : manual ? 'manual' : bloq45 ? `bloqueado: pago con ${maxDif} días de atraso (desde ${bloqDias})` : bloqMin ? `bloqueado: −${(tard3 - 2) * 10}% deja ${L(limPen)}, menor a ${L(limMin)}` : tard3 >= 3 ? `−${(tard3 - 2) * 10}% sobre límite actual ${L(baseMantiene)}` : tard3 === 2 ? `2 tardíos: mantiene límite actual ${L(baseMantiene)}` : tard3 === 1 ? '1 tardío: se deja pasar, sin efecto' : 'sin pagos tardíos';
@@ -4839,13 +4849,20 @@ function calcRefi(s, c){
   const limAprob = autorizado ? +s.monto_aprobado : limCalc;
   const elegido = autorizado && s.monto_solicitado ? +s.monto_solicitado : null;
   const disponible = (elegido ?? limAprob) - (+s.saldo_capital || 0) - (+s.saldo_intereses || 0);
-  // Si ya tiene tasa preferencial (10.5% nivelado o menos / 16% solo interés) la conserva sin importar el salario,
-  // salvo que tenga más de 2 pagos tardíos
+  // Tasa preferencial (regla del 24-nov-2026): solo refinanciamiento/reingreso, con al menos 4 meses de antigüedad
+  // y como máximo 2 pagos tardíos de hasta 15 días, o 3 pagos tardíos todos menores a 7 días.
+  // Pago tardío = más de 3 días de atraso; cualquier atraso mayor a 15 días la quita. Ya no depende del salario.
   const ta = s.tasa_actual != null && s.tasa_actual !== '' ? +s.tasa_actual : null;
   const yaPref = ta != null && (ta <= 0.105 + 1e-9 || Math.abs(ta - 0.16) < 1e-9);
-  const prefNueva = tard3 < 3 && tard7 === 0 && prom > (P.umbral_tasa_preferencial || 20000) && antig != null && antig > 120;
-  const prefCalc = yaPref ? tard3 <= 2 : prefNueva;
-  const prefMotivo = yaPref ? (tard3 <= 2 ? 'Mantiene la preferencial que ya tenía' : `Pierde la preferencial: ${tard3} pagos tardíos (máx. 2)`) : '';
+  const tardList = pagos.filter(p => p.dif > 3), tMen7 = tardList.filter(p => p.dif < 7).length, tMas15 = tardList.filter(p => p.dif > 15).length;
+  const meses4 = (() => { if (!s.fecha_ingreso) return false; const d = new Date(s.fecha_ingreso + 'T12:00'); d.setMonth(d.getMonth() + 4); return d <= new Date(hoy + 'T12:00'); })();
+  const prefTard = tMas15 === 0 && (tardList.length <= 2 || (tardList.length === 3 && tMen7 === 3));
+  const prefCalc = s.tipo !== 'nuevo' && meses4 && prefTard;
+  const prefMotivo = !s.fecha_ingreso ? 'Sin fecha de ingreso: no se puede calcular la preferencial'
+    : !meses4 ? 'No aplica preferencial: menos de 4 meses de antigüedad'
+    : tMas15 ? `No aplica preferencial: ${tMas15} pago${tMas15 > 1 ? 's' : ''} con más de 15 días de atraso`
+    : !prefTard ? `No aplica preferencial: ${tardList.length} pagos tardíos (máx. 2 de hasta 15 días, o 3 menores a 7 días)`
+    : `Aplica preferencial: 4+ meses y ${tardList.length ? tardList.length + ' pago' + (tardList.length > 1 ? 's' : '') + ' tardío' + (tardList.length > 1 ? 's' : '') + ' dentro del límite' : 'sin pagos tardíos'}`;
   // Después del dictamen manda lo que quedó autorizado (puede haberse ajustado manualmente)
   const pref = politicaB ? false : s.dictamen_en && s.tasa_preferencial != null ? !!s.tasa_preferencial : prefCalc;
   const T = tasasSol(s, pref, politicaB ? B : null), tasaNiv = T.n, tasaSI = T.si, tMan = T.man;
@@ -4855,7 +4872,7 @@ function calcRefi(s, c){
   const qsi = limAprob * tasaSI; if (!politicaB) cuotas.push({ plazo: 'Solo interés', cuota: qsi, pct: prom ? qsi / prom : null });
   const motivos = [];
   // Con política tipo B el analista asume el caso: no se rechaza por ingreso bajo ni por atraso de 45+ días
-  if (ingresoBajo && !politicaB) motivos.push(`ingreso menor a ${L(B.ingMin)}`);
+  if (ingresoBajo && !politicaB) motivos.push(`ingreso menor a ${L(bOn ? B.ingMin : (P.ingreso_minimo ?? 13000))}`);
   if (bloq45 && !politicaB) motivos.push(`pago con ${maxDif} días de atraso (bloqueo desde ${bloqDias})`);
   else if (bloqMin && !politicaB) motivos.push(`límite reducido a ${L(limPen)}, menor a ${L(limMin)}`);
   if (politicaB && autorizado && +s.monto_aprobado > B.limite) motivos.push(`monto mayor al máximo tipo B (${L(B.limite)})`);
@@ -5141,6 +5158,7 @@ function nuevoBHTML(s, c){
   if (c.tipoB) return `<div class="alert small" style="${lila}">🅱️ <b>Cliente tipo B por ingreso:</b> ${cond}.</div>`;
   if (s.politica_b) return `<div class="alert small" style="${lila}">🅱️ <b>Política tipo B aplicada por el analista:</b> ${cond}.
     <div class="btns" style="margin-top:6px"><button class="btn sm ghost" id="nbQuitar">Quitar política tipo B</button></div></div>`;
+  if (!tipoBActiva()) return '';
   return `<div class="alert small" style="background:var(--gray-bg);border:1px dashed var(--line)">🅱️ <b>Política tipo B</b> (decisión del analista, aunque no cumpla los parámetros) — ${cond}.
     <div class="btns" style="margin-top:6px"><button class="btn sm ghost" id="nbAplicar">Aplicar política tipo B</button></div></div>`;
 }
@@ -5150,7 +5168,7 @@ function politicaBHTML(s, r){
   if (r.politicaB) return `<div class="alert small" style="background:var(--r-verificacion-bg,#f3e8ff);border:1.5px solid var(--r-verificacion,#7c3aed);margin-top:10px">
       <b>🅱️ ${r.ingresoB ? `Cliente tipo B por ingreso (${L(r.B.ingMin)} a ${L((S.params.ingreso_minimo ?? 13000) - 0.01)})` : 'Política tipo B aplicada'}</b> · ${cond}<br>Límite tipo B: <b>${L(r.limB)}</b>
       ${puede && !r.ingresoB ? `<div class="row" style="margin-top:8px;gap:6px;flex-wrap:wrap"><button class="btn sm ghost" id="bQuitar">Quitar política tipo B</button></div>` : ''}</div>`;
-  if (!r.sugB) return puede && s.tipo !== 'nuevo' ? `<div class="alert small" style="margin-top:10px;background:var(--gray-bg);border:1px dashed var(--line)"><b>🅱️ Política tipo B</b> (decisión del analista) — ${cond}. Quedaría en <b>${L(r.limB)}</b>${r.limCalc ? ` en lugar de ${L(r.limCalc)}` : ' en lugar de bloqueado'}.${r.maxDif >= (S.params.bloqueo_dias_atraso ?? 45) ? `<br><span style="color:var(--red)">Ojo: tiene un pago con ${r.maxDif} días de atraso. Si aplica tipo B, queda bajo su responsabilidad.</span>` : ''}
+  if (!r.sugB) return puede && s.tipo !== 'nuevo' && tipoBActiva() ? `<div class="alert small" style="margin-top:10px;background:var(--gray-bg);border:1px dashed var(--line)"><b>🅱️ Política tipo B</b> (decisión del analista) — ${cond}. Quedaría en <b>${L(r.limB)}</b>${r.limCalc ? ` en lugar de ${L(r.limCalc)}` : ' en lugar de bloqueado'}.${r.maxDif >= (S.params.bloqueo_dias_atraso ?? 45) ? `<br><span style="color:var(--red)">Ojo: tiene un pago con ${r.maxDif} días de atraso. Si aplica tipo B, queda bajo su responsabilidad.</span>` : ''}
       <div class="btns" style="margin-top:8px"><button class="btn sm ghost" id="bAplicar">Aplicar política tipo B</button></div></div>` : '';
   return `<div class="alert info small" style="margin-top:10px"><b>💡 Sugerencia: cliente tipo B</b> — ${r.tard3} pagos tardíos y ningún atraso mayor a ${r.B.maxD} días (máximo ${r.maxDif} días).<br>
       Con la política tipo B: ${cond}. Quedaría en <b>${L(r.limB)}</b> en lugar de ${r.limCalc ? L(r.limCalc) : 'bloqueado'}.
