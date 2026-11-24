@@ -847,10 +847,10 @@ header.top .iconbtn svg.ic{width:18px;height:18px;vertical-align:-4px}
 // App disponible sin señal (sw.js debe estar junto a index.html). Va primero para registrarse aunque falle otra cosa.
 if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) navigator.serviceWorker.register('sw.js').catch(() => {});
 // Versión de esta copia de la app: cambia en cada entrega. La app la compara con la publicada y se actualiza sola.
-const APP_VER = '2026-11-24.0100';
+const APP_VER = '2026-11-24.1100';
 // 'admin' = cambio solo para el administrador: los demás usuarios no ven el aviso de versión nueva (se actualiza en silencio)
 // y sus NOVEDADES deben llevar r:['admin']. 'todos' = cambio que ven los usuarios.
-const APP_AVISO = 'todos';
+const APP_AVISO = 'admin';
 // Novedades que ve cada usuario al abrir una versión nueva (la más reciente primero).
 // Al publicar cambios: subir APP_VER y agregar aquí una entrada con la misma versión.
 // r = roles que la ven (sin r = todos; el admin ve todo).
@@ -1793,7 +1793,7 @@ function pintarTabs(){
   }).join('');
   $('#tabs').scrollLeft = sx;
   $('#tabs').querySelectorAll('button').forEach(b => b.onclick = () => { S.tab = b.dataset.k; S.q=''; pintarTabs(); pintar(); window.scrollTo(0,0); });
-  $('#fab').classList.toggle('hidden', !(es('asesor') && ['tablero','solicitudes','revisadas','proceso'].includes(S.tab)));
+  $('#fab').classList.toggle('hidden', !(es('asesor') && ['tablero','trabajo','solicitudes','revisadas','proceso'].includes(S.tab)));
   pintarNav();
 }
 
@@ -2257,7 +2257,6 @@ function pintarTrabajo(){
   const titulo = r === 'analista' && !gerenteAct() ? 'Mi trabajo · análisis y transferencias' : r === 'verificador' ? 'Mis visitas' : 'Mi trabajo de hoy';
   const fecha = new Date().toLocaleDateString('es-HN', { timeZone:TZ, weekday:'long', day:'numeric', month:'long' });
   $('#main').innerHTML = `<div class="mt-hdr"><div><h2>${titulo}</h2><div class="muted small">${fecha.charAt(0).toUpperCase() + fecha.slice(1)} · lo más urgente aparece primero</div></div>
-      ${es('asesor') ? `<button class="mt-b mt-nueva" data-nueva>${ico('plus')}Nueva solicitud</button>` : ''}
       <div class="mt-srch">${ico('search', 'sm')}<input id="mtQ" placeholder="Buscar cliente, código o identidad"></div></div>
     <div class="mt-kpis">${trabajoKpis(d)}</div>
     ${r === 'verificador' ? '<div id="mtRec"></div>' : ''}
