@@ -780,6 +780,13 @@ header.top .iconbtn svg.ic{width:18px;height:18px;vertical-align:-4px}
 .rc-hh{display:flex;gap:8px;align-items:center;font-size:13px;padding:5px 0;border-bottom:1px solid var(--line);color:var(--ink2)}.rc-hh svg.ic{width:15px;height:15px;color:var(--green)}
 .mt-b.ok{background:var(--green);color:#fff}
 @media (max-width:520px){ .rc-p{flex-wrap:wrap} .rc-p .mt-acc{width:100%;justify-content:flex-end} }
+.pb-vivo{flex:none;display:inline-flex;gap:6px;align-items:center;font-size:12px;font-weight:700;color:var(--green);padding:0 4px}
+.pb-vivo i{width:8px;height:8px;border-radius:50%;background:var(--green);box-shadow:0 0 0 0 rgba(22,163,74,.5);animation:pbPulso 2s infinite}
+@keyframes pbPulso{0%{box-shadow:0 0 0 0 rgba(22,163,74,.5)}70%{box-shadow:0 0 0 7px rgba(22,163,74,0)}100%{box-shadow:0 0 0 0 rgba(22,163,74,0)}}
+@media (prefers-reduced-motion: reduce){ .pb-vivo i{animation:none} }
+.pb-vivo.off{color:var(--muted)}.pb-vivo.off i{background:var(--muted);animation:none}
+@media (max-width:520px){ .pb-rt{display:none} }
+.card.pb-new{border-color:var(--brand);box-shadow:0 0 0 2px var(--brand2)}
 </style>
 </head>
 <body>
@@ -840,7 +847,7 @@ header.top .iconbtn svg.ic{width:18px;height:18px;vertical-align:-4px}
 // App disponible sin señal (sw.js debe estar junto a index.html). Va primero para registrarse aunque falle otra cosa.
 if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) navigator.serviceWorker.register('sw.js').catch(() => {});
 // Versión de esta copia de la app: cambia en cada entrega. La app la compara con la publicada y se actualiza sola.
-const APP_VER = '2026-11-23.1430';
+const APP_VER = '2026-11-23.1915';
 // 'admin' = cambio solo para el administrador: los demás usuarios no ven el aviso de versión nueva (se actualiza en silencio)
 // y sus NOVEDADES deben llevar r:['admin']. 'todos' = cambio que ven los usuarios.
 const APP_AVISO = 'todos';
@@ -848,6 +855,9 @@ const APP_AVISO = 'todos';
 // Al publicar cambios: subir APP_VER y agregar aquí una entrada con la misma versión.
 // r = roles que la ven (sin r = todos; el admin ve todo).
 const NOVEDADES = [
+  { v:'2026-11-23.1915', f:'23 de noviembre de 2026', items:[
+    { i:'•', t:'Prospectos en vivo', r:['admin','analista','asesor'],
+      d:'La lista de Prospectos se actualiza sola, sin tocar "Actualizar": cuando el bot de WhatsApp recibe un cliente nuevo aparece al momento, marcado como "Recién llegado", y si está en otra pantalla le sale un aviso. Si el teléfono estuvo bloqueado o sin señal, se pone al día solo al volver.' } ] },
   { v:'2026-11-23.1430', f:'23 de noviembre de 2026', items:[
     { i:'•', t:'Volver al mismo lugar de la lista',
       d:'Al abrir una solicitud y regresar, la lista queda donde estaba (incluida la tabla del Historial), y la última que abrió queda marcada con un borde.' },
@@ -7297,26 +7307,46 @@ function pintarParams(){
 
 // ================== Prospectos del bot de WhatsApp (tabla bot_leads) ==================
 // El bot (BuilderBot) guarda aquí a cada cliente que completa sus datos. El asesor lo contacta y crea la solicitud.
-const PB = { lista:[], cargado:false, cargando:false, error:null, filtro:'nuevo', q:'' };
+const PB = { lista:[], cargado:false, cargando:false, error:null, filtro:'nuevo', q:'', nuevos:new Set() };
 const PB_EST = { nuevo:['Por atender','c-blue'], contactado:['Contactado','c-amber'], convertido:['Con solicitud','c-green'], descartado:['Descartado','c-gray'] };
 const PB_RES = { califica:['✅ Precalifica','c-green'], tipo_b:['🅱️ Tipo B','c-amber'], no_califica:['⛔ No califica','c-red'], en_proceso:['⏳ Ya tiene solicitud abierta','c-violet'],
   refi_disponible:['✅ Refi disponible','c-green'], refi_revisar:['🔎 Refi por revisar','c-amber'] };
 const pbVe = () => es('asesor', 'analista');
 const pbTel8 = t => String(t || '').replace(/\D/g, '').slice(-8);
 async function pbCargar(){
-  if (!S.me || !pbVe() || PB.cargando) return;
+  if (!S.me || !pbVe()) return;
+  if (PB.cargando){ PB.otraVez = true; return; }   // llegó un cambio mientras cargaba: se vuelve a cargar al terminar
   PB.cargando = true;
   try {
     const { data, error } = await sb.from('bot_leads').select('*').order('creado_en', { ascending:false }).limit(400);
     if (error) throw error;
-    PB.lista = data || []; PB.cargado = true; PB.error = null;
+    const antes = new Set(PB.lista.map(x => x.id));
+    PB.lista = data || []; PB.error = null; PB.at = Date.now();
+    if (PB.cargado) PB.lista.filter(x => !antes.has(x.id)).forEach(x => { PB.nuevos.add(x.id); setTimeout(() => PB.nuevos.delete(x.id), 120000); });
+    PB.cargado = true;
   } catch(e){ PB.error = esRed(e) ? 'Sin señal: los prospectos se cargan al volver la conexión.' : errMsg(e); }
   finally { PB.cargando = false; }
   pintarTabs();
-  if (S.tab === 'prospectos' && !(S.dlgs || []).some(w => w.isConnected) && document.activeElement?.id !== 'pbQ') pintarProspectos();
+  pbRepintar();
+  if (PB.otraVez){ PB.otraVez = false; pbCambio(); }
+}
+// Repinta la lista sin perder el lugar; si hay una ventana abierta o se está escribiendo en la búsqueda, espera
+function pbRepintar(){
+  if (S.tab !== 'prospectos' || !$('#sheet').classList.contains('hidden')) return;
+  if ((S.dlgs || []).some(w => w.isConnected) || document.activeElement?.id === 'pbQ'){ PB.pendPintar = true; return; }
+  PB.pendPintar = false; pintarConservando();
 }
 let pbT = null;
-function pbCambio(){ clearTimeout(pbT); pbT = setTimeout(pbCargar, 500); }
+function pbCambio(p){
+  // Aviso al entrar un prospecto nuevo del bot
+  if (p?.eventType === 'INSERT' && pbVe() && p.new){ const n = p.new.nombre || p.new.telefono || 'cliente';
+    if (S.tab !== 'prospectos') toast('Nuevo prospecto de WhatsApp: ' + n); }
+  clearTimeout(pbT); pbT = setTimeout(pbCargar, 400);
+}
+// Respaldo: si la conexión en vivo se cortó (teléfono bloqueado, sin señal), se revisa solo cada cierto tiempo
+setInterval(() => { if (!S.me || document.hidden || !pbVe()) return;
+  if (PB.pendPintar) pbRepintar();
+  if (S.tab === 'prospectos' ? Date.now() - (PB.at || 0) > 30000 : Date.now() - (PB.at || 0) > 120000) pbCargar(); }, 10000);
 async function pbActualizar(id, cambios, sinPintar){
   if (S.verComo) throw new Error('👁 Vista del verificador: solo consulta, no se guardan cambios');
   if (!navigator.onLine) throw new Error('Sin conexión: esta acción necesita señal');
@@ -7349,8 +7379,8 @@ function pbCard(p){
       ${puede && p.estado === 'nuevo' ? `<button class="btn sm ghost" data-pb="contactado" data-id="${p.id}">✔ Ya lo contacté</button>` : ''}
       ${puede && es('asesor') ? `<button class="btn sm pri" data-pb="crear" data-id="${p.id}">➕ Crear solicitud</button>` : ''}
       ${puede ? `<button class="btn sm ghost" data-pb="descartar" data-id="${p.id}" style="color:var(--red)">Descartar</button>` : ''}`;
-  return `<div class="card pb${p.estado === 'descartado' ? ' off' : ''}">
-    <div class="name-row"><div class="name">${esc(p.nombre || 'Sin nombre')}</div>${cpyBtn(p.nombre)}</div>
+  return `<div class="card pb${p.estado === 'descartado' ? ' off' : ''}${PB.nuevos.has(p.id) ? ' pb-new' : ''}">
+    <div class="name-row"><div class="name">${esc(p.nombre || 'Sin nombre')}</div>${cpyBtn(p.nombre)}${PB.nuevos.has(p.id) ? '<span class="chip c-blue" style="margin-left:auto">Recién llegado</span>' : ''}</div>
     <div class="sub pb-sub">${tipoChip(p.tipo)}${res ? `<span class="chip ${res[1]}">${res[0]}</span>` : ''}<span class="chip ${est[1]}">${est[0]}</span>${x.prueba === 'si' ? '<span class="chip c-gray">PRUEBA</span>' : ''}<span>🕒 ${hace(p.creado_en)}</span><span>${esc(p.canal || '')}</span></div>
     ${p.tipo === 'nuevo' && p.monto_estimado ? `<div class="pb-monto">Estimado del bot: <b>${L(p.monto_estimado)}</b> <span>· se confirma con el análisis de ingresos</span></div>` : ''}
     <div class="pb-grid">
@@ -7381,7 +7411,7 @@ function pintarProspectos(){
   const q = PB.q.trim().toLowerCase(), qd = q.replace(/\D/g, '');
   if (q) lista = lista.filter(p => [p.nombre, p.empresa, p.sector, p.ciudad].some(v => (v || '').toLowerCase().includes(q)) || (qd.length >= 3 && [p.dni, p.telefono].some(v => String(v || '').replace(/\D/g, '').includes(qd))));
   $('#main').innerHTML = `
-    <div class="search"><input id="pbQ" placeholder="Buscar por nombre, identidad, teléfono o empresa" value="${esc(PB.q)}"><button class="btn ghost sm" id="pbRec" style="flex:none">↻ Actualizar</button></div>
+    <div class="search"><input id="pbQ" placeholder="Buscar por nombre, identidad, teléfono o empresa" value="${esc(PB.q)}">${navigator.onLine && !S.rtCaido ? '<span class="pb-vivo" title="La lista se actualiza sola cuando el bot recibe o cambia un prospecto"><i></i>En vivo</span>' : '<span class="pb-vivo off" title="Sin conexión en vivo: se actualiza al volver la señal"><i></i>Sin conexión</span>'}<button class="btn ghost sm" id="pbRec" style="flex:none" title="Actualizar">↻<span class="pb-rt"> Actualizar</span></button></div>
     <div class="filters">${fs.map(([k, t]) => `<button data-pf="${k}" class="${PB.filtro === k ? 'on' : ''}">${t}${k !== 'todos' && cnt(k) ? ' · ' + cnt(k) : ''}</button>`).join('')}</div>
     <div class="alert info small">Clientes que dieron sus datos al bot de WhatsApp. Las fotos de la identidad y los comprobantes están en el chat de WhatsApp. El monto estimado es solo una guía: se confirma con el análisis.</div>
     ${PB.error ? `<div class="alert warn small">${esc(PB.error)}</div>` : ''}
@@ -7431,13 +7461,16 @@ function suscribir(){
     .on('postgres_changes', { event:'INSERT', schema:'public', table:'celebraciones' }, p => celebrarMeta(p.new))
     .on('postgres_changes', { event:'*', schema:'public', table:'refi_clientes' }, p => rfCambio(p))
     .on('postgres_changes', { event:'*', schema:'public', table:'refi_cortes' }, p => rfCambio(p, true))
-    .on('postgres_changes', { event:'*', schema:'public', table:'bot_leads' }, () => pbCambio())
+    .on('postgres_changes', { event:'*', schema:'public', table:'bot_leads' }, p => pbCambio(p))
     .on('postgres_changes', { event:'*', schema:'public', table:'comentario_likes' }, () => { if (S.det) cargarComentarios(); })
     .on('postgres_changes', { event:'*', schema:'public', table:'ingresos' }, p => {
       const sid = p.new?.solicitud_id || p.old?.solicitud_id;
       if (S.det && sid === S.det && !S.dirty) recargarIngresos();
     })
-    .subscribe(st => { if (st === 'CHANNEL_ERROR' || st === 'TIMED_OUT') setTimeout(suscribir, 5000); });
+    .subscribe(st => {
+      if (st === 'CHANNEL_ERROR' || st === 'TIMED_OUT' || st === 'CLOSED'){ S.rtCaido = true; if (st !== 'CLOSED') setTimeout(suscribir, 5000); }
+      else if (st === 'SUBSCRIBED' && S.rtCaido){ S.rtCaido = false; recargarTodo(); }
+    });
 }
 function programarRecarga(p){
   clearTimeout(tRe);
@@ -7554,7 +7587,7 @@ function iniciarMotivacion(){
   prog();
 }
 document.addEventListener('visibilitychange', async () => {
-  if (!document.hidden && S.me){ revisarMeta(); await cargarSolicitudes(); pintarTabs(); if ($('#sheet').classList.contains('hidden')) pintarSuave(); }
+  if (!document.hidden && S.me){ revisarMeta(); pbCambio(); await cargarSolicitudes(); pintarTabs(); if ($('#sheet').classList.contains('hidden')) pintarSuave(); }
 });
 setInterval(async () => { if (S.me && !document.hidden && $('#sheet').classList.contains('hidden')){ await cargarSolicitudes(); pintarTabs(); pintarSuave(); } }, 60000);
 
