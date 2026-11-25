@@ -149,6 +149,17 @@ label.f{display:block;font-size:12px;color:var(--ink2);margin:10px 0 4px;font-we
 .filters{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}
 .filters button{flex:none;border:1px solid var(--line);background:var(--card);border-radius:999px;padding:5px 11px;font-size:13px}
 .filters button.on{background:var(--brand);border-color:var(--brand);color:#fff}
+/* Coincidencias */
+.coin{margin-top:10px;border:1px solid var(--line);border-radius:12px;padding:10px;background:var(--card)}
+.coin-h{font:700 12.5px Inter,sans-serif;text-transform:uppercase;letter-spacing:.5px;color:var(--ink2);margin:0 0 8px}
+.coin-it{display:block;width:100%;text-align:left;font:inherit;color:var(--ink);border:0;border-left:4px solid var(--amber);background:var(--amber-bg);border-radius:8px;padding:8px 10px;margin-top:6px}
+.coin-it:first-of-type{margin-top:0}button.coin-it{cursor:pointer}button.coin-it:hover{filter:brightness(.97)}
+.coin-it.rojo{border-left-color:var(--red);background:var(--red-bg)}.coin-it.verde{border-left-color:var(--green);background:var(--green-bg)}
+.coin-l1{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:13.5px}
+.coin-e{font-weight:700;font-size:12.5px}.coin-it.rojo .coin-e{color:var(--red)}.coin-it.verde .coin-e{color:var(--green)}.coin-it.amar .coin-e{color:var(--amber)}
+.coin-f{color:var(--ink2);font-size:12.5px}.coin-ir{margin-left:auto;color:var(--ink2);display:flex}.coin-ir .ic{width:16px;height:16px}
+.coin-nm{font-size:13px;color:var(--ink2);margin-top:2px}.coin-n{font-size:13.5px;margin-top:3px;overflow-wrap:anywhere}.coin-n>span{font-weight:650}
+.coin-s{font-size:12px;color:var(--ink2);margin-top:3px}
 /* Historial de notificaciones (admin) */
 .nh-top{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:8px}.nh-top select{flex:1 1 220px;max-width:340px;margin:0}
 .nh-res{font-size:13px;color:var(--ink2);margin:2px 0 10px}
@@ -870,14 +881,17 @@ body.nav-min .sn-vt span{display:none}
 // App disponible sin señal (sw.js debe estar junto a index.html). Va primero para registrarse aunque falle otra cosa.
 if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) navigator.serviceWorker.register('sw.js').catch(() => {});
 // Versión de esta copia de la app: cambia en cada entrega. La app la compara con la publicada y se actualiza sola.
-const APP_VER = '2026-11-25.0930';
+const APP_VER = '2026-11-25.0945';
 // 'admin' = cambio solo para el administrador: los demás usuarios no ven el aviso de versión nueva (se actualiza en silencio)
 // y sus NOVEDADES deben llevar r:['admin']. 'todos' = cambio que ven los usuarios.
-const APP_AVISO = 'admin';
+const APP_AVISO = 'todos';
 // Novedades que ve cada usuario al abrir una versión nueva (la más reciente primero).
 // Al publicar cambios: subir APP_VER y agregar aquí una entrada con la misma versión.
 // r = roles que la ven (sin r = todos; el admin ve todo).
 const NOVEDADES = [
+  { v:'2026-11-25.0945', f:'25 de noviembre de 2026', items:[
+    { i:'•', t:'Coincidencias más claras', r:['admin','analista','asesor'],
+      d:'En el detalle de una solicitud, cada coincidencia (mismo cliente en otra solicitud) sale en rojo si fue denegada, rechazada o desistida, en verde si se desembolsó y en amarillo si sigue en proceso, con el motivo o la nota de cómo terminó. Tóquela para abrir esa solicitud; con la flecha de regresar vuelve a la que estaba viendo.' } ] },
   { v:'2026-11-25.0930', f:'25 de noviembre de 2026', items:[
     { i:'•', t:'Historial de notificaciones enviadas', r:['admin'],
       d:'Nueva pestaña "Notificaciones" (en Más): muestra cada notificación que la app envió, con la fecha y hora exactas, a quién se le envió y si le llegó o no (por ejemplo, si la persona no tiene las notificaciones activas). Se puede filtrar por persona y por tipo, y al tocar una notificación de una solicitud se abre esa solicitud. El historial empieza hoy; los avisos anteriores no se guardaban.' } ] },
@@ -3994,26 +4008,46 @@ function pedirEspera(titulo){
 
 // ================== Coincidencias ==================
 const norm = s => (s||'').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase().replace(/\s+/g,' ').trim();
-function coincidencias(s){
+// Cada coincidencia muestra el estado en color (rojo = denegada, rechazada o desistida; verde = desembolsada; amarillo = en proceso)
+// y la nota que explica cómo terminó, para decidir rápido si se puede procesar. En el detalle se puede tocar para abrirla.
+function coinNota(o){
+  if (o.estado === 'denegada') return ['Motivo de la denegación', o.dictamen_nota];
+  if (o.estado === 'desistida') return ['Motivo', o.motivo_cierre];
+  if (o.estado === 'rechazada_verificacion') return ['Motivo del rechazo', o.verificacion_nota || o.motivo_cierre];
+  if (o.estado === 'desembolsada') return ['Desembolsada', [o.desembolsado_en ? fDate(o.desembolsado_en) : '', o.monto_aprobado ? L(o.monto_aprobado) : '', o.dictamen_nota].filter(Boolean).join(' · ')];
+  if (o.en_espera) return ['En espera', o.espera_motivo];
+  if (o.estado === 'aprobada' && o.dictamen_nota) return ['Nota del analista', o.dictamen_nota];
+  return ['Sigue en proceso', 'asesor ' + nombre(o.asesor_id)];
+}
+function coincidencias(s, clic = false){
   const n = norm(s.nombre_cliente), tel = (s.telefono||'').replace(/\D/g,''), dni = (s.dni||'').replace(/\D/g,'');
   if (n.length < 5 && !tel && !dni) return '';
   const hits = S.sols.filter(o => o.id !== s.id).map(o => {
-    const r = [];
-    if (n.length >= 5 && norm(o.nombre_cliente) === n) r.push('mismo nombre');
-    if (tel.length >= 8 && (o.telefono||'').replace(/\D/g,'') === tel) r.push('mismo teléfono');
-    if (dni.length >= 8 && (o.dni||'').replace(/\D/g,'') === dni) r.push('mismo DNI');
-    return r.length ? { o, r } : null;
-  }).filter(Boolean);
+    const nom = n.length >= 5 && norm(o.nombre_cliente) === n;
+    const t = tel.length >= 8 && (o.telefono||'').replace(/\D/g,'') === tel;
+    const d = dni.length >= 8 && (o.dni||'').replace(/\D/g,'') === dni;
+    return nom || t || d ? { o, nom, t, d } : null;
+  }).filter(Boolean).sort((a, b) => String(b.o.creado_en || '').localeCompare(String(a.o.creado_en || '')));
   if (!hits.length) return '';
-  return `<div class="alert warn small"><b>Coincidencias:</b><br>${hits.slice(0,6).map(h =>
-    `${esc(h.o.codigo)} · ${esc(h.o.nombre_cliente)} · ${EST[h.o.estado].t} (${h.r.join(', ')})`).join('<br>')}</div>`;
+  const tono = e => ['denegada','rechazada_verificacion','desistida'].includes(e) ? 'rojo' : e === 'desembolsada' ? 'verde' : 'amar';
+  const item = h => {
+    const o = h.o, [et, nota] = coinNota(o);
+    // Solo se aclara la coincidencia cuando NO es el mismo nombre (puede ser otra persona con el mismo teléfono o DNI)
+    const solo = h.nom ? '' : `<div class="coin-s">Otro nombre · coincide ${[h.t && 'el teléfono', h.d && 'el DNI'].filter(Boolean).join(' y ')}</div>`;
+    const tag = clic && o.id > 0 ? 'button' : 'div';
+    return `<${tag} class="coin-it ${tono(o.estado)}"${tag === 'button' ? ` type="button" data-coin="${o.id}" title="Abrir ${esc(o.codigo || '')}"` : ''}>
+      <div class="coin-l1"><b>${esc(o.codigo || '')}</b><span class="coin-e">${esc(EST[o.estado]?.t || o.estado)}</span><span class="coin-f">${o.creado_en ? esc(fDate(o.creado_en)) : ''}</span>${tag === 'button' ? `<span class="coin-ir">${ico('chevR')}</span>` : ''}</div>
+      ${h.nom ? '' : `<div class="coin-nm">${esc(o.nombre_cliente || '')}</div>`}
+      <div class="coin-n"><span>${esc(et)}:</span> ${nota ? esc(nota) : '<i>sin nota</i>'}</div>${solo}</${tag}>`;
+  };
+  return `<div class="coin"><div class="coin-h">Coincidencias (${hits.length})</div>${hits.slice(0, 8).map(item).join('')}${hits.length > 8 ? `<div class="coin-s">y ${hits.length - 8} más</div>` : ''}</div>`;
 }
 
 // ================== Detalle ==================
 async function abrirDetalle(id, keepScroll){
   const s = S.sols.find(x => x.id === id); if (!s) return;
   S.det = id; S.replyTo = null; S.dirty = false;
-  if ($('#sheet').classList.contains('hidden')){ S.yAntesDet = window.scrollY; $('#sheet').classList.remove('hidden'); history.pushState({ sheet:1 }, ''); document.body.style.overflow = 'hidden'; }
+  if ($('#sheet').classList.contains('hidden')){ S.detPila = []; S.yAntesDet = window.scrollY; $('#sheet').classList.remove('hidden'); history.pushState({ sheet:1 }, ''); document.body.style.overflow = 'hidden'; }
   S.ultDet = id;
   $('#sheetTitle').textContent = s.nombre_cliente; $('#sheetCopy').dataset.cpy = s.nombre_cliente; $('#sheetCopy').innerHTML = ICO_COPIAR; $('#sheetChip').innerHTML = chip(s.estado);
   if (!keepScroll){ $('#sheetBody').innerHTML = '<div class="empty">Cargando…</div>'; $('#sheet').scrollTop = 0; }
@@ -4038,6 +4072,9 @@ async function abrirDetalle(id, keepScroll){
 function cerrarDetalle(fromPop){
   if ($('#sheet').classList.contains('hidden')) return;
   if (S.dirty && !confirm('Hay datos sin enviar. ¿Salir de todos modos?')){ if (fromPop) history.pushState({ sheet:1 }, ''); return; }
+  // Abierta desde una coincidencia: regresar vuelve a la solicitud anterior
+  if (S.detPila?.length){ const prev = S.detPila.pop(); S.dirty = false; if (!fromPop) histBack(); if (S.sols.some(x => x.id === prev)) return abrirDetalle(prev); }
+  S.detPila = [];
   $('#sheet').classList.add('hidden'); document.body.style.overflow = ''; S.det = null; S.dirty = false;
   pintarTabs(); pintarConservando(S.yAntesDet ?? window.scrollY); S.yAntesDet = null;
   if (!fromPop) return histBack();
@@ -4075,7 +4112,7 @@ function renderDetalle(){
       ${s.analista_id ? `<dt>Analista</dt><dd>${esc(nombre(s.analista_id))}</dd>` : ''}
       ${s.verificador_id ? `<dt>Verificador</dt><dd>${esc(nombre(s.verificador_id))}</dd>` : ''}
     </dl>
-    ${coincidencias(s)}
+    ${coincidencias(s, true)}
     ${ed != null && ed < S.params.edad_minima ? `<div class="alert err small">⚠ Cliente de ${ed} años (mínimo ${S.params.edad_minima}).</div>` : ''}
   </div>`;
 
@@ -4586,6 +4623,11 @@ function enlazarDetalle(s, c){
   })();
   if ($('#dWaPl')) $('#dWaPl').onclick = ev => { ev.preventDefault(); abrirWhatsApp(s); };
   document.querySelectorAll('[data-dvwa]').forEach(a => a.onclick = ev => { ev.preventDefault(); abrirWhatsApp(s); });
+  document.querySelectorAll('#sheetBody [data-coin]').forEach(b => b.onclick = () => {
+    const id = +b.dataset.coin; if (!S.sols.some(x => x.id === id)) return toast('No se encontró esa solicitud', true);
+    if (S.dirty && !confirm('Hay datos sin enviar. ¿Salir de todos modos?')) return;
+    S.detPila = (S.detPila || []).concat(s.id); history.pushState({ sheet:1 }, ''); S.dirty = false; abrirDetalle(id);
+  });
   if ($('#dCartera')) $('#dCartera').onclick = ev => { ev.preventDefault(); cambiarCartera(s, () => abrirDetalle(s.id, true)); };
   if ($('#dOrigen')) $('#dOrigen').onclick = ev => { ev.preventDefault(); abrirOrigen(s, () => abrirDetalle(s.id, true)); };
   if ($('#dAsesor')) $('#dAsesor').onchange = e => run(e.target, async () => { await rpc('reasignar_asesor', { p_id: s.id, p_asesor: e.target.value }); toast('Asesor reasignado'); await refrescar(); });
