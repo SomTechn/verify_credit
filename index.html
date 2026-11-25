@@ -149,6 +149,11 @@ label.f{display:block;font-size:12px;color:var(--ink2);margin:10px 0 4px;font-we
 .filters{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}
 .filters button{flex:none;border:1px solid var(--line);background:var(--card);border-radius:999px;padding:5px 11px;font-size:13px}
 .filters button.on{background:var(--brand);border-color:var(--brand);color:#fff}
+/* Refinanciar: historial de calificaciones */
+.rf-hi{display:block;width:100%;text-align:left;font:inherit;font-size:13px;color:var(--ink);background:transparent;border:0;border-top:1px solid var(--line);padding:8px 2px}
+.rf-hi:first-child{border-top:0}.rf-hb{cursor:pointer}.rf-hb:hover{background:var(--brand2)}
+.rf-hi1{display:flex;flex-wrap:wrap;gap:6px;align-items:center}.rf-hf{font-weight:650;color:var(--brand)}
+.rf-hd{font:700 12px Inter,sans-serif;text-transform:uppercase;letter-spacing:.4px;color:var(--ink2);margin:12px 0 2px}
 /* Coincidencias */
 .coin{margin-top:10px;border:1px solid var(--line);border-radius:12px;padding:10px;background:var(--card)}
 .coin-h{font:700 12.5px Inter,sans-serif;text-transform:uppercase;letter-spacing:.5px;color:var(--ink2);margin:0 0 8px}
@@ -881,7 +886,7 @@ body.nav-min .sn-vt span{display:none}
 // App disponible sin señal (sw.js debe estar junto a index.html). Va primero para registrarse aunque falle otra cosa.
 if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) navigator.serviceWorker.register('sw.js').catch(() => {});
 // Versión de esta copia de la app: cambia en cada entrega. La app la compara con la publicada y se actualiza sola.
-const APP_VER = '2026-11-25.1300';
+const APP_VER = '2026-11-25.1345';
 // 'admin' = cambio solo para el administrador: los demás usuarios no ven el aviso de versión nueva (se actualiza en silencio)
 // y sus NOVEDADES deben llevar r:['admin']. 'todos' = cambio que ven los usuarios.
 const APP_AVISO = 'todos';
@@ -889,6 +894,9 @@ const APP_AVISO = 'todos';
 // Al publicar cambios: subir APP_VER y agregar aquí una entrada con la misma versión.
 // r = roles que la ven (sin r = todos; el admin ve todo).
 const NOVEDADES = [
+  { v:'2026-11-25.1345', f:'25 de noviembre de 2026', items:[
+    { i:'•', t:'Refinanciar: historial de calificaciones y pausa de 15 días', r:['analista','asesor'],
+      d:'Cada vez que el analista marca a un cliente como Aplica, No aplica o Sin definir queda en un historial con fecha, hora y quién lo hizo: se ve en la ficha del cliente y en el botón "Historial de calificaciones". Si un cliente se marcó Aplica, durante 15 días no se puede volver a marcar Aplica (para no saturarlo de mensajes): al cargar un corte nuevo esos clientes pasan a la pestaña "En pausa" con la fecha en que vuelven a estar disponibles. El mismo día sí se puede corregir.' } ] },
   { v:'2026-11-25.1300', f:'25 de noviembre de 2026', items:[
     { i:'•', t:'Refinanciamiento: atraso desde L 150', r:['analista','asesor'],
       d:'El reporte de cuotas se lee de la columna "MONTO PENDIENTE TOTAL", tal como viene en el archivo. Un cliente queda en atraso solo si tiene alguna cuota vencida con más de L 150 pendiente; las cuotas de L 150 o menos no cuentan como atraso y en su ficha se muestra cuánto suman.' } ] },
@@ -3039,12 +3047,23 @@ function pintarPosteo(){
 // disponible = límite asignado (o sugerido = capital del último préstamo) − balance total de sus préstamos.
 const RF = { corte:null, gest:{}, cargado:false, cargando:false, etapa:'pendiente', gf:'todas', orden:'disp', q:'' };
 // Pestañas por etapa de gestión (cada cliente cae en una sola). Pendiente y Aplica solo muestran clientes al día con disponible.
-const RF_ETAPAS = [['pendiente','Pendiente'],['aplica','Aplica'],['noaplica','No aplica'],['contactado','Contactado'],['desembolsado','Desembolsado'],['bloqueado','🔒 Bloqueados'],['todos','Todos']];
+const RF_ETAPAS = [['pendiente','Pendiente'],['aplica','Aplica'],['pausa','En pausa'],['noaplica','No aplica'],['contactado','Contactado'],['desembolsado','Desembolsado'],['bloqueado','🔒 Bloqueados'],['todos','Todos']];
 const rfKey = n => String(n || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim().replace(/\s+/g, ' ').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 180) || 'sin-nombre';
 const rfHn = h => String(h || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]/g, '');
 const rfEdita = () => es('analista');            // analista o admin: límite, si aplica, cargar archivos
 const rfGestiona = () => es('analista', 'asesor'); // contacto, colocación y comentarios
 const rfL0 = n => 'L ' + Math.round(n || 0).toLocaleString('es-HN');
+// Fecha local (Honduras) de un timestamp, con el formato corto de la pestaña
+const rfFdT = ts => ts ? rfFd(new Date(ts).toLocaleDateString('en-CA', { timeZone:TZ })) : '—';
+const rfFhT = ts => ts ? new Date(ts).toLocaleString('es-HN', { timeZone:TZ, day:'numeric', month:'short', year:'numeric', hour:'numeric', minute:'2-digit' }) : '—';
+// Pausa de 15 días: si el cliente se marcó "Aplica" hace menos de refi_dias_reaplica días (y no hoy), no se puede volver a marcar
+function rfPausa(g){
+  if (!g || !g.aplica_si_en || g.aplica === 'si') return null;
+  const ini = new Date(g.aplica_si_en), dias = S.params.refi_dias_reaplica ?? 15;
+  if (ini.toLocaleDateString('en-CA', { timeZone:TZ }) === hoyHN()) return null;   // el mismo día se puede corregir
+  const hasta = new Date(ini.getTime() + dias * 864e5);
+  return hasta > new Date() ? { ini, hasta, dias } : null;
+}
 const rfFd = s => { if (!s) return '—'; const [y, m, d] = String(s).slice(0, 10).split('-'); return `${+d} ${MESES_RF[+m - 1]} ${y.slice(2)}`; };
 const MESES_RF = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
 let rfXlsxP = null;
@@ -3120,8 +3139,9 @@ function rfCalcular(){
     const an = antig(u.f), aumento = !!an && an.cumple && !atraso && !debeCuota && !noAplica && !bloq && g.nivel !== 100;
     const nv = nuevos[k] ? { ...nuevos[k], refis:(otrosDes[k] || []).filter(f => f > nuevos[k].fecha).length } : null;
     const nvAum = !!nv && aumento;   // cliente nuevo que ya cumple el tiempo para aumento: el más propenso
-    const etapa = bloq ? 'bloqueado' : g.colocado ? 'desembolsado' : noAplica ? 'noaplica' : g.contactado ? 'contactado' : !elegible ? null : g.aplica === 'si' ? 'aplica' : 'pendiente';
-    rows.push({ k, nombre:u.c, tipo:u.t, dia:u.dia, fecha:u.f, capital:u.cap, nPrest:ls.length, prest:ls, balance, pd, atraso, debeCuota, limG, sugerido:u.cap, bruto, disp, elegible, noAplica, bloq, etapa, g, sol, an, aumento, nv, nvAum });
+    const pausa = rfPausa(g);
+    const etapa = bloq ? 'bloqueado' : g.colocado ? 'desembolsado' : noAplica ? 'noaplica' : g.contactado ? 'contactado' : !elegible ? null : g.aplica === 'si' ? 'aplica' : pausa ? 'pausa' : 'pendiente';
+    rows.push({ k, pausa, nombre:u.c, tipo:u.t, dia:u.dia, fecha:u.f, capital:u.cap, nPrest:ls.length, prest:ls, balance, pd, atraso, debeCuota, limG, sugerido:u.cap, bruto, disp, elegible, noAplica, bloq, etapa, g, sol, an, aumento, nv, nvAum });
   }
   const st = { clientes:rows.length, prestamos:(c.prestamos || []).length, alDia:0, atraso:0, opN:0, opM:0, conN:0, conM:0, colN:0, colM:0, porN:0, porM:0, sugN:0, revN:0, aumN:0, menosN:0, bloqN:0, nvN:0, nvAumN:0, modal:{} };
   for (const r of rows){
@@ -3129,7 +3149,7 @@ function rfCalcular(){
     r.atraso ? st.atraso++ : st.alDia++;
     if (r.aumento) st.aumN++; if (r.an && !r.an.cumple) st.menosN++; if (r.nv) st.nvN++; if (r.nvAum) st.nvAumN++;
     if (r.elegible){
-      st.opN++; st.opM += r.disp; if (r.limG == null) st.sugN++; if (!r.g.aplica) st.revN++;
+      st.opN++; st.opM += r.disp; if (r.limG == null) st.sugN++; if (!r.g.aplica && !r.pausa) st.revN++;
       const m = st.modal[r.tipo || 'Otro'] = st.modal[r.tipo || 'Otro'] || { n:0, m:0 }; m.n++; m.m += r.disp;
       if (r.g.contactado || r.g.colocado){ st.conN++; st.conM += r.disp; }
       if (!r.g.colocado){ st.porN++; st.porM += r.disp; }
@@ -3161,9 +3181,11 @@ function rfPintar(){
   $('#rfHead').innerHTML = `<div class="row" style="flex-wrap:wrap;margin-bottom:10px">
     <div style="flex:1;min-width:200px"><div style="font:700 17px Poppins,Inter,sans-serif">Refinanciamientos disponibles</div>
       <div class="small muted">${c ? `Corte al <b>${rfFd(c.fecha_corte)}</b> · cargado ${fDT(c.cargado_en)}${c.cargado_por ? ' por ' + esc(nombre(c.cargado_por)) : ''}` : 'Aún no se ha cargado un corte.'}</div></div>
+    <button class="btn sm ghost" id="rfHistBtn">Historial de calificaciones</button>
     <button class="btn sm ghost" id="rfExp" ${c ? '' : 'disabled'}>⬇ Exportar Excel</button>
     ${rfEdita() ? '<button class="btn sm pri" id="rfCargarBtn">⬆ Cargar archivos</button>' : ''}</div>`;
   if ($('#rfCargarBtn')) $('#rfCargarBtn').onclick = rfDialogoCarga;
+  $('#rfHistBtn').onclick = () => rfHistorialDlg();
   $('#rfExp').onclick = e => run(e.target, rfExportar);
   if (!st){
     $('#rfTop').innerHTML = ''; $('#rfEst').innerHTML = ''; $('#rfGf').innerHTML = ''; $('#rfCount').textContent = '';
@@ -3234,6 +3256,7 @@ function rfPintarLista(rows){
     const g = r.g, ch = [];
     if (r.bloq) ch.push(`<span class="chip c-red" title="${esc(g.motivo_bloqueo || '')}">🔒 Bloqueado${g.bloqueado_en ? ' ' + rfFd(g.bloqueado_en) : ''}</span>`);
     ch.push(r.atraso ? `<span class="chip c-red">En atraso ${L(r.pd.monto)} · ${r.pd.max} d</span>` : '<span class="chip c-green">Al día</span>');
+    if (r.pausa) ch.push(`<span class="chip c-violet" title="Se marcó Aplica el ${rfFdT(r.pausa.ini)}: no se vuelve a ofrecer hasta pasados ${r.pausa.dias} días">En pausa hasta ${rfFdT(r.pausa.hasta)}</span>`);
     if (r.debeCuota) ch.push(`<span class="chip c-amber" title="Préstamo nivelado: debe parte de capital de cuotas vencidas. No se toma en cuenta para aumento de límite.">Debe cuota ${L(r.pd.total)} · ${r.pd.maxTot} d</span>`);
     ch.push(r.limG == null ? `<span class="chip c-amber" title="No tiene límite asignado: se usa el capital de su último préstamo">Sugerido ${rfL0(r.sugerido)}</span>` : `<span class="chip c-blue">Límite ${rfL0(r.limG)}</span>`);
     if (r.an){ const tx = rfAntTxt(r.an);
@@ -3272,6 +3295,55 @@ async function rfGuardar(k, patch, msg){
   if (msg) toast(msg);
   rfPintar();
 }
+// ----- Historial de calificaciones (Aplica / No aplica) -----
+const rfCalTxt = a => a === 'si' ? '<span class="chip c-teal">Aplica</span>' : a === 'no' ? '<span class="chip c-gray">No aplica</span>' : '<span class="chip">Sin definir</span>';
+async function rfHistCliente(k){
+  try {
+    const { data, error } = await sb.from('refi_calificaciones').select('*').eq('clave', k).order('en', { ascending:false }).limit(50);
+    if (error) throw error;
+    if (!data?.length) return '<div class="small muted" style="margin-top:6px">Todavía no tiene calificaciones registradas.</div>';
+    return `<div style="margin-top:6px">${data.map(h => {
+      const meta = [h.limite != null ? 'Límite ' + rfL0(h.limite) : '', h.nivel ? 'Nivel ' + (h.nivel === 100 ? 'máximo' : h.nivel + '%') : '', h.fecha_corte ? 'Corte ' + rfFd(h.fecha_corte) : ''].filter(Boolean).join(' · ');
+      return `<div class="rf-hi"><div class="rf-hi1">${rfCalTxt(h.aplica)}<span class="rf-hf">${esc(rfFhT(h.en))}</span><span class="muted">${h.por ? esc(nombre(h.por)) : ''}</span></div>
+      ${meta ? `<div class="muted">${esc(meta)}</div>` : ''}${h.comentario ? `<div>${esc(h.comentario)}</div>` : ''}${h.nota ? `<div class="muted"><i>${esc(h.nota)}</i></div>` : ''}</div>`; }).join('')}</div>`;
+  } catch(e){ return `<div class="small muted" style="margin-top:6px">${esRed(e) ? 'Sin conexión: el historial necesita señal.' : esc(errMsg(e))}</div>`; }
+}
+async function rfHistorialDlg(){
+  let filtro = 'todas', q = '', datos = null, err = '';
+  const w = dialogo(`<h3>Historial de calificaciones</h3>
+    <div class="small muted">Cada vez que el analista marca a un cliente como Aplica, No aplica o Sin definir queda aquí, con fecha y hora.</div>
+    <input id="rfHq" placeholder="Buscar cliente" style="margin-top:8px">
+    <div class="filters" id="rfHf" style="margin-top:8px">${[['todas','Todas'],['si','Aplica'],['no','No aplica'],['nd','Sin definir']].map(([k, t]) => `<button data-f="${k}" class="${k === filtro ? 'on' : ''}">${t}</button>`).join('')}</div>
+    <div id="rfHres" class="small muted" style="margin:6px 0"></div>
+    <div id="rfHlist" style="max-height:60vh;overflow:auto"><div class="small muted">Cargando…</div></div>
+    <div class="btns"><button class="btn ghost" data-close>Cerrar</button></div>`);
+  const pintar = () => {
+    if (err) { w.querySelector('#rfHlist').innerHTML = `<div class="alert err small">${esc(err)}</div>`; return; }
+    if (!datos) return;
+    const kq = q.trim() ? rfKey(q).replace(/-/g, ' ') : '';
+    const l = datos.filter(h => (filtro === 'todas' || (filtro === 'nd' ? !h.aplica : h.aplica === filtro)) && (!kq || rfKey(h.nombre || h.clave).replace(/-/g, ' ').includes(kq)));
+    const nSi = l.filter(h => h.aplica === 'si').length, nNo = l.filter(h => h.aplica === 'no').length;
+    w.querySelector('#rfHres').innerHTML = `${l.length} calificación(es) · <b>${nSi}</b> aplica · <b>${nNo}</b> no aplica${datos.length >= 1000 ? ' · se muestran las 1,000 más recientes' : ''}`;
+    let dia = '', html = '';
+    for (const h of l){
+      const d = new Date(h.en).toLocaleDateString('en-CA', { timeZone:TZ });
+      if (d !== dia){ dia = d; html += `<div class="rf-hd">${esc(new Date(d + 'T12:00:00-06:00').toLocaleDateString('es-HN', { timeZone:TZ, weekday:'long', day:'numeric', month:'long', year:'numeric' }))}</div>`; }
+      html += `<button type="button" class="rf-hi rf-hb" data-hk="${esc(h.clave)}"><div class="rf-hi1">${rfCalTxt(h.aplica)}<b>${esc(h.nombre || h.clave)}</b></div>
+        <div class="muted">${esc(new Date(h.en).toLocaleTimeString('es-HN', { timeZone:TZ, hour:'numeric', minute:'2-digit' }))}${h.por ? ' · ' + esc(nombre(h.por)) : ''}${h.limite != null ? ' · Límite ' + rfL0(h.limite) : ''}</div>
+        ${h.comentario ? `<div>${esc(h.comentario)}</div>` : ''}${h.nota ? `<div class="muted"><i>${esc(h.nota)}</i></div>` : ''}</button>`;
+    }
+    w.querySelector('#rfHlist').innerHTML = html || '<div class="small muted">No hay calificaciones con estos filtros.</div>';
+    w.querySelectorAll('[data-hk]').forEach(b => b.onclick = async () => {
+      if (!rfCalcular().rows.some(x => x.k === b.dataset.hk)) return toast('Ese cliente no está en el corte actual', true);
+      await cerrarDialogo(w); rfAbrir(b.dataset.hk);
+    });
+  };
+  w.querySelector('#rfHq').oninput = e => { q = e.target.value; pintar(); };
+  w.querySelectorAll('#rfHf [data-f]').forEach(b => b.onclick = () => { filtro = b.dataset.f; w.querySelectorAll('#rfHf [data-f]').forEach(x => x.classList.toggle('on', x === b)); pintar(); });
+  try { const { data, error } = await sb.from('refi_calificaciones').select('*').order('en', { ascending:false }).order('id', { ascending:false }).limit(1000); if (error) throw error; datos = data || []; }
+  catch(e){ err = esRed(e) ? 'Sin conexión: el historial necesita señal.' : errMsg(e); }
+  pintar();
+}
 function rfAbrir(k){
   const r = rfCalcular().rows.find(x => x.k === k); if (!r) return;
   const g = r.g, ed = rfEdita(), gs = rfGestiona();
@@ -3282,6 +3354,7 @@ function rfAbrir(k){
     ${r.bloq ? `<div class="alert err small">🔒 <b>Cliente bloqueado</b>${g.bloqueado_en ? ` el ${rfFd(g.bloqueado_en)}` : ''}${g.bloqueado_por ? ' por ' + esc(nombre(g.bloqueado_por)) : ''}: no se le ofrece refinanciamiento aunque tenga disponible.${g.motivo_bloqueo ? `<br>Motivo: ${esc(g.motivo_bloqueo)}` : ''}</div>` : ''}
     ${r.atraso ? `<div class="alert err small">En atraso: ${L(r.pd.monto)} pendiente en ${r.pd.n} cuota(s), hasta ${r.pd.max} días (cada una de más de ${L(S.params.refi_tolerancia ?? 150)}). No se cuenta en la oportunidad.</div>` : ''}
     ${r.pd.menor > 0.004 ? `<div class="alert info small">${r.atraso ? 'Además tiene' : 'Tiene'} ${L(r.pd.menor)} pendiente en ${r.pd.nm} cuota(s) vencida(s) de ${L(S.params.refi_tolerancia ?? 150)} o menos: esas no cuentan como atraso.</div>` : ''}
+    ${r.pausa ? `<div class="alert info small">Se marcó <b>Aplica</b> el ${rfFdT(r.pausa.ini)}. Para no saturar al cliente de mensajes no se puede volver a marcar <b>Aplica</b> hasta el <b>${rfFdT(r.pausa.hasta)}</b> (${r.pausa.dias} días).</div>` : ''}
     <dl class="kv" style="margin-top:10px">
       <dt>Último préstamo</dt><dd>${rfL0(r.capital)} · ${rfFd(r.fecha)}</dd>
       <dt>Antigüedad</dt><dd>${r.an ? `${r.an.txt} (${r.an.dias} días)${r.aumento ? ' · <span style="color:var(--teal)">puede subir límite</span>' : g.nivel === 100 ? ' · en su límite máximo' : r.an.cumple ? '' : ` · aún no cumple ${S.params.refi_meses_aumento ?? 3} meses`}` : '—'}</dd>
@@ -3292,7 +3365,7 @@ function rfAbrir(k){
     </dl>
     <div class="grid2">
       <div><label class="f">Nuevo límite (L)</label><input id="rfLim" type="number" inputmode="decimal" min="0" step="500" value="${g.limite ?? ''}" placeholder="Sugerido ${Math.round(r.sugerido)}" ${ed ? '' : 'disabled'}></div>
-      <div><label class="f">¿Aplica a refinanciamiento?</label><div class="seg" id="rfAp">${[['si','Sí'],['no','No'],['','Sin definir']].map(([v, t]) => `<button type="button" data-v="${v}" class="${(g.aplica || '') === v ? 'on' : ''}" ${ed ? '' : 'disabled'}>${t}</button>`).join('')}</div></div>
+      <div><label class="f">¿Aplica a refinanciamiento?</label><div class="seg" id="rfAp">${[['si','Sí'],['no','No'],['','Sin definir']].map(([v, t]) => `<button type="button" data-v="${v}" class="${(g.aplica || '') === v ? 'on' : ''}" ${ed && !(v === 'si' && r.pausa) ? '' : 'disabled'}${v === 'si' && r.pausa ? ` title="En pausa hasta ${rfFdT(r.pausa.hasta)}"` : ''}>${t}</button>`).join('')}</div></div>
       <div><label class="f">Nivel actual del límite</label><div class="seg" id="rfNv">${[['50','50%'],['80','80%'],['100','🔝 Máximo'],['','—']].map(([v, t]) => `<button type="button" data-v="${v}" class="${String(g.nivel ?? '') === v ? 'on' : ''}" ${ed ? '' : 'disabled'}>${t}</button>`).join('')}</div></div>
       <div><label class="f">Fecha de contacto</label><input id="rfFc" type="date" max="${hoyHN()}" value="${g.fecha_contacto || ''}" ${gs ? '' : 'disabled'}></div>
       <div><label class="f">Monto colocado (L)</label><input id="rfMc" type="number" inputmode="decimal" min="0" step="100" value="${g.monto_colocado ?? ''}" placeholder="${r.disp > 0 ? Math.round(r.disp) : ''}" ${gs ? '' : 'disabled'}></div>
@@ -3304,6 +3377,7 @@ function rfAbrir(k){
     <details style="margin-top:10px"><summary class="small" style="cursor:pointer;font-weight:600">Préstamos y cuotas del corte</summary>
       <table class="small" style="width:100%;border-collapse:collapse;margin-top:6px"><tr class="muted"><td>Fecha</td><td>Tipo</td><td style="text-align:right">Capital</td><td style="text-align:right">Balance</td></tr>${loans}</table>
       <table class="small" style="width:100%;border-collapse:collapse;margin-top:8px"><tr class="muted"><td>Cuota</td><td style="text-align:right">Balance</td><td style="text-align:right">Cuenta</td><td style="text-align:right">Atraso</td></tr>${cuotas}</table></details>
+    <details style="margin-top:8px" id="rfHistC" open><summary class="small" style="cursor:pointer;font-weight:600">Historial de calificaciones</summary><div id="rfHistL" class="small muted" style="margin-top:6px">Cargando…</div></details>
     <div class="btns">
       ${es('asesor') && !r.sol && !r.bloq ? '<button class="btn ghost" id="rfSol">＋ Crear solicitud</button>' : ''}
       ${ed && (g.contactado || g.colocado || g.aplica) ? '<button class="btn ghost" id="rfReset">Reiniciar gestión</button>' : ''}
@@ -3311,6 +3385,7 @@ function rfAbrir(k){
       <button class="btn ghost" data-close>Cerrar</button>
       ${gs ? '<button class="btn pri" id="rfOk">Guardar</button>' : ''}</div>`);
   let ap = g.aplica || '', nv = g.nivel == null ? '' : String(g.nivel);
+  rfHistCliente(k).then(h => { const el = w.querySelector('#rfHistL'); if (el) el.outerHTML = h; });
   w.querySelectorAll('#rfNv button').forEach(b => b.onclick = () => { nv = b.dataset.v; w.querySelectorAll('#rfNv button').forEach(x => x.classList.toggle('on', x === b)); });
   w.querySelectorAll('#rfAp button').forEach(b => b.onclick = () => { ap = b.dataset.v; w.querySelectorAll('#rfAp button').forEach(x => x.classList.toggle('on', x === b)); });
   w.querySelector('#rfMc')?.addEventListener('input', () => { if (w.querySelector('#rfMc').value && !w.querySelector('#rfFcol').value) w.querySelector('#rfFcol').value = hoyHN(); });
