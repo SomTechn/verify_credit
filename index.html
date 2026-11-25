@@ -149,6 +149,14 @@ label.f{display:block;font-size:12px;color:var(--ink2);margin:10px 0 4px;font-we
 .filters{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}
 .filters button{flex:none;border:1px solid var(--line);background:var(--card);border-radius:999px;padding:5px 11px;font-size:13px}
 .filters button.on{background:var(--brand);border-color:var(--brand);color:#fff}
+/* Verificación ágil */
+.vp-acc{display:flex;flex-direction:column;align-items:stretch;gap:6px;margin-top:10px}
+.btn.vp-go{width:100%;justify-content:center;font-size:16px;padding:14px 16px;border-radius:12px;gap:8px}.btn.vp-go .ic{width:20px;height:20px}
+.vp-acc .chk{align-self:stretch;margin:0}
+.vp-und{align-self:center;background:none;border:0;color:var(--ink2);font:600 13px Inter,sans-serif;text-decoration:underline;cursor:pointer;padding:4px 8px}
+.vr{display:flex;gap:8px;margin-top:10px;padding:8px 10px;border-radius:10px;background:var(--gray-bg);font-size:12.5px;color:var(--ink2)}.vr>.ic{flex:0 0 auto;margin-top:2px}
+.vr-h{font-weight:700;color:var(--ink);margin-bottom:4px}.vr-f{display:grid;grid-template-columns:78px auto;gap:0 8px;padding:2px 0}.vr-f>span:last-child{grid-column:2}
+.vr-f b{color:var(--ink)}.vr-d{margin-top:4px;font-weight:600}
 /* Refinanciar: historial de calificaciones */
 .rf-hi{display:block;width:100%;text-align:left;font:inherit;font-size:13px;color:var(--ink);background:transparent;border:0;border-top:1px solid var(--line);padding:8px 2px}
 .rf-hi:first-child{border-top:0}.rf-hb{cursor:pointer}.rf-hb:hover{background:var(--brand2)}
@@ -886,7 +894,7 @@ body.nav-min .sn-vt span{display:none}
 // App disponible sin señal (sw.js debe estar junto a index.html). Va primero para registrarse aunque falle otra cosa.
 if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) navigator.serviceWorker.register('sw.js').catch(() => {});
 // Versión de esta copia de la app: cambia en cada entrega. La app la compara con la publicada y se actualiza sola.
-const APP_VER = '2026-11-25.1345';
+const APP_VER = '2026-11-25.1430';
 // 'admin' = cambio solo para el administrador: los demás usuarios no ven el aviso de versión nueva (se actualiza en silencio)
 // y sus NOVEDADES deben llevar r:['admin']. 'todos' = cambio que ven los usuarios.
 const APP_AVISO = 'todos';
@@ -894,6 +902,11 @@ const APP_AVISO = 'todos';
 // Al publicar cambios: subir APP_VER y agregar aquí una entrada con la misma versión.
 // r = roles que la ven (sin r = todos; el admin ve todo).
 const NOVEDADES = [
+  { v:'2026-11-25.1430', f:'25 de noviembre de 2026', items:[
+    { i:'•', t:'Verificación más rápida, como un delivery', r:['verificador'],
+      d:'Cada visita tiene un solo botón grande con el siguiente paso: "Voy en camino", "Llegué" y "Verificación completada". Ya no hay que marcar la casilla Verificado ni capturar el GPS: la ubicación y la hora se guardan solas en cada paso. En Mi recorrido puede tocar "Verificación completada" sin abrir la solicitud. La entrega de efectivo es el botón "Efectivo entregado".' },
+    { i:'•', t:'Registro de horas y GPS de las verificaciones', r:['admin','analista','asesor'],
+      d:'Cada paso del verificador (en camino, llegó, completada) queda con su hora y ubicación, con la distancia al lugar registrado y el tiempo de trayecto y en el lugar. Lo ve el administrador y quien él autorice en Usuarios ("Ver horas y ubicación GPS de las verificaciones"). El mapa de verificaciones de Estadísticas también requiere ese permiso.' } ] },
   { v:'2026-11-25.1345', f:'25 de noviembre de 2026', items:[
     { i:'•', t:'Refinanciar: historial de calificaciones y pausa de 15 días', r:['analista','asesor'],
       d:'Cada vez que el analista marca a un cliente como Aplica, No aplica o Sin definir queda en un historial con fecha, hora y quién lo hizo: se ve en la ficha del cliente y en el botón "Historial de calificaciones". Si un cliente se marcó Aplica, durante 15 días no se puede volver a marcar Aplica (para no saturarlo de mensajes): al cargar un corte nuevo esos clientes pasan a la pestaña "En pausa" con la fecha en que vuelven a estar disponibles. El mismo día sí se puede corregir.' } ] },
@@ -1233,12 +1246,12 @@ function aplicarOp(op, nuevo){
       est(s, destino, { forma_desembolso:a.p_forma, cuenta_banco:a.p_cuenta, actualizar_domicilio:a.p_act_domicilio, actualizar_trabajo:a.p_act_trabajo, verificador_id:a.p_verificador ?? s.verificador_id, monto_solicitado:a.p_monto_solicitado || s.monto_aprobado });
       return destino; }
     case 'guardar_item': { const it = det(a.p_id).items.find(i => i.item === a.p_item);
-      if (it) Object.assign(it, { completado:a.p_completado, nota:a.p_nota, lat:a.p_lat ?? it.lat, lng:a.p_lng ?? it.lng, actualizado_por:S.me.id, actualizado_en:op.ts, _pend:true }); return; }
+      if (it) Object.assign(it, { completado:a.p_completado, completado_en:a.p_completado ? (it.completado ? it.completado_en : op.ts) : null, nota:a.p_nota, lat:a.p_lat ?? it.lat, lng:a.p_lng ?? it.lng, actualizado_por:S.me.id, actualizado_en:op.ts, _pend:true }); return; }
     case 'marcar_paso_verificacion': { const it = det(a.p_id).items.find(i => i.item === a.p_item); if (!it) return;
       const ts = a.p_ts || op.ts;
       if (a.p_paso === 'en_camino'){ if (!it.en_camino_en) it.en_camino_en = ts; }
       else if (a.p_paso === 'llegada'){ if (nuevo && !it.en_camino_en) throw new Error('Primero marque "Voy en camino"'); if (!it.llegada_en) Object.assign(it, { llegada_en:ts, llegada_lat:a.p_lat ?? null, llegada_lng:a.p_lng ?? null }); }
-      else { if (nuevo && it.completado) throw new Error('Primero quite la marca de verificado'); if (it.llegada_en) Object.assign(it, { llegada_en:null, llegada_lat:null, llegada_lng:null }); else it.en_camino_en = null; }
+      else { if (nuevo && it.completado) throw new Error('Primero deshaga "Verificación completada"'); if (it.llegada_en) Object.assign(it, { llegada_en:null, llegada_lat:null, llegada_lng:null }); else it.en_camino_en = null; }
       it._pend = true; return; }
     case 'finalizar_verificacion': {
       if (!s) return;
@@ -1350,6 +1363,15 @@ async function recargarTodo(){
   else if ($('#sheet').classList.contains('hidden')) pintar();
 }
 // Precarga el detalle de las solicitudes abiertas para poder abrirlas sin señal
+// Ítems de verificación sin coordenadas; el GPS solo se pide si el usuario tiene permiso (admin o autorizado)
+const VI_COLS = 'id,solicitud_id,item,completado,nota,foto_path,actualizado_por,actualizado_en,en_camino_en,llegada_en,completado_en';
+async function conGps(items){
+  if (!items?.length || !verGps()) return items;
+  try { const { data, error } = await sb.rpc('verif_gps', { p_ids:[...new Set(items.map(i => i.solicitud_id))] }); if (error) throw error;
+    const m = Object.fromEntries((data || []).map(g => [g.id, g]));
+    return items.map(i => m[i.id] ? { ...i, en_camino_lat:m[i.id].en_camino_lat, en_camino_lng:m[i.id].en_camino_lng, llegada_lat:m[i.id].llegada_lat, llegada_lng:m[i.id].llegada_lng, lat:m[i.id].lat, lng:m[i.id].lng } : i);
+  } catch(e){ return items; }
+}
 let tPre = 0;
 async function precargarDetalles(){
   if (Date.now() - tPre < 90000) return; tPre = Date.now();
@@ -1357,8 +1379,9 @@ async function precargarDetalles(){
   if (!ids.length) return;
   try {
     const [ing, it, ev] = await Promise.all([sb.from('ingresos').select('*').in('solicitud_id', ids).order('fecha'),
-      sb.from('verificacion_items').select('*').in('solicitud_id', ids).order('id'), sb.from('eventos').select('*').in('solicitud_id', ids).order('creado_en')]);
+      sb.from('verificacion_items').select(VI_COLS).in('solicitud_id', ids).order('id'), sb.from('eventos').select('*').in('solicitud_id', ids).order('creado_en')]);
     if (ing.error || it.error || ev.error) return;
+    it.data = await conGps(it.data);
     ids.forEach(id => { S.detCache[id] = { ing:ing.data.filter(x => x.solicitud_id === id), items:it.data.filter(x => x.solicitud_id === id), evs:ev.data.filter(x => x.solicitud_id === id) }; });
     aplicarPendientes(); guardarCache();
   } catch(e){}
@@ -2801,34 +2824,64 @@ const usrCarteras = (w, pfx) => [...w.querySelectorAll(`#${pfx}Cart [data-uc]`)]
 
 // ---------- Verificación paso a paso y recorrido del verificador ----------
 ICO.flag = '<path d="M5 21V4M5 4h11l-2 4 2 4H5"/>';
-const VP_PASOS = [['en_camino', 'En camino'], ['llegada', 'Llegó'], ['verificado', 'Verificado']];
+const VP_PASOS = [['en_camino', 'En camino'], ['llegada', 'Llegó'], ['verificado', 'Completada']];
+// Horas y ubicación GPS de cada paso: solo el administrador y quien él autorice en Usuarios
+const verGps = () => rol() === 'admin' || !!S.me?.ver_gps;
+const mapaLink = (lat, lng, tx = 'Ver ubicación') => lat != null ? `<a href="https://maps.google.com/?q=${lat},${lng}" target="_blank" rel="noopener">${tx}</a>` : '<span class="muted">sin GPS</span>';
+function distM(a1, o1, a2, o2){ if ([a1, o1, a2, o2].some(v => v == null)) return null; const R = 6371000, r = x => x * Math.PI / 180;
+  const h = Math.sin(r(a2 - a1) / 2) ** 2 + Math.cos(r(a1)) * Math.cos(r(a2)) * Math.sin(r(o2 - o1) / 2) ** 2; return Math.round(2 * R * Math.asin(Math.sqrt(h))); }
+const distTx = m => m == null ? '' : m < 1000 ? `a ${m} m` : `a ${(m / 1000).toFixed(1)} km`;
+// Registro con hora y GPS de cada paso (solo administración)
+function vpRegistro(s, i){
+  if (!verGps()) return '';
+  const lugar = ['domicilio', 'trabajo'].includes(i.item), pre = i.item === 'trabajo' ? 'trab' : 'dom';
+  const ref = lugar ? [s[pre + '_lat'], s[pre + '_lng']] : [s.dom_lat, s.dom_lng];
+  const fila = (t, ts, lat, lng) => ts ? `<div class="vr-f"><span>${t}</span><b>${esc(fDT(ts))}</b><span>${mapaLink(lat, lng)}${lat != null && ref[0] != null ? ` <span class="muted">· ${distTx(distM(+ref[0], +ref[1], lat, lng))} de lo registrado</span>` : ''}</span></div>` : '';
+  const filas = (lugar ? fila('En camino', i.en_camino_en, i.en_camino_lat, i.en_camino_lng) + fila('Llegó', i.llegada_en, i.llegada_lat, i.llegada_lng) : '')
+    + (i.completado ? fila(i.item === 'entrega_efectivo' ? 'Entregado' : 'Completada', i.completado_en || i.actualizado_en, i.lat, i.lng) : '');
+  if (!filas) return '';
+  return `<div class="vr">${ico('lock', 'sm')}<div style="flex:1;min-width:0"><div class="vr-h">Registro de la visita · solo administración</div>${filas}
+    ${lugar && i.llegada_en && i.completado ? `<div class="vr-d">Trayecto ${durC(i.en_camino_en, i.llegada_en) || '—'} · en el lugar ${durC(i.llegada_en, i.completado_en || i.actualizado_en) || '—'}</div>` : ''}</div></div>`;
+}
 const horaC = d => d ? new Date(d).toLocaleTimeString('es-HN', { timeZone:TZ, hour:'numeric', minute:'2-digit' }) : '';
 const durC = (a, b) => { if (!a || !b) return ''; const m = Math.max(0, Math.round((new Date(b) - new Date(a)) / 60000)); return m < 60 ? m + ' min' : Math.floor(m / 60) + ' h ' + (m % 60 ? (m % 60) + ' min' : ''); };
 const vpEstado = i => i.completado ? 'verificado' : i.llegada_en ? 'llegada' : i.en_camino_en ? 'en_camino' : 'pendiente';
 // Línea de pasos de un lugar (domicilio o trabajo)
 function vpLinea(i){
-  const t = { en_camino:i.en_camino_en, llegada:i.llegada_en, verificado:i.completado ? i.actualizado_en : null };
   const e = vpEstado(i), ord = ['pendiente', 'en_camino', 'llegada', 'verificado'].indexOf(e);
-  return `<div class="vp">${VP_PASOS.map(([k, tx], j) => `<div class="vp-s${j < ord ? ' ok' : ''}${j === ord - 1 && e !== 'verificado' ? ' on' : ''}"><i></i><span>${tx}</span><small>${t[k] ? horaC(t[k]) : ''}</small></div>`).join('')}</div>
-    ${i.llegada_en && i.completado ? `<div class="small muted" style="margin-top:4px">Trayecto ${durC(i.en_camino_en, i.llegada_en) || '—'} · en el lugar ${durC(i.llegada_en, i.actualizado_en) || '—'}</div>` : ''}`;
+  return `<div class="vp">${VP_PASOS.map(([k, tx], j) => `<div class="vp-s${j < ord ? ' ok' : ''}${j === ord - 1 && e !== 'verificado' ? ' on' : ''}"><i></i><span>${tx}</span></div>`).join('')}</div>`;
 }
 // Botón del siguiente paso
+// Un solo botón grande con el siguiente paso; "Deshacer" queda como enlace pequeño
 function vpBoton(s, i){
-  if (!['domicilio', 'trabajo'].includes(i.item) || i.completado) return '';
+  const b = (paso, cls, ic, tx) => `<button class="btn vp-go ${cls}" data-vp="${paso}" data-vi="${i.item}" data-vs="${s.id}">${ico(ic)}${tx}</button>`;
+  const und = (tx, paso = 'deshacer') => `<button class="vp-und" data-vp="${paso}" data-vi="${i.item}" data-vs="${s.id}">${tx}</button>`;
+  if (!['domicilio', 'trabajo'].includes(i.item)){
+    // Requisitos (foto de perfil, etc.): casilla; la entrega de efectivo es un botón, como la entrega de un pedido
+    if (i.item !== 'entrega_efectivo') return `<label class="chk vp-ck"><input type="checkbox" data-req="${i.item}" data-vs="${s.id}" ${i.completado ? "checked" : ""}> Completado</label>`;
+    if (i.completado) return und('Deshacer', 'descompletar');
+    return b('completar', 'ok', 'cash', `Efectivo entregado · ${L(montoLibre(s))}`);
+  }
   const e = vpEstado(i), lug = i.item === 'domicilio' ? 'al domicilio' : 'al trabajo';
-  if (e === 'pendiente') return `<button class="btn sm pri vp-b" data-vp="en_camino" data-vi="${i.item}" data-vs="${s.id}">${ico('nav', 'sm')}Voy en camino ${lug}</button>`;
-  if (e === 'en_camino') return `<button class="btn sm pri vp-b" data-vp="llegada" data-vi="${i.item}" data-vs="${s.id}">${ico('pin', 'sm')}Llegué</button><button class="btn sm ghost vp-b" data-vp="deshacer" data-vi="${i.item}" data-vs="${s.id}">Deshacer</button>`;
-  return `<span class="small vp-hint">${ico('checksq', 'sm')}Al terminar, marque <b>Verificado</b></span><button class="btn sm ghost vp-b" data-vp="deshacer" data-vi="${i.item}" data-vs="${s.id}">Deshacer llegada</button>`;
+  if (e === 'pendiente') return b('en_camino', 'pri', 'nav', 'Voy en camino ' + lug);
+  if (e === 'en_camino') return b('llegada', 'pri', 'pin', 'Llegué') + und('Deshacer "En camino"');
+  if (e === 'llegada') return b('completar', 'ok', 'check', 'Verificación completada') + und('Deshacer llegada');
+  return und('Deshacer', 'descompletar');
 }
 const gpsAhora = () => new Promise(r => navigator.geolocation ? navigator.geolocation.getCurrentPosition(p => r(p.coords), () => r(null), { enableHighAccuracy:true, timeout:10000, maximumAge:60000 }) : r(null));
-async function marcarPaso(btn, sid, item, paso, despues){
+async function marcarPaso(btn, sid, item, paso, despues, sinConfirmar){
   return run(btn, async () => {
-    if (paso === 'deshacer' && !confirm('¿Quitar el último paso marcado?')) return;
-    const pos = paso === 'llegada' ? await gpsAhora() : null;
+    if (!sinConfirmar && (paso === 'deshacer' || paso === 'descompletar') && !confirm('¿Quitar el último paso marcado?')) return;
+    // La ubicación y la hora se guardan solas en cada paso
+    const pos = paso === 'deshacer' || paso === 'descompletar' ? null : await gpsAhora();
+    if (paso === 'completar' || paso === 'descompletar'){
+      const it = (S.detCache[sid]?.items || []).find(x => x.item === item), inp = document.querySelector(`#sheetBody .item[data-item="${item}"] [data-nota]`);
+      await rpc('guardar_item', { p_id:sid, p_item:item, p_completado:paso === 'completar', p_nota:inp ? inp.value : (it?.nota ?? null), p_foto:null, p_lat:pos ? pos.latitude : null, p_lng:pos ? pos.longitude : null });
+    } else
     await rpc('marcar_paso_verificacion', { p_id:sid, p_item:item, p_paso:paso, p_lat:pos ? pos.latitude : null, p_lng:pos ? pos.longitude : null, p_ts:new Date().toISOString() });
     // Al tener señal, trae los ítems actualizados
-    if (navigator.onLine && sid > 0){ const { data } = await sb.from('verificacion_items').select('*').eq('solicitud_id', sid).order('id'); if (data && S.detCache[sid]){ S.detCache[sid].items = data; guardarCache(); } }
-    toast(paso === 'en_camino' ? 'En camino: se registró la hora' : paso === 'llegada' ? (pos ? 'Llegada registrada con ubicación' : 'Llegada registrada (sin GPS)') : 'Paso quitado');
+    if (navigator.onLine && sid > 0){ const { data } = await sb.from('verificacion_items').select(VI_COLS).eq('solicitud_id', sid).order('id'); if (data && S.detCache[sid]){ S.detCache[sid].items = await conGps(data); guardarCache(); } }
+    toast(paso === 'en_camino' ? 'En camino' : paso === 'llegada' ? 'Llegada registrada' : paso === 'completar' ? (item === 'entrega_efectivo' ? 'Efectivo entregado' : 'Completado') : 'Paso quitado');
     despues && await despues();
   });
 }
@@ -2862,11 +2915,12 @@ function recorridoHTML(){
   const nav = (s, k) => { const p = k === 'trabajo' ? 'trab' : 'dom'; return s[p + '_lat'] != null ? `<a class="mt-b gh ic" href="https://www.google.com/maps/dir/?api=1&destination=${s[p + '_lat']},${s[p + '_lng']}" target="_blank" rel="noopener" title="Cómo llegar" data-stop>${ico('nav')}</a>` : ''; };
   const parada = ({ s, i }, n) => {
     const e = vpEstado(i);
-    const est = i.item === 'entrega_efectivo' ? `Entregar <b>${L(montoLibre(s))}</b>` : e === 'llegada' ? `En el lugar desde ${horaC(i.llegada_en)}` : e === 'en_camino' ? `En camino desde ${horaC(i.en_camino_en)}` : 'Pendiente';
+    const hv = verGps();
+    const est = i.item === 'entrega_efectivo' ? `Entregar <b>${L(montoLibre(s))}</b>` : e === 'llegada' ? `En el lugar${hv ? ' desde ' + horaC(i.llegada_en) : ''}` : e === 'en_camino' ? `En camino${hv ? ' desde ' + horaC(i.en_camino_en) : ''}` : 'Pendiente';
     const acc = i._sin || i.item === 'entrega_efectivo' ? `<button class="mt-b gh" data-rab="${s.id}">${ico('arrow')}Abrir</button>`
       : e === 'pendiente' ? `<button class="mt-b" data-vp="en_camino" data-vi="${i.item}" data-vs="${s.id}">${ico('nav')}Voy en camino</button>`
       : e === 'en_camino' ? `<button class="mt-b" data-vp="llegada" data-vi="${i.item}" data-vs="${s.id}">${ico('pin')}Llegué</button>`
-      : `<button class="mt-b ok" data-rab="${s.id}">${ico('checksq')}Verificar</button>`;
+      : `<button class="mt-b ok" data-vp="completar" data-vi="${i.item}" data-vs="${s.id}">${ico('check')}Verificación completada</button>`;
     return `<div class="rc-p ${e}"><div class="rc-n">${n}</div><div class="rc-tx"><div class="rc-t">${ico(lugIco(i.item), 'sm')}<b>${lugTx(i.item)}</b></div>
       <div class="rc-cli">${esc(s.nombre_cliente)}</div>
       <div class="small muted">${esc(donde(s, i.item) || (i.item === 'entrega_efectivo' ? 'En la visita al cliente' : 'Sin sector registrado'))}</div><div class="small rc-est">${est}</div></div>
@@ -4137,9 +4191,10 @@ async function abrirDetalle(id, keepScroll){
   let ing = { error:{ message:'Failed to fetch' } }, items = ing, evs = ing;
   if (id > 0 && navigator.onLine) [ing, items, evs] = await Promise.all([
     sb.from('ingresos').select('*').eq('solicitud_id', id).order('fecha'),
-    sb.from('verificacion_items').select('*').eq('solicitud_id', id).order('id'),
+    sb.from('verificacion_items').select(VI_COLS).eq('solicitud_id', id).order('id'),
     sb.from('eventos').select('*').eq('solicitud_id', id).order('creado_en')
   ]);
+  if (items.data) items.data = await conGps(items.data);
   if (S.det !== id) return;
   if (!ing.error && !items.error && !evs.error){ S.detCache[id] = { ing: ing.data||[], items: items.data||[], evs: evs.data||[] }; aplicarPendientes(); guardarCache(); }
   else if (id > 0 && esRed(ing.error || items.error || evs.error)) marcarConexion(false);
@@ -4609,18 +4664,15 @@ function verificacionHTML(s, items){
   const hechos = items.filter(i => i.completado).length;
   return `<div class="card" id="verifCard"><h4 class="sec" style="margin-top:0">Verificación (${hechos}/${items.length})</h4>
     ${datosVisitaHTML(s)}
-    ${items.map(i => { const lugar = ['domicilio','trabajo'].includes(i.item), bloq = edit && lugar && !i.completado && !i.llegada_en && rol() !== 'admin';
+    ${items.map(i => { const lugar = ['domicilio','trabajo'].includes(i.item), e = vpEstado(i);
+      const notaV = edit && (!lugar || e === 'llegada' || i.completado);
       return `<div class="item ${i.completado?'done':''}" data-item="${i.item}">
-      <div class="hd"><b>${ITEM[i.item]}</b><span class="spacer"></span>
-        ${i.lat ? `<a class="small" target="_blank" href="https://maps.google.com/?q=${i.lat},${i.lng}">Ver en el mapa</a>` : ''}</div>
+      <div class="hd"><b>${ITEM[i.item]}</b><span class="spacer"></span>${i.completado ? `<span class="chip c-green">${ico('check', 'sm')}${i.item === 'entrega_efectivo' ? 'Entregado' : 'Completada'}</span>` : ''}</div>
       ${lugar ? vpLinea(i) : ''}
-      ${edit && lugar ? `<div class="vp-acc">${vpBoton(s, i)}</div>` : ''}
-      <label class="chk vp-ck${bloq ? ' off' : ''}" ${bloq ? 'title="Primero marque Voy en camino y Llegué"' : ''}><input type="checkbox" ${i.completado?'checked':''} ${edit && !bloq ? '' : 'disabled'} data-ck > ${i.item === 'entrega_efectivo' ? 'Efectivo entregado' : 'Verificado'}</label>${bloq ? '<div class="small muted" style="margin-top:4px">Se habilita después de marcar "Voy en camino" y "Llegué".</div>' : ''}
-      ${edit ? `<input data-nota placeholder="Nota" value="${esc(i.nota||'')}" style="margin-top:8px">
-        <div class="row" style="margin-top:8px">
-          <button class="btn sm ghost" data-gps>${ico('pin', 'sm')}${i.lat ? 'Actualizar GPS' : 'Capturar GPS'}</button>
-          <span class="small muted" data-st>${i.actualizado_por ? 'Guardado ' + hace(i.actualizado_en) : ''}</span></div>`
-      : (i.nota ? `<div class="small" style="margin-top:6px">${esc(i.nota)}</div>` : '')}
+      ${notaV ? `<input data-nota placeholder="${lugar ? 'Nota de la visita (opcional)' : 'Nota (opcional)'}" value="${esc(i.nota||'')}" style="margin-top:8px"><span class="small muted" data-st></span>`
+        : (i.nota ? `<div class="small" style="margin-top:6px">${esc(i.nota)}</div>` : '')}
+      ${edit ? `<div class="vp-acc">${vpBoton(s, i)}</div>` : ''}
+      ${vpRegistro(s, i)}
       ${i.foto_path ? `<div class="thumbs"><img data-path="${esc(i.foto_path)}" alt="foto"></div>` : ''}
     </div>`; }).join('')}
     ${fin ? `<label class="f">Observación final</label><textarea id="vNota" rows="2"></textarea>
@@ -4791,43 +4843,16 @@ function enlazarDetalle(s, c){
 
   // Verificación
   B.querySelectorAll('.item').forEach(el => {
-    const it = el.dataset.item, st = el.querySelector('[data-st]');
-    const guardar = (extra = {}) => run(null, async () => {
-      await rpc('guardar_item', { p_id: s.id, p_item: it, p_completado: el.querySelector('[data-ck]').checked,
-        p_nota: el.querySelector('[data-nota]')?.value || null, p_foto: extra.foto || null, p_lat: extra.lat ?? null, p_lng: extra.lng ?? null });
-      if (st) st.textContent = 'Guardado ✓';
-      el.classList.toggle('done', el.querySelector('[data-ck]').checked);
-      if (extra.foto || extra.lat) { const y = $('#sheet').scrollTop; await abrirDetalle(s.id, true); $('#sheet').scrollTop = y; }
-    });
-    // Al marcar un punto como realizado se registra la visita con hora y GPS del teléfono
-    const ck = el.querySelector('[data-ck]'); if (ck && !ck.disabled) ck.onchange = () => {
-      if (!ck.checked || !navigator.geolocation) return guardar();
-      ck.disabled = true; if (st) st.textContent = '📍 Tomando ubicación…';
-      navigator.geolocation.getCurrentPosition(
-        p => { ck.disabled = false; guardar({ lat: p.coords.latitude, lng: p.coords.longitude }); },
-        () => { ck.disabled = false; toast('Visita guardada sin GPS (no se pudo obtener la ubicación). Puede usar "Capturar GPS".', true); guardar(); },
-        { enableHighAccuracy:true, timeout:10000, maximumAge:60000 });
-    };
-    const nt = el.querySelector('[data-nota]'); if (nt) nt.onchange = () => guardar();
-    const gps = el.querySelector('[data-gps]');
-    if (gps) gps.onclick = () => {
-      if (!navigator.geolocation) return toast('GPS no disponible', true);
-      st.textContent = 'Obteniendo ubicación…';
-      navigator.geolocation.getCurrentPosition(p => guardar({ lat: p.coords.latitude, lng: p.coords.longitude }),
-        err => { st.textContent = ''; toast('No se pudo obtener la ubicación: ' + err.message, true); }, { enableHighAccuracy:true, timeout:20000 });
-    };
-    const foto = el.querySelector('[data-foto]');
-    if (foto) foto.onchange = () => run(null, async () => {
-      const f = foto.files[0]; if (!f) return;
-      st.textContent = 'Subiendo foto…';
-      const blob = await comprimir(f);
-      const path = `${s.id}/${it}-${Date.now()}.jpg`;
-      const { error } = await sb.storage.from('evidencias').upload(path, blob, { contentType:'image/jpeg' });
-      if (error) throw error;
-      await guardar({ foto: path });
+    const it = el.dataset.item, st = el.querySelector('[data-st]'), nt = el.querySelector('[data-nota]');
+    // La nota se guarda sola al salir del campo (sin tocar la hora ni el GPS)
+    if (nt) nt.onchange = () => run(null, async () => {
+      const cur = (S.detData.items || []).find(x => x.item === it);
+      await rpc('guardar_item', { p_id: s.id, p_item: it, p_completado: !!cur?.completado, p_nota: nt.value || null, p_foto: null, p_lat: null, p_lng: null });
+      if (cur) cur.nota = nt.value || null; if (st) st.textContent = 'Nota guardada';
     });
   });
   B.querySelectorAll('[data-vp]').forEach(b => b.onclick = () => marcarPaso(b, s.id, b.dataset.vi, b.dataset.vp, refrescar));
+  B.querySelectorAll('[data-req]').forEach(c => c.onchange = () => { c.disabled = true; marcarPaso(null, s.id, c.dataset.req, c.checked ? 'completar' : 'descompletar', refrescar, true).finally(() => { c.disabled = false; }); });
   B.querySelectorAll('img[data-path]').forEach(async img => {
     const { data } = await sb.storage.from('evidencias').createSignedUrl(img.dataset.path, 3600);
     if (data?.signedUrl){ img.src = data.signedUrl; img.onclick = () => window.open(data.signedUrl, '_blank'); }
@@ -6944,7 +6969,7 @@ async function pintarStats(){
     ${r.visitas.map(v => `<tr><td>${esc(v.nombre)}</td><td class="num">${v.domicilio}</td><td class="num">${v.trabajo}</td><td class="num">${v.desembolso}</td><td class="num"><b>${v.total}</b></td><td class="num">${v.rechazadas}</td></tr>`).join('')}</tbody></table>
     <div class="small muted" style="margin-top:6px">Cada punto que el verificador marca como realizado queda registrado como una visita (cliente, hora y GPS): domicilio, trabajo o entrega de efectivo.</div>` : '<div class="muted small">Sin visitas en el período</div>'}</div>
   ${es('analista') ? `<div class="card" style="overflow-x:auto"><b>Visitas por día</b><div id="vDias" class="small muted" style="margin-top:6px">Cargando…</div></div>
-  <h4 class="sec">Mapa de verificaciones</h4><div class="card"><div id="vMapStats" style="height:420px;border-radius:10px;overflow:hidden;background:var(--bg2,#eef)"></div><div class="small muted" id="vMapInfo" style="margin-top:6px">Cargando visitas…</div></div>` : ''}
+  ${verGps() ? '' : '<div id="vMapOff" hidden>'}<h4 class="sec">Mapa de verificaciones</h4><div class="card"><div id="vMapStats" style="height:420px;border-radius:10px;overflow:hidden;background:var(--bg2,#eef)"></div><div class="small muted" id="vMapInfo" style="margin-top:6px">Cargando visitas…</div></div>${verGps() ? '' : '</div>'}` : ''}
   <h4 class="sec">Cartera en proceso ahora</h4>
   <div class="pipe">${['borrador','en_analisis','aprobada','por_verificar','desembolso_pendiente'].map(k => `<div class="st"><b>${pe[k]||0}</b><span class="small">${EST[k].t}</span></div>`).join('')}</div>
   ${dondeTiempoHTML(rd)}
@@ -6991,6 +7016,7 @@ async function mapaVisitas(d0, d1){
   try { const { data, error } = await sb.rpc('visitas_mapa', { p_desde: d0, p_hasta: d1 }); if (error) throw error; vs = data || []; }
   catch(e){ box.style.display = 'none'; info.textContent = navigator.onLine ? 'No se pudo cargar el mapa de visitas: ' + (e.message || e) : 'El mapa de visitas necesita conexión a internet.'; return; }
   visitasPorDia(vs);
+  if (!verGps()) return;
   const con = vs.filter(v => v.lat != null && v.lng != null), sin = vs.length - con.length;
   if (!con.length){ box.style.display = 'none'; info.textContent = vs.length ? `${vs.length} visita(s) en el período, ninguna con GPS registrado.` : 'Sin visitas registradas en el período.'; return; }
   try {
@@ -7543,10 +7569,12 @@ function pintarUsuarios(){
       <label class="f">Rol</label><select id="eR">${Object.entries(ROL).map(([k,v]) => `<option value="${k}" ${u.rol===k?'selected':''}>${v}</option>`).join('')}</select>
       ${usrRolExtraHTML(u, 'e')}
       <label class="f">Notificaciones</label><select id="eAv"><option value="rol"${u.avisos !== 'transferencias' ? ' selected' : ''}>Las de su rol</option><option value="transferencias"${u.avisos === 'transferencias' ? ' selected' : ''}>Solo transferencias por confirmar (gerente)</option></select>
+      <label class="chk" id="eGpsF" style="margin-top:10px;align-items:flex-start${u.rol === 'admin' ? ';display:none' : ''}"><input type="checkbox" id="eGps" ${u.ver_gps?'checked':''}> <span><b>Ver horas y ubicación GPS de las verificaciones</b><br><span class="small muted">Registro de cada paso del verificador (en camino, llegó, completada) con la hora y el lugar donde marcó. El administrador siempre lo ve.</span></span></label>
       <label class="chk" style="margin-top:10px"><input type="checkbox" id="eA" ${u.activo?'checked':''}> Activo</label>
       <label class="f">Nueva contraseña (opcional)</label><input id="eP" type="text" placeholder="Dejar vacío para no cambiar">
       <div class="btns"><button class="btn ghost" data-close>Cancelar</button><button class="btn pri" id="eOk">Guardar</button></div>`);
     usrRolExtraEnlazar(w, 'e', 'eR');
+    w.querySelector('#eR').addEventListener('change', () => { w.querySelector('#eGpsF').style.display = w.querySelector('#eR').value === 'admin' ? 'none' : ''; });
     w.querySelector('#eOk').onclick = e => run(e.target, async () => {
       const rolN = $('#eR').value, carts = usrCarteras(w, 'e');
       if (rolN === 'gestor' && !carts.length) throw new Error('Marque al menos una cartera para el gestor');
@@ -7555,6 +7583,7 @@ function pintarUsuarios(){
       else { const ger = $('#eGer').checked && ['analista','asesor','admin'].includes(rolN);
         if (ger !== esGerente(u)) await rpc('fijar_roles_extra', { p_id: u.id, p_roles: ger ? ['gerente'] : [] }); }
       if ($('#eAv').value !== (u.avisos || 'rol')) await rpc('fijar_avisos', { p_id: u.id, p_avisos: $('#eAv').value });
+      if (rolN !== 'admin' && $('#eGps').checked !== !!u.ver_gps) await rpc('fijar_ver_gps', { p_id: u.id, p_valor: $('#eGps').checked });
       if ($('#eP').value) await fnUsuarios({ accion:'password', user_id: u.id, password: $('#eP').value });
       cerrarDialogo(w); await cargarPerfiles(); pintarUsuarios(); toast('Guardado');
     });
