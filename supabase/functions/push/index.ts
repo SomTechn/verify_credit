@@ -27,7 +27,9 @@ async function config() {
   return (cfg = c);
 }
 
-async function enviar(ids: string[], msg: { title: string; body: string; id?: number; k?: string; voz?: string }) {
+type Meta = { origen?: string; actor?: string | null };
+// Envía el aviso a los dispositivos de cada persona y lo guarda en el historial (una fila por persona, con fecha y hora)
+async function enviar(ids: string[], msg: { title: string; body: string; id?: number; k?: string; voz?: string }, meta: Meta = {}) {
   ids = [...new Set(ids.filter(Boolean))];
   if (!ids.length) return 0;
   await config();
@@ -35,16 +37,27 @@ async function enviar(ids: string[], msg: { title: string; body: string; id?: nu
   if (error) throw error;
   const payload = JSON.stringify({ ...msg, tag: msg.k || (msg.id ? 'vc-' + msg.id : 'vc') });
   let ok = 0;
+  const porUsuario: Record<string, { d: number; ok: number }> = {};
+  ids.forEach((id) => (porUsuario[id] = { d: 0, ok: 0 }));
   await Promise.all((subs || []).map(async (s) => {
+    const u = porUsuario[s.user_id]; if (u) u.d++;
     try {
       await webpush.sendNotification({ endpoint: s.endpoint, keys: { p256dh: s.p256dh, auth: s.auth } }, payload, { TTL: 86400, urgency: 'high' });
-      ok++;
+      ok++; if (u) u.ok++;
     } catch (e) {
       const st = (e as { statusCode?: number }).statusCode;
       if (st === 404 || st === 410) await sb.from('push_subs').delete().eq('endpoint', s.endpoint);   // dispositivo dado de baja
       else console.error('push', st, (e as Error).message);
     }
   }));
+  try {   // un fallo al guardar el historial nunca debe impedir el aviso
+    const lote = crypto.randomUUID();
+    const { error: eh } = await sb.from('push_historial').insert(ids.map((id) => ({
+      lote, user_id: id, titulo: String(msg.title || '').slice(0, 120), cuerpo: String(msg.body || '').slice(0, 500),
+      solicitud_id: Number(msg.id) > 0 ? Number(msg.id) : null, origen: meta.origen || 'solicitud', actor: meta.actor || null,
+      dispositivos: porUsuario[id].d, entregados: porUsuario[id].ok })));
+    if (eh) console.error('historial', eh.message);
+  } catch (e) { console.error('historial', (e as Error).message); }
   return ok;
 }
 
@@ -62,19 +75,19 @@ async function evento(ev: Record<string, any>) {
   const actorNom = async () => { if (!ev.actor) return ''; const { data } = await sb.from('perfiles').select('nombre').eq('id', ev.actor).maybeSingle(); return (data?.nombre || '').trim(); };
   if (ev.tabla === 'meta') {   // meta diaria alcanzada: se avisa a todo el equipo
     const L = (n: number) => 'L ' + Math.round(n).toLocaleString('es-HN');
-    return enviar((perf || []).map((p) => p.id as string), { title: '¡Meta del día alcanzada!', body: `Colocado ${L(ev.monto)} de ${L(ev.meta)}. ¡Excelente trabajo, equipo!` });
+    return enviar((perf || []).map((p) => p.id as string), { title: '¡Meta del día alcanzada!', body: `Colocado ${L(ev.monto)} de ${L(ev.meta)}. ¡Excelente trabajo, equipo!` }, { origen: 'meta', actor: ev.actor });
   }
   if (ev.tabla === 'directo') {   // aviso armado por la base (seguimientos, alertas): va solo a las personas indicadas
     const activos = new Set((perf || []).map((p) => p.id as string));
     const ids = (Array.isArray(ev.ids) ? ev.ids : []).filter((id: string) => activos.has(id));
-    return enviar(ids, { title: String(ev.titulo || 'VerifyCredit').slice(0, 80), body: String(ev.cuerpo || '').slice(0, 300), id: ev.id || undefined, k: ev.k || undefined });
+    return enviar(ids, { title: String(ev.titulo || 'VerifyCredit').slice(0, 80), body: String(ev.cuerpo || '').slice(0, 300), id: ev.id || undefined, k: ev.k || undefined }, { origen: 'directo', actor: ev.actor });
   }
   if (ev.tabla === 'comentarios') {
     const { data } = await sb.from('solicitudes').select('id, codigo, nombre_cliente, asesor_id, analista_id, verificador_id').eq('id', ev.solicitud).maybeSingle();
     if (!data) return 0;
     const { data: au } = await sb.from('perfiles').select('nombre').eq('id', ev.autor).maybeSingle();
     return enviar(normales(sin([data.asesor_id, data.analista_id, data.verificador_id, ...admins].filter((id) => id !== ev.autor))),
-      { title: `${au?.nombre || 'Comentario'} comentó en ${data.nombre_cliente}`, body: ev.texto || '', id: data.id });
+      { title: `${au?.nombre || 'Comentario'} comentó en ${data.nombre_cliente}`, body: ev.texto || '', id: data.id }, { origen: 'comentario', actor: ev.autor });
   }
   const cli = `${sol.cliente} · ${TIPO[sol.tipo] || sol.tipo}${sol.codigo ? ' · ' + sol.codigo : ''}`;
   if (ev.tabla === 'asignacion') {   // se asignó (o cambió) el verificador de una solicitud por verificar
@@ -82,7 +95,7 @@ async function evento(ev: Record<string, any>) {
     let n = 0; const quien = await actorNom();
     for (const a of avisos) {
       if (!a.id || a.id === ev.actor) continue;   // quien toma la visita no recibe su propio aviso
-      n += await enviar([a.id], { title: quien ? `${quien} le asignó una verificación` : 'Verificación asignada a usted', body: `${a.lugar ? a.lugar + ' · ' : ''}${cli}`, id: sol.id });
+      n += await enviar([a.id], { title: quien ? `${quien} le asignó una verificación` : 'Verificación asignada a usted', body: `${a.lugar ? a.lugar + ' · ' : ''}${cli}`, id: sol.id }, { origen: 'asignacion', actor: ev.actor });
     }
     return n;
   }
@@ -105,7 +118,7 @@ async function evento(ev: Record<string, any>) {
   // El administrador se entera de todos los cambios
   const dest = sin([...ids, ...admins]);
   const quien = await actorNom();
-  return enviar(sol.estado === 'desembolso_pendiente' ? dest : normales(dest), { title: t, body: (quien ? `${verbo} ${quien} · ` : '') + cli, id: sol.id });
+  return enviar(sol.estado === 'desembolso_pendiente' ? dest : normales(dest), { title: t, body: (quien ? `${verbo} ${quien} · ` : '') + cli, id: sol.id }, { origen: 'solicitud', actor: ev.actor });
 }
 
 Deno.serve(async (req) => {
@@ -132,14 +145,14 @@ Deno.serve(async (req) => {
       const { data: act } = await sb.from('perfiles').select('id').eq('activo', true);
       const validos = new Set((act || []).map((p) => p.id as string));
       const ids = (Array.isArray(a.ids) ? a.ids : []).filter((id: string) => validos.has(id));
-      const n = await enviar(ids, { title: tit, body: msg, k: String(a.k || 'm' + Date.now()).slice(0, 40), voz: typeof a.voz === 'string' ? a.voz.slice(0, 500) : undefined });
+      const n = await enviar(ids, { title: tit, body: msg, k: String(a.k || 'm' + Date.now()).slice(0, 40), voz: typeof a.voz === 'string' ? a.voz.slice(0, 500) : undefined }, { origen: 'aviso', actor: u.user.id });
       return json({ enviados: n, personas: ids.length });
     }
     if (body.prueba) {
       const jwt = (req.headers.get('Authorization') || '').replace(/^Bearer\s+/i, '');
       const { data: u, error } = await sb.auth.getUser(jwt);
       if (error || !u?.user) return json({ error: 'Sesión no válida' }, 401);
-      const n = await enviar([u.user.id], { title: 'Notificaciones activadas', body: 'Así le llegarán los avisos de VerifyCredit.' });
+      const n = await enviar([u.user.id], { title: 'Notificaciones activadas', body: 'Así le llegarán los avisos de VerifyCredit.' }, { origen: 'prueba', actor: u.user.id });
       return json({ enviados: n });
     }
     return json({ error: 'Solicitud no reconocida' }, 400);

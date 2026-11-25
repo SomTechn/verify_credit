@@ -149,6 +149,20 @@ label.f{display:block;font-size:12px;color:var(--ink2);margin:10px 0 4px;font-we
 .filters{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}
 .filters button{flex:none;border:1px solid var(--line);background:var(--card);border-radius:999px;padding:5px 11px;font-size:13px}
 .filters button.on{background:var(--brand);border-color:var(--brand);color:#fff}
+/* Historial de notificaciones (admin) */
+.nh-top{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:8px}.nh-top select{flex:1 1 220px;max-width:340px;margin:0}
+.nh-res{font-size:13px;color:var(--ink2);margin:2px 0 10px}
+.nh-dia{font:700 13px Inter,sans-serif;color:var(--ink2);text-transform:uppercase;letter-spacing:.5px;margin:16px 2px 6px}
+.nh-l{background:var(--card);border:1px solid var(--line);border-radius:14px;overflow:hidden;box-shadow:var(--shadow)}
+.nh-it{display:flex;gap:12px;padding:12px 14px;border-top:1px solid var(--line);align-items:flex-start}.nh-it:first-child{border-top:0}
+.nh-it.clic{cursor:pointer}.nh-it.clic:hover{background:var(--brand2)}
+.nh-ic{flex:0 0 42px;height:42px;border-radius:50%;display:flex;align-items:center;justify-content:center}.nh-ic .ic{width:20px;height:20px}
+.nh-tx{flex:1;min-width:0}.nh-t{font-size:15px;line-height:1.3;color:var(--ink)}.nh-b{font-size:14px;color:var(--ink2);margin-top:2px;overflow-wrap:anywhere;white-space:pre-wrap}
+.nh-f{display:flex;flex-wrap:wrap;gap:4px 8px;align-items:center;margin-top:6px;font-size:13px}.nh-f .fh{color:var(--brand);font-weight:650}.nh-f .ic{width:14px;height:14px}
+.nh-para{display:flex;flex-wrap:wrap;gap:4px;margin-top:6px;font-size:12.5px;align-items:center}.nh-para>span:first-child{color:var(--muted)}
+.nh-p{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:999px;background:var(--gray-bg);color:var(--ink2);white-space:nowrap}
+.nh-p i{width:7px;height:7px;border-radius:50%;display:inline-block;background:var(--green)}.nh-p.no{background:var(--red-bg);color:var(--red)}.nh-p.no i{background:var(--red)}
+.nh-vacio{padding:28px 16px;text-align:center;color:var(--muted)}
 .pb.off{opacity:.72} .pb .pb-sub{font-size:12.5px;color:var(--ink2);margin-top:4px;display:flex;flex-wrap:wrap;gap:4px 8px;align-items:center}
 .pb-monto{margin-top:8px;padding:7px 10px;border-radius:10px;background:var(--green-bg);color:var(--green);font-size:13.5px} .pb-monto b{font:800 17px Poppins,Inter,sans-serif} .pb-monto span{color:var(--ink2);font-size:12px}
 .pb-grid{margin-top:8px;display:grid;grid-template-columns:1fr;gap:0} .pb-f{display:flex;justify-content:space-between;gap:12px;padding:5px 0;border-bottom:1px dashed var(--line);font-size:13.5px}
@@ -856,7 +870,7 @@ body.nav-min .sn-vt span{display:none}
 // App disponible sin señal (sw.js debe estar junto a index.html). Va primero para registrarse aunque falle otra cosa.
 if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) navigator.serviceWorker.register('sw.js').catch(() => {});
 // Versión de esta copia de la app: cambia en cada entrega. La app la compara con la publicada y se actualiza sola.
-const APP_VER = '2026-11-24.1915';
+const APP_VER = '2026-11-25.0930';
 // 'admin' = cambio solo para el administrador: los demás usuarios no ven el aviso de versión nueva (se actualiza en silencio)
 // y sus NOVEDADES deben llevar r:['admin']. 'todos' = cambio que ven los usuarios.
 const APP_AVISO = 'admin';
@@ -864,6 +878,9 @@ const APP_AVISO = 'admin';
 // Al publicar cambios: subir APP_VER y agregar aquí una entrada con la misma versión.
 // r = roles que la ven (sin r = todos; el admin ve todo).
 const NOVEDADES = [
+  { v:'2026-11-25.0930', f:'25 de noviembre de 2026', items:[
+    { i:'•', t:'Historial de notificaciones enviadas', r:['admin'],
+      d:'Nueva pestaña "Notificaciones" (en Más): muestra cada notificación que la app envió, con la fecha y hora exactas, a quién se le envió y si le llegó o no (por ejemplo, si la persona no tiene las notificaciones activas). Se puede filtrar por persona y por tipo, y al tocar una notificación de una solicitud se abre esa solicitud. El historial empieza hoy; los avisos anteriores no se guardaban.' } ] },
   { v:'2026-11-24.1900', f:'24 de noviembre de 2026', items:[
     { i:'•', t:'Ventanita de Mi trabajo (solo en computadora)', r:['admin','analista','asesor','verificador'],
       d:'En Chrome o Edge de computadora, el botón "Abrir ventanita" del menú lateral (abajo, sobre su nombre) abre una ventana pequeña con lo que le toca: pendientes, cuáles pasaron la meta y la meta de 1 hora. Queda encima de cualquier programa, aunque esté trabajando en otro. Con el mismo botón se cierra, y tiene modo compacto. No cierre ni recargue la pestaña de VerifyCredit: la ventanita depende de ella.' } ] },
@@ -1783,13 +1800,13 @@ function tabsRol(){
     posteo:['posteo','Posteo', s => posteoPendiente(s)],
     prospectos:['prospectos','Prospectos'],
     gestor:['gestor','Mi cartera'],
-    stats:['stats','Estadísticas'], referidos:['referidos','Referidos'], usuarios:['usuarios','Usuarios'], params:['params','Parámetros'], pagos:['pagos','Pago verificadores'], vercomo:['vercomo','Vista verificador']
+    stats:['stats','Estadísticas'], referidos:['referidos','Referidos'], usuarios:['usuarios','Usuarios'], params:['params','Parámetros'], pagos:['pagos','Pago verificadores'], vercomo:['vercomo','Vista verificador'], notifs:['notifs','Notificaciones']
   };
   const m = { asesor:['trabajo','tablero','alertas','prospectos','solicitudes','revisadas','proceso','verificar',...(asesorDesembolsa() ? ['desembolsos'] : []),'todas','refi','historial','stats'],
     analista:['trabajo','tablero','alertas','prospectos','analisis','desembolsos','todas','refi','referidos','historial','stats'],
     verificador:['trabajo','verificar','tablero','verificadas','historial','stats'],
     gestor:['gestor'],
-    admin:['trabajo','tablero','alertas','prospectos','solicitudes','revisadas','analisis','verificar','desembolsos','posteo','todas','refi','referidos','historial','stats','pagos','vercomo','usuarios','params'] };
+    admin:['trabajo','tablero','alertas','prospectos','solicitudes','revisadas','analisis','verificar','desembolsos','posteo','todas','refi','referidos','historial','stats','pagos','vercomo','usuarios','notifs','params'] };
   const lista = gerenteAct() ? [...new Set([...m[rol()], ...m.asesor, ...m.analista])] : m[rol()];
   return lista.map(k => T[k]);
 }
@@ -1898,7 +1915,7 @@ const ico = (n, cls = '') => `<svg class="ic ${cls}" viewBox="0 0 24 24" aria-hi
 // Ícono de cada pestaña
 const TAB_ICO = { trabajo:'home', tablero:'board', todas:'list', refi:'refresh', desembolsos:'bank', posteo:'receipt', verificar:'pin', verificadas:'checksq',
   historial:'clock', stats:'bars', alertas:'alert', prospectos:'inbox', solicitudes:'file', revisadas:'checksq', proceso:'loader', analisis:'search',
-  referidos:'users', gestor:'briefcase', pagos:'cash', vercomo:'eye', usuarios:'user', params:'sliders', tutoriales:'play' };
+  referidos:'users', gestor:'briefcase', pagos:'cash', vercomo:'eye', usuarios:'user', params:'sliders', tutoriales:'play', notifs:'bell' };
 // Accesos principales por rol (el resto queda en "Más")
 const NAV_PRIN = { asesor:['trabajo','tablero','todas','refi'], analista:['trabajo','tablero','desembolsos','refi'],
   verificador:['trabajo','verificar','verificadas','historial'], admin:['trabajo','tablero','posteo','todas'],
@@ -3459,7 +3476,7 @@ function pintarSuave(){
   if ((S.dlgs || []).some(w => w.isConnected)) return;
   if (document.body.classList.contains('arrastrando-kc')) return;   // no repintar mientras se arrastra una tarjeta
   const a = document.activeElement; if (a && /^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName) && a.id !== 'q') return;
-  if (['stats','pagos','params','usuarios','refi','referidos','vercomo','gestor'].includes(S.tab)) return;   // pantallas pesadas: se actualizan al entrar
+  if (['stats','pagos','params','usuarios','refi','referidos','vercomo','gestor','notifs'].includes(S.tab)) return;   // pantallas pesadas: se actualizan al entrar
   pintarConservando();
 }
 function pintar(){
@@ -3479,6 +3496,7 @@ function pintar(){
   if (S.tab === 'refi') return $('#rfTop') ? rfPintar() : pintarRefi();
   if (S.tab === 'posteo') return pintarPosteo();
   if (S.tab === 'usuarios') return pintarUsuarios();
+  if (S.tab === 'notifs') return pintarNotifs();
   if (S.tab === 'params') return pintarParams();
   if (S.tab === 'pagos') return pintarPagos();
   if (S.tab === 'vercomo') return pintarVerComo();
@@ -7268,6 +7286,95 @@ async function pintarEmpleados(){
     if (S.empleados.some(x => norm(x.nombre) === norm(n))) throw new Error('Ese empleado ya está en la lista');
     const { error } = await sb.from('empleados').insert({ nombre:n, cargo:$('#empC').value.trim() || null }); if (error) throw error;
     toast('Empleado agregado'); pintarEmpleados(); });
+}
+// ================== Historial de notificaciones (solo admin) ==================
+// Cada fila de push_historial es una persona que recibió un aviso; las del mismo "lote" son el mismo aviso.
+const NH = { filas:[], fin:false, cargando:false, persona:'', tipo:'todas', noLlego:false, err:'' };
+const NH_TIPO = { solicitud:['Solicitud','file','c-blue'], comentario:['Comentario','msg','c-teal'], asignacion:['Verificación asignada','pin','c-violet'],
+  directo:['Seguimiento o alerta','clock','c-amber'], meta:['Meta del día','star','c-green'], aviso:['Aviso del administrador','megaphone','c-red'], prueba:['Prueba de notificaciones','bell','c-gray'] };
+const NH_FILTROS = [['todas','Todas'],['solicitud','Solicitudes'],['comentario','Comentarios'],['asignacion','Asignaciones'],['directo','Seguimientos y alertas'],['aviso','Avisos del administrador'],['meta','Meta del día']];
+const NH_PAG = 400;
+const nhFechaHora = d => new Date(d).toLocaleString('es-HN', { timeZone:TZ, weekday:'short', day:'numeric', month:'short', year:'numeric', hour:'numeric', minute:'2-digit' });
+const nhYMD = d => new Date(d).toLocaleDateString('en-CA', { timeZone:TZ });
+function nhDia(ymd){
+  const hoy = hoyHN(), ay = new Date(new Date(hoy + 'T12:00:00-06:00').getTime() - 864e5).toLocaleDateString('en-CA', { timeZone:TZ });
+  const largo = new Date(ymd + 'T12:00:00-06:00').toLocaleDateString('es-HN', { timeZone:TZ, weekday:'long', day:'numeric', month:'long', year:'numeric' });
+  return ymd === hoy ? 'Hoy · ' + largo : ymd === ay ? 'Ayer · ' + largo : largo;
+}
+async function nhCargar(mas){
+  if (NH.cargando) return; NH.cargando = true; NH.err = '';
+  try {
+    let q = sb.from('push_historial').select('*').order('enviado_en', { ascending:false }).order('id', { ascending:false }).limit(NH_PAG);
+    if (NH.persona) q = q.eq('user_id', NH.persona);
+    if (NH.tipo !== 'todas') q = q.eq('origen', NH.tipo);
+    if (NH.noLlego) q = q.eq('entregados', 0);
+    if (mas && NH.filas.length) q = q.lt('enviado_en', NH.filas[NH.filas.length - 1].enviado_en);
+    const { data, error } = await q; if (error) throw error;
+    let r = data || [];
+    NH.fin = r.length < NH_PAG;
+    // No partir un aviso entre dos páginas: las filas de la última hora exacta se piden en la siguiente
+    if (!NH.fin){ const u = r[r.length - 1].enviado_en, sin = r.filter(x => x.enviado_en !== u); if (sin.length) r = sin; }
+    NH.filas = mas ? NH.filas.concat(r) : r;
+  } catch(e){ NH.err = esRed(e) ? 'Sin conexión. Toque Actualizar cuando vuelva la señal.' : errMsg(e); }
+  NH.cargando = false;
+}
+function nhGrupos(){
+  const m = new Map();
+  NH.filas.forEach(f => { let g = m.get(f.lote); if (!g){ g = { ...f, dest:[] }; m.set(f.lote, g); } g.dest.push(f); });
+  return [...m.values()];
+}
+function nhItemHTML(g){
+  const [tt, ic, cls] = NH_TIPO[g.origen] || ['Notificación', 'bell', 'c-gray'];
+  const abre = g.solicitud_id && S.sols.some(x => x.id === g.solicitud_id);
+  const dest = g.dest.slice().sort((a, b) => nombre(a.user_id).localeCompare(nombre(b.user_id))).map(d => {
+    const ok = d.entregados > 0, por = ok ? `Le llegó a ${d.entregados} dispositivo${d.entregados > 1 ? 's' : ''}` : d.dispositivos ? 'No le llegó: falló el envío a su dispositivo' : 'No le llegó: no tiene las notificaciones activas';
+    return `<span class="nh-p${ok ? '' : ' no'}" title="${esc(por)}"><i></i>${esc(nombre(d.user_id))}${ok ? '' : ' · no le llegó'}</span>`; }).join('');
+  const quien = g.actor && S.perfiles[g.actor] ? ` · por ${esc(nombre(g.actor))}` : '';
+  return `<div class="nh-it${abre ? ' clic' : ''}"${abre ? ` data-nhs="${g.solicitud_id}" title="Abrir la solicitud"` : ''}>
+    <div class="nh-ic ${cls}">${ico(ic)}</div>
+    <div class="nh-tx"><div class="nh-t"><b>${esc(g.titulo)}</b></div>${g.cuerpo ? `<div class="nh-b">${esc(g.cuerpo)}</div>` : ''}
+      <div class="nh-para"><span>Para:</span>${dest}</div>
+      <div class="nh-f">${ico('clock')}<span class="fh">${esc(nhFechaHora(g.enviado_en))}</span><span class="muted">· ${esc(hace(g.enviado_en))}</span><span class="chip ${cls}">${esc(tt)}</span><span class="muted small">${quien}</span></div></div></div>`;
+}
+async function pintarNotifs(recargar = true){
+  if (rol() !== 'admin') return;
+  const gente = Object.values(S.perfiles).sort((a, b) => (a.nombre || '').localeCompare(b.nombre || ''));
+  const cab = () => `<h3 style="margin:0 0 4px">Notificaciones enviadas</h3>
+    <div class="small muted" style="margin-bottom:10px">Cada notificación que la app envió, con la fecha y hora en que se envió y a quién. El historial empieza el 25 de noviembre de 2026.</div>
+    <div class="nh-top"><select id="nhPer"><option value="">Todas las personas</option>${gente.map(p => `<option value="${p.id}"${NH.persona === p.id ? ' selected' : ''}>${esc(p.nombre || p.email || p.id)}${p.activo ? '' : ' (inactivo)'}</option>`).join('')}</select>
+      <label class="chk" style="margin:0"><input type="checkbox" id="nhNo"${NH.noLlego ? ' checked' : ''}> Solo las que no llegaron</label>
+      <button class="btn ghost sm" id="nhAct">${ico('refresh')} Actualizar</button></div>
+    <div class="filters">${NH_FILTROS.map(([k, t]) => `<button data-nht="${k}" class="${NH.tipo === k ? 'on' : ''}">${t}</button>`).join('')}</div>`;
+  $('#main').innerHTML = cab() + '<div id="nhCuerpo"><div class="nh-l"><div class="nh-vacio">Cargando…</div></div></div>';
+  const enlazar = () => {
+    $('#nhPer').onchange = e => { NH.persona = e.target.value; pintarNotifs(); };
+    $('#nhNo').onchange = e => { NH.noLlego = e.target.checked; pintarNotifs(); };
+    $('#nhAct').onclick = () => pintarNotifs();
+    document.querySelectorAll('[data-nht]').forEach(b => b.onclick = () => { NH.tipo = b.dataset.nht; pintarNotifs(); });
+  };
+  enlazar();
+  if (recargar) await nhCargar(false);
+  if (S.tab !== 'notifs') return;
+  const cuerpo = () => {
+    if (NH.err) return `<div class="alert err">${esc(NH.err)}</div>`;
+    const gs = nhGrupos();
+    if (!gs.length) return `<div class="nh-l"><div class="nh-vacio">${NH.persona || NH.tipo !== 'todas' || NH.noLlego ? 'No hay notificaciones con estos filtros.' : 'Todavía no se ha enviado ninguna notificación desde que se activó el historial.'}</div></div>`;
+    const noL = NH.filas.filter(f => !f.entregados).length;
+    let html = `<div class="nh-res">${gs.length} notificaci${gs.length === 1 ? 'ón' : 'ones'}${NH.fin ? '' : ' (las más recientes)'} · ${NH.filas.length} envío${NH.filas.length === 1 ? '' : 's'} a personas${noL ? ` · <b style="color:var(--red)">${noL} no llegaron</b>` : ''}</div>`;
+    let dia = '';
+    gs.forEach(g => {
+      const d = nhYMD(g.enviado_en);
+      if (d !== dia){ if (dia) html += '</div>'; dia = d; html += `<div class="nh-dia">${esc(nhDia(d))}</div><div class="nh-l">`; }
+      html += nhItemHTML(g);
+    });
+    html += '</div>';
+    if (!NH.fin) html += `<div class="btns" style="justify-content:center;margin-top:12px"><button class="btn ghost" id="nhMas">Ver anteriores</button></div>`;
+    return html;
+  };
+  $('#nhCuerpo').innerHTML = cuerpo();
+  $('#nhCuerpo').onclick = e => { const it = e.target.closest('[data-nhs]'); if (it) abrirDetalle(+it.dataset.nhs); };
+  const mas = $('#nhMas');
+  if (mas) mas.onclick = e => run(e.target, async () => { const y = window.scrollY; await nhCargar(true); await pintarNotifs(false); window.scrollTo(0, y); });
 }
 function pintarUsuarios(){
   const us = Object.values(S.perfiles);
