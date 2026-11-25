@@ -646,6 +646,10 @@ header.top .iconbtn svg.ic{width:18px;height:18px;vertical-align:-4px}
   body.nav-min .sn-who{justify-content:center}
   body.nav-min .sn-ibs{flex-direction:column}
 }
+.sn-vt{display:flex;gap:8px;align-items:center;justify-content:center;width:100%;margin:auto 0 10px;background:rgba(255,255,255,.12);color:#fff;border:1px solid rgba(255,255,255,.28);border-radius:8px;padding:9px;font:700 13px Inter,sans-serif;cursor:pointer}
+.sn-vt:hover{background:rgba(255,255,255,.2)} .sn-vt.on{background:#fff;color:#1877F2;border-color:#fff} .sn-vt .ic{width:17px;height:17px}
+body.nav-min .sn-vt span{display:none}
+.sn-vt + .sn-me{margin-top:0}
 .sn-new{display:flex;gap:8px;align-items:center;justify-content:center;background:var(--accent);color:var(--accent-ink);border:0;border-radius:8px;padding:11px;font:800 14px Inter,sans-serif;margin-bottom:14px;cursor:pointer}
 .sidenav .nv{display:flex;gap:11px;align-items:center;width:100%;background:none;border:0;color:inherit;border-radius:7px;padding:9px 11px;font:600 14px Inter,sans-serif;text-align:left;cursor:pointer;margin-bottom:1px}
 .sidenav .nv:hover{background:rgba(255,255,255,.07)}.sidenav .nv.on{background:rgba(255,255,255,.14);color:#fff}
@@ -852,7 +856,7 @@ header.top .iconbtn svg.ic{width:18px;height:18px;vertical-align:-4px}
 // App disponible sin señal (sw.js debe estar junto a index.html). Va primero para registrarse aunque falle otra cosa.
 if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) navigator.serviceWorker.register('sw.js').catch(() => {});
 // Versión de esta copia de la app: cambia en cada entrega. La app la compara con la publicada y se actualiza sola.
-const APP_VER = '2026-11-24.1900';
+const APP_VER = '2026-11-24.1915';
 // 'admin' = cambio solo para el administrador: los demás usuarios no ven el aviso de versión nueva (se actualiza en silencio)
 // y sus NOVEDADES deben llevar r:['admin']. 'todos' = cambio que ven los usuarios.
 const APP_AVISO = 'admin';
@@ -862,7 +866,7 @@ const APP_AVISO = 'admin';
 const NOVEDADES = [
   { v:'2026-11-24.1900', f:'24 de noviembre de 2026', items:[
     { i:'•', t:'Ventanita de Mi trabajo (solo en computadora)', r:['admin','analista','asesor','verificador'],
-      d:'En Chrome o Edge de computadora, el botón de la ventanita (arriba, junto a Novedades) abre una ventana pequeña con lo que le toca: pendientes, cuáles pasaron la meta y la meta de 1 hora. Queda encima de cualquier programa, aunque esté trabajando en otro. Con el mismo botón se cierra, y tiene modo compacto. No cierre ni recargue la pestaña de VerifyCredit: la ventanita depende de ella.' } ] },
+      d:'En Chrome o Edge de computadora, el botón "Abrir ventanita" del menú lateral (abajo, sobre su nombre) abre una ventana pequeña con lo que le toca: pendientes, cuáles pasaron la meta y la meta de 1 hora. Queda encima de cualquier programa, aunque esté trabajando en otro. Con el mismo botón se cierra, y tiene modo compacto. No cierre ni recargue la pestaña de VerifyCredit: la ventanita depende de ella.' } ] },
   { v:'2026-11-24.0100', f:'24 de noviembre de 2026', items:[
     { i:'•', t:'Se desactivó la política tipo B', r:['analista','asesor'],
       d:'Ya no aparece el botón "Aplicar política tipo B" ni la sugerencia. Un cliente con ingreso menor al mínimo queda como ingresos insuficientes. Las solicitudes que ya tenían tipo B se siguen mostrando igual.' },
@@ -1976,6 +1980,7 @@ function pintarNav(){
     ${puedeCrear() ? `<button class="sn-new" data-nueva title="Nueva solicitud">${ico('plus')}<span>Nueva solicitud</span></button>` : ''}
     ${prin.map(k => item(tabs.find(t => t[0] === k))).join('')}
     ${resto.length ? `<div class="sn-grp"><span>Más</span></div>${resto.map(t => item(t)).join('')}` : ''}
+    ${typeof vtDisponible === 'function' && vtDisponible() && !esGestor() ? `<button class="sn-vt${VT && VT.win ? ' on' : ''}" data-vttog title="${VT && VT.win ? 'Cerrar ventanita' : 'Abrir ventanita de Mi trabajo (queda encima de cualquier programa)'}">${ico('ventana')}<span>${VT && VT.win ? 'Cerrar ventanita' : 'Abrir ventanita'}</span></button>` : ''}
     <div class="sn-me"><div class="sn-who"><div class="av" style="background:${avColor(S.me?.id || '')}">${esc(iniciales(yo))}</div><div class="t"><b>${esc(yo)}</b><small>${esc(rolTxt())}</small></div></div>
       <div class="sn-ibs"><button class="sn-ib" data-hb="btnNov" title="Novedades">${ico('star')}<span>Novedades</span></button><button class="sn-ib" data-hb="btnBell" title="Notificaciones">${ico(typeof PUSH !== 'undefined' && PUSH.on ? 'bell' : 'bellOff')}<span>Avisos</span></button><button class="sn-ib" data-hb="btnOut" title="Salir">${ico('out')}<span>Salir</span></button></div></div>`;
   $('#botNav').innerHTML = prin.map(k => item(tabs.find(t => t[0] === k), 'bn')).join('')
@@ -1983,6 +1988,7 @@ function pintarNav(){
   const ir = k => { S.tab = k; S.q = ''; pintarTabs(); pintar(); window.scrollTo(0, 0); };
   document.querySelectorAll('#sideNav [data-nk], #botNav [data-nk]').forEach(b => b.onclick = () => ir(b.dataset.nk));
   document.querySelectorAll('#sideNav [data-hb]').forEach(b => b.onclick = () => $('#' + b.dataset.hb)?.click());
+  const vtb = $('#sideNav [data-vttog]'); if (vtb) vtb.onclick = () => vtAlternar();
   const tg = $('#sideNav [data-sntog]'); if (tg) tg.onclick = () => { try { localStorage.setItem('vc_nav_min', navMin() ? '0' : '1'); } catch(e){} pintarNav(); };
   document.querySelectorAll('[data-nueva]').forEach(b => b.onclick = () => nuevaSolicitudDlg());
   const mas = $('#botNav [data-mas]');
@@ -2389,6 +2395,8 @@ function vtBoton(){
   b.classList.toggle('on', !!VT.win);
   b.title = VT.win ? 'Cerrar ventanita' : 'Abrir ventanita de Mi trabajo (queda encima de cualquier programa)';
   b.setAttribute('aria-label', b.title); b.setAttribute('aria-pressed', VT.win ? 'true' : 'false');
+  const sb2 = $('#sideNav [data-vttog]');   // botón del menú lateral (PC)
+  if (sb2){ sb2.classList.toggle('on', !!VT.win); sb2.title = b.title; sb2.querySelector('span').textContent = VT.win ? 'Cerrar ventanita' : 'Abrir ventanita'; }
 }
 async function vtAlternar(){
   if (VT.win){ VT.win.close(); return; }
