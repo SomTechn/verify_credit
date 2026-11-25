@@ -73,6 +73,7 @@ header.top .who{min-width:0;flex:0 1 auto;overflow:hidden;white-space:nowrap} he
 .ob-item{border:1px solid var(--line);border-radius:10px;padding:8px 10px;margin:6px 0;font-size:13px}
 .ob-item.err{border-color:var(--red);background:var(--red-bg)}
 .iconbtn{background:rgba(255,255,255,.14);border:0;color:#fff;border-radius:10px;padding:7px 10px;font-size:14px}
+#btnVent .ic{width:17px;height:17px;vertical-align:-3px} #btnVent.on{background:#fff;color:#1877F2}
 nav.tabs{display:flex;gap:4px;overflow-x:auto;scrollbar-width:none;margin:10px -16px 0;padding:0 12px}
 nav.tabs::-webkit-scrollbar{display:none}
 nav.tabs button{flex:none;background:none;border:0;color:rgba(255,255,255,.78);padding:9px 10px 11px;border-bottom:3px solid transparent;font-weight:600;font-size:14px;white-space:nowrap}
@@ -827,6 +828,7 @@ header.top .iconbtn svg.ic{width:18px;height:18px;vertical-align:-4px}
       <button class="netpill hidden" id="netPill"></button>
       <button class="iconbtn hidden" id="btnInstall" title="Instalar la app">📲</button>
       <button class="iconbtn hidden" id="btnAviso" title="Enviar aviso al equipo">📢</button>
+      <button class="iconbtn hidden" id="btnVent" title="Abrir ventanita de Mi trabajo" aria-label="Abrir ventanita de Mi trabajo" aria-pressed="false"></button>
       <button class="iconbtn" id="btnNov" title="Novedades de la app">✨</button>
       <button class="iconbtn" id="btnBell" title="Notificaciones">🔔</button>
       <button class="iconbtn" id="btnOut" title="Salir">⎋</button>
@@ -850,7 +852,7 @@ header.top .iconbtn svg.ic{width:18px;height:18px;vertical-align:-4px}
 // App disponible sin señal (sw.js debe estar junto a index.html). Va primero para registrarse aunque falle otra cosa.
 if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) navigator.serviceWorker.register('sw.js').catch(() => {});
 // Versión de esta copia de la app: cambia en cada entrega. La app la compara con la publicada y se actualiza sola.
-const APP_VER = '2026-11-24.1200';
+const APP_VER = '2026-11-24.1900';
 // 'admin' = cambio solo para el administrador: los demás usuarios no ven el aviso de versión nueva (se actualiza en silencio)
 // y sus NOVEDADES deben llevar r:['admin']. 'todos' = cambio que ven los usuarios.
 const APP_AVISO = 'admin';
@@ -858,6 +860,9 @@ const APP_AVISO = 'admin';
 // Al publicar cambios: subir APP_VER y agregar aquí una entrada con la misma versión.
 // r = roles que la ven (sin r = todos; el admin ve todo).
 const NOVEDADES = [
+  { v:'2026-11-24.1900', f:'24 de noviembre de 2026', items:[
+    { i:'•', t:'Ventanita de Mi trabajo (solo en computadora)', r:['admin','analista','asesor','verificador'],
+      d:'En Chrome o Edge de computadora, el botón de la ventanita (arriba, junto a Novedades) abre una ventana pequeña con lo que le toca: pendientes, cuáles pasaron la meta y la meta de 1 hora. Queda encima de cualquier programa, aunque esté trabajando en otro. Con el mismo botón se cierra, y tiene modo compacto. No cierre ni recargue la pestaña de VerifyCredit: la ventanita depende de ella.' } ] },
   { v:'2026-11-24.0100', f:'24 de noviembre de 2026', items:[
     { i:'•', t:'Se desactivó la política tipo B', r:['analista','asesor'],
       d:'Ya no aparece el botón "Aplicar política tipo B" ni la sugerencia. Un cliente con ingreso menor al mínimo queda como ingresos insuficientes. Las solicitudes que ya tenían tipo B se siguen mostrando igual.' },
@@ -1373,6 +1378,7 @@ async function init(){
   $('#netPill').onclick = verPendientes;
   $('#vLogin').classList.add('hidden'); $('#vApp').classList.remove('hidden');
   $('#whoName').textContent = me.nombre; $('#whoRol').textContent = rolTxt(me);
+  setTimeout(vtBoton, 0);
   if (me.rol === 'gestor') return initGestor();
   await Promise.all([cargarPerfiles(), cargarParams(), cargarCarteras()]);
   await cargarSolicitudes();
@@ -1816,6 +1822,7 @@ const ICO = {
   file:'<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/>',
   receipt:'<path d="M4 2v20l3-2 3 2 2-2 2 2 3-2 3 2V2l-3 2-3-2-2 2-2-2-3 2z"/><path d="M8 8h8M8 12h8M8 16h5"/>',
   clock:'<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
+  ventana:'<rect x="3" y="4" width="18" height="16" rx="2"/><rect x="12" y="11" width="6" height="6" rx="1" fill="currentColor"/>',
   phone:'<path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1.9.4 1.8.7 2.7a2 2 0 0 1-.5 2.1L8 9.8a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.5c.9.3 1.8.6 2.7.7a2 2 0 0 1 1.7 2z"/>',
   msg:'<path d="M21 11.5a8.4 8.4 0 0 1-12.4 7.4L3 21l2.1-5.6A8.5 8.5 0 1 1 21 11.5z"/>',
   chat:'<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>',
@@ -2326,6 +2333,150 @@ function pintarTrabajo(){
       if (!navigator.onLine) throw new Error('Se necesita conexión para tomar el análisis');
       await rpc('tomar_analisis', { p_id: id }); toast('Análisis tomado · el tiempo de análisis empieza ahora'); await cargarSolicitudes(); pintarTabs(); abrirDetalle(id); });
   });
+}
+
+// ================== Ventanita de Mi trabajo (solo PC: Chrome o Edge) ==================
+// Ventana flotante (Document Picture-in-Picture) que queda encima de cualquier programa.
+// Se abre y se cierra con el botón del encabezado; se cierra sola si se cierra o recarga la pestaña de VerifyCredit.
+var VT = { win:null, compacto: localStorage.getItem('vc_vt_compacto') === '1', timer:null, tics:0, pend:null };
+const vtDisponible = () => 'documentPictureInPicture' in window && matchMedia('(pointer: fine) and (min-width: 900px)').matches;
+const VT_CSS = `
+:root{--bg:#F7FAFF;--card:#fff;--ink:#0A2A66;--ink2:#5B6B82;--line:#DCE6F5;--brand:#1877F2;--brand2:#EAF3FF;
+  --g:#17803D;--gbg:#E2F5E8;--a:#8A5800;--abg:#FDF2D8;--r:#B42318;--rbg:#FDE8E6;--gy:#4B5563;--gybg:#EEF0F2}
+@media (prefers-color-scheme: dark){:root{--bg:#0B1426;--card:#13203A;--ink:#EAF3FF;--ink2:#A9B8D0;--line:#22324F;--brand:#4C9AFF;--brand2:#16284A;
+  --g:#6FD08F;--gbg:#17301F;--a:#F0C060;--abg:#3A2E12;--r:#F28B82;--rbg:#3A1D1A;--gy:#A4ABB3;--gybg:#2A2D2F}}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);font:13px/1.35 Inter,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+button{font:inherit;cursor:pointer}
+.ic{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0}
+#vt{display:flex;flex-direction:column;height:100%}
+.hd{display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:var(--card);border-bottom:1px solid var(--line)}
+.hd b{display:block;font-size:14px}.hd span{color:var(--ink2);font-size:12px}
+.vivo{display:flex;align-items:center;gap:6px;font-size:11.5px;font-weight:600;color:var(--g)}.vivo i{width:7px;height:7px;border-radius:50%;background:var(--g)}
+.vivo.off{color:var(--ink2)}.vivo.off i{background:var(--ink2)}
+.al{display:flex;align-items:center;gap:10px;padding:9px 12px;background:var(--r);color:#fff}
+.al div{flex:1;min-width:0}.al b{display:block;font-size:13px}.al span{font-size:12px;opacity:.92}
+.al button{border:0;border-radius:6px;background:#fff;color:#B42318;font-weight:700;padding:6px 12px}
+.kp{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;padding:10px 12px;background:var(--card)}
+.kp div{border-radius:8px;padding:7px 9px;background:var(--brand2)}.kp span{display:block;font-size:11px;color:var(--ink2)}.kp b{font-size:18px}
+.kp .r{background:var(--rbg)}.kp .r b{color:var(--r)}.kp .g{background:var(--gbg)}.kp .g b{color:var(--g)}
+.mh{margin:8px 12px 0;padding:9px 11px;border:1px solid var(--line);border-radius:8px;background:var(--card)}
+.mh .t{display:flex;justify-content:space-between;font-size:12px;font-weight:600}
+.bar{height:7px;border-radius:4px;background:var(--line);margin:6px 0 5px;overflow:hidden}.bar i{display:block;height:7px;border-radius:4px}
+.mh .s{font-size:11.5px;color:var(--ink2)}
+.ls{flex:1;overflow:auto;padding:8px 12px 10px;display:flex;flex-direction:column;gap:6px}
+.sec{font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--ink2);margin-top:4px}
+.it{display:flex;align-items:center;gap:8px;padding:8px 9px;border:1px solid var(--line);border-radius:8px;background:var(--card);text-align:left;width:100%;color:inherit}
+.it:hover{border-color:var(--brand)}
+.it.late{border:1.5px solid var(--r)}
+.it .tx{flex:1;min-width:0}.it .nm{font-weight:600;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.it .dt{font-size:11.5px;color:var(--ink2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pl{flex-shrink:0;padding:3px 8px;border-radius:999px;font-size:11.5px;font-weight:700;white-space:nowrap}
+.pl.good{background:var(--gbg);color:var(--g)}.pl.warn{background:var(--abg);color:var(--a)}.pl.late{background:var(--r);color:#fff}.pl.esp{background:var(--gybg);color:var(--gy)}
+.bt{flex-shrink:0;border:1px solid var(--line);border-radius:6px;background:var(--card);color:var(--ink);font-weight:600;padding:6px 10px}
+.bt.p{background:var(--brand);border-color:var(--brand);color:#fff}
+.vac{padding:24px 8px;text-align:center;color:var(--ink2)}.vac b{display:block;color:var(--g);font-size:14px;margin-bottom:4px}
+.ft{display:flex;justify-content:space-between;align-items:center;padding:8px 12px;border-top:1px solid var(--line);background:var(--card)}
+.lk{border:0;background:none;color:var(--brand);font-weight:600;padding:6px 2px}
+.cp{display:flex;flex-direction:column;height:100%;background:var(--card)}
+.cp .tp{display:flex;align-items:center;justify-content:space-between;padding:7px 10px;border-bottom:1px solid var(--line);font-weight:700;font-size:12px}
+.cp .tp span{padding:2px 7px;border-radius:999px;background:var(--rbg);color:var(--r)}
+.cp .row{flex:1;display:flex;align-items:center;gap:8px;padding:6px 10px}
+`;
+function vtBoton(){
+  const b = $('#btnVent'); if (!b) return;
+  b.classList.toggle('hidden', !vtDisponible() || !S.me || esGestor());
+  b.classList.toggle('on', !!VT.win);
+  b.title = VT.win ? 'Cerrar ventanita' : 'Abrir ventanita de Mi trabajo (queda encima de cualquier programa)';
+  b.setAttribute('aria-label', b.title); b.setAttribute('aria-pressed', VT.win ? 'true' : 'false');
+}
+async function vtAlternar(){
+  if (VT.win){ VT.win.close(); return; }
+  if (!vtDisponible()) return toast('La ventanita funciona en Chrome o Edge de computadora', true);
+  try {
+    const w = await documentPictureInPicture.requestWindow({ width:360, height: VT.compacto ? 150 : 620 });
+    VT.win = w; w.document.title = 'Mi trabajo · VerifyCredit';
+    const st = w.document.createElement('style'); st.textContent = VT_CSS; w.document.head.append(st);
+    w.document.body.innerHTML = '<div id="vt"></div>';
+    w.document.addEventListener('click', vtClick);
+    w.addEventListener('pagehide', () => { VT.win = null; clearInterval(VT.timer); vtBoton(); });
+    clearInterval(VT.timer); VT.tics = 0; VT.timer = setInterval(vtTic, 30000);
+    vtPintar(true); vtBoton();
+  } catch(e){ toast('No se pudo abrir la ventanita: ' + (e.message || e), true); }
+}
+async function vtTic(){
+  if (!VT.win) return clearInterval(VT.timer);
+  // Con la pestaña en segundo plano la app no recarga sola: la ventanita se pone al día cada minuto
+  if (++VT.tics % 2 === 0 && document.hidden && navigator.onLine && S.me){ try { await cargarSolicitudes(); } catch(e){} }
+  vtPintar(true);
+}
+function vtPintar(ya){
+  if (!VT || !VT.win) return;
+  if (!ya){ clearTimeout(VT.pend); VT.pend = setTimeout(() => vtPintar(true), 250); return; }
+  const doc = VT.win.document, root = doc.getElementById('vt'); if (!root || !S.me) return;
+  const d = trabajoDatos(), coms = trabajoComentarios(), r = rol(), ahora = new Date(), ini = hoyIni();
+  const its = d.toca.map(x => { const s = x.s, seg = segHabiles(mtDesde(s), ahora);
+    return { x, s, seg, cls: s.en_espera ? 'esp' : semPaso(seg), tomar: x.acc.some(a => a[0] === 'tomar') }; });
+  const late = its.filter(i => i.cls === 'late').sort((a, b) => b.seg - a.seg);
+  const paso = s => PASO[pasoActual(s)]?.t || EST[s.estado]?.t || s.estado;
+  const pl = i => `<span class="pl ${i.cls}">${i.cls === 'esp' ? 'En espera' : fmtDur(i.seg)}</span>`;
+  const fila = i => `<div class="it${i.cls === 'late' ? ' late' : ''}" data-vt="abrir" data-id="${i.s.id}" role="button" tabindex="0">
+      <div class="tx"><div class="nm">${esc(i.s.nombre_cliente)}</div><div class="dt">${esc(paso(i.s))} · ${esc(TIPO[i.s.tipo] || i.s.tipo)}${i.s.monto_solicitado || i.s.monto_aprobado ? ' · ' + L(i.s.monto_solicitado || i.s.monto_aprobado) : ''}</div></div>
+      ${pl(i)}${i.tomar ? `<button class="bt p" data-vt="tomar" data-id="${i.s.id}">Tomar</button>` : `<button class="bt" data-vt="abrir" data-id="${i.s.id}">Abrir</button>`}</div>`;
+  const vivo = navigator.onLine ? '<div class="vivo"><i></i>En vivo</div>' : '<div class="vivo off"><i></i>Sin conexión</div>';
+  if (VT.compacto){
+    const u = late[0] || its.find(i => i.cls !== 'esp') || its[0];
+    root.innerHTML = `<div class="cp"><div class="tp"><div>${its.length} pendiente${its.length === 1 ? '' : 's'}${coms.length ? ` · ${coms.length} con comentarios` : ''}</div>${late.length ? `<span>${late.length} fuera de meta</span>` : vivo}</div>
+      <div class="row">${u ? `<div class="tx" style="flex:1;min-width:0" data-vt="abrir" data-id="${u.s.id}"><div style="font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(u.s.nombre_cliente)}</div><div style="font-size:11.5px;color:var(--ink2)">${esc(paso(u.s))}</div></div>${pl(u)}`
+        : '<div style="flex:1;color:var(--g);font-weight:600">Todo al día</div>'}
+      <button class="bt" data-vt="compacto" title="Expandir" aria-label="Expandir la ventanita">${ico('chevR').replace('class="ic ', 'style="transform:rotate(-90deg)" class="ic ')}</button></div></div>`;
+    return;
+  }
+  // Indicador del día según el rol
+  let hoyT = 'Hoy', hoyV = '';
+  if (r === 'analista' || r === 'admin'){ hoyT = 'Dictámenes hoy'; hoyV = S.sols.filter(s => s.dictamen_en && new Date(s.dictamen_en) >= ini && s.analista_id === S.me.id).length; }
+  else if (r === 'verificador'){ hoyT = 'Cerradas hoy'; hoyV = d.cerradas.length; }
+  else { hoyT = 'Colocado hoy'; hoyV = L(S.sols.filter(s => s.estado === 'desembolsada' && diaColoc(s) === hoyHN() && esMia(s)).reduce((a, s) => a + capitalColocado(s), 0)); }
+  // Meta de 1 hora: la solicitud abierta más antigua desde que entró a análisis
+  const enH = its.filter(i => i.cls !== 'esp' && i.s.enviado_analisis_en).map(i => ({ s:i.s, seg: segHabiles(i.s.enviado_analisis_en, ahora) })).sort((a, b) => b.seg - a.seg)[0];
+  let mh = '';
+  if (enH){ const min = Math.round(enH.seg / 60), pct = Math.min(100, min / 60 * 100), col = pct >= 100 ? 'var(--r)' : pct >= 75 ? '#D99A00' : 'var(--g)';
+    mh = `<div class="mh"><div class="t"><span>Meta de 1 hora · la más antigua</span><span style="color:${col}">${min} de 60 min</span></div>
+      <div class="bar"><i style="width:${pct}%;background:${col}"></i></div><div class="s">${esc(enH.s.nombre_cliente)} · ${esc(TIPO[enH.s.tipo] || enH.s.tipo)} · desde que entró a análisis</div></div>`; }
+  const fecha = ahora.toLocaleDateString('es-HN', { timeZone:TZ, weekday:'long', day:'numeric', month:'long' });
+  root.innerHTML = `
+    <div class="hd"><div><b>${esc(S.me.nombre)}</b><span>${esc(rolTxt())} · ${fecha}</span></div>${vivo}</div>
+    ${late.length ? `<div class="al">${ico('clock')}<div><b>${esc(late[0].s.nombre_cliente)} pasó la meta</b><span>${esc(paso(late[0].s))} · ${fmtDur(late[0].seg)}${late.length > 1 ? ` · y ${late.length - 1} más` : ''}</span></div><button data-vt="abrir" data-id="${late[0].s.id}">Ver</button></div>` : ''}
+    <div class="kp"><div><span>Pendientes</span><b>${its.length}</b></div><div class="${late.length ? 'r' : ''}"><span>Fuera de meta</span><b>${late.length}</b></div><div class="g"><span>${hoyT}</span><b>${hoyV}</b></div></div>
+    ${mh}
+    <div class="ls">
+      ${coms.length ? `<div class="sec">Comentarios nuevos (${coms.length})</div>${coms.slice(0, 3).map(s => `<div class="it" data-vt="com" data-id="${s.id}" role="button" tabindex="0"><div class="tx"><div class="nm">${esc(s.nombre_cliente)}</div><div class="dt">${comNuevos(s).length} comentario(s) sin leer</div></div><button class="bt" data-vt="com" data-id="${s.id}">Leer</button></div>`).join('')}` : ''}
+      ${its.length ? `<div class="sec">${r === 'verificador' ? 'Visitas asignadas' : 'Te toca a ti'} (${its.length})</div>${its.map(fila).join('')}`
+        : coms.length ? '' : '<div class="vac"><b>Todo al día</b>No tiene nada pendiente por ahora.</div>'}
+    </div>
+    <div class="ft"><button class="bt" data-vt="compacto">Compactar</button><button class="lk" data-vt="ir">Ir a VerifyCredit</button></div>`;
+}
+async function vtClick(e){
+  const el = e.target.closest('[data-vt]'); if (!el) return;
+  e.stopPropagation();
+  const k = el.dataset.vt, id = +el.dataset.id;
+  if (k === 'compacto'){
+    VT.compacto = !VT.compacto; localStorage.setItem('vc_vt_compacto', VT.compacto ? '1' : '0');
+    try { VT.win.resizeTo(VT.win.outerWidth, VT.compacto ? 150 : 620); } catch(_){}
+    return vtPintar(true);
+  }
+  window.focus();
+  if (k === 'ir') return;
+  if (k === 'tomar'){
+    if (!navigator.onLine) return toast('Se necesita conexión para tomar el análisis', true);
+    el.disabled = true;
+    try { await rpc('tomar_analisis', { p_id:id }); toast('Análisis tomado · el tiempo de análisis empieza ahora'); await cargarSolicitudes(); pintarTabs(); pintarSuave(); abrirDetalle(id); }
+    catch(err){ toast(errMsg(err), true); }
+    finally { vtPintar(true); }
+    return;
+  }
+  if (k === 'com') return abrirDetalle(id).then(() => setTimeout(() => document.querySelector('[data-ircom]')?.click(), 400));
+  abrirDetalle(id);
 }
 
 // ================== Roles adicionales, carteras y gestores de cobro ==================
@@ -3296,6 +3447,7 @@ function pintarConservando(y = window.scrollY){
   const r = pintar(); if (r && typeof r.then === 'function') r.then(fin, fin); else { fin(); requestAnimationFrame(fin); setTimeout(fin, 80); }
 }
 function pintarSuave(){
+  vtPintar();
   if ((S.dlgs || []).some(w => w.isConnected)) return;
   if (document.body.classList.contains('arrastrando-kc')) return;   // no repintar mientras se arrastra una tarjeta
   const a = document.activeElement; if (a && /^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName) && a.id !== 'q') return;
@@ -3303,6 +3455,7 @@ function pintarSuave(){
   pintarConservando();
 }
 function pintar(){
+  vtPintar();
   // Si la pestaña actual ya no está disponible para este usuario (p. ej. cambió un permiso), vuelve a la primera
   if (!tabsRol().some(t => t[0] === S.tab) && !['tutoriales'].includes(S.tab)){ S.tab = tabsRol()[0][0]; pintarTabs(); }
   const tab = tabsRol().find(t => t[0] === S.tab);
@@ -6291,6 +6444,7 @@ function mostrarNovedades(todas){
     <div class="btns"><button class="btn pri" data-close>Entendido</button></div></div>`);
 }
 $('#btnNov').onclick = () => mostrarNovedades(true);
+$('#btnVent').innerHTML = ico('ventana'); $('#btnVent').onclick = () => vtAlternar();
 
 // ================== Arrastrar tarjetas del tablero (poner en espera / reanudar) ==================
 // Ratón: arrastrar. Celular: mantener presionada la tarjeta ~0.4 s y arrastrar. Al arrastrar aparece además
