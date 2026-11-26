@@ -901,12 +901,13 @@ const APP_AVISO = 'todos';
 // Novedades que ve cada usuario al abrir una versión nueva (la más reciente primero).
 // Al publicar cambios: subir APP_VER y agregar aquí una entrada con la misma versión.
 // r = roles que la ven (sin r = todos; el admin ve todo).
+// Regla: las novedades de control (GPS, horas de los verificadores, permisos, auditoría) van SOLO con r:['admin'].
 const NOVEDADES = [
   { v:'2026-11-25.1430', f:'25 de noviembre de 2026', items:[
     { i:'•', t:'Verificación más rápida, como un delivery', r:['verificador'],
       d:'Cada visita tiene un solo botón grande con el siguiente paso: "Voy en camino", "Llegué" y "Verificación completada". Ya no hay que marcar la casilla Verificado ni capturar el GPS: la ubicación y la hora se guardan solas en cada paso. En Mi recorrido puede tocar "Verificación completada" sin abrir la solicitud. La entrega de efectivo es el botón "Efectivo entregado".' },
-    { i:'•', t:'Registro de horas y GPS de las verificaciones', r:['admin','analista','asesor'],
-      d:'Cada paso del verificador (en camino, llegó, completada) queda con su hora y ubicación, con la distancia al lugar registrado y el tiempo de trayecto y en el lugar. Lo ve el administrador y quien él autorice en Usuarios ("Ver horas y ubicación GPS de las verificaciones"). El mapa de verificaciones de Estadísticas también requiere ese permiso.' } ] },
+    { i:'•', t:'Registro de horas y GPS de las verificaciones', r:['admin'],
+      d:'Cada paso del verificador (en camino, llegó, completada) queda con su hora y ubicación, con la distancia al lugar registrado y el tiempo de trayecto y en el lugar. Lo ve usted y quien usted autorice en Usuarios ("Ver horas y ubicación GPS de las verificaciones"). El mapa de verificaciones de Estadísticas también requiere ese permiso. Esta novedad solo la ve el administrador.' } ] },
   { v:'2026-11-25.1345', f:'25 de noviembre de 2026', items:[
     { i:'•', t:'Refinanciar: historial de calificaciones y pausa de 15 días', r:['analista','asesor'],
       d:'Cada vez que el analista marca a un cliente como Aplica, No aplica o Sin definir queda en un historial con fecha, hora y quién lo hizo: se ve en la ficha del cliente y en el botón "Historial de calificaciones". Si un cliente se marcó Aplica, durante 15 días no se puede volver a marcar Aplica (para no saturarlo de mensajes): al cargar un corte nuevo esos clientes pasan a la pestaña "En pausa" con la fecha en que vuelven a estar disponibles. El mismo día sí se puede corregir.' } ] },
