@@ -157,6 +157,14 @@ label.f{display:block;font-size:12px;color:var(--ink2);margin:10px 0 4px;font-we
 .vr{display:flex;gap:8px;margin-top:10px;padding:8px 10px;border-radius:10px;background:var(--gray-bg);font-size:12.5px;color:var(--ink2)}.vr>.ic{flex:0 0 auto;margin-top:2px}
 .vr-h{font-weight:700;color:var(--ink);margin-bottom:4px}.vr-f{display:grid;grid-template-columns:78px auto;gap:0 8px;padding:2px 0}.vr-f>span:last-child{grid-column:2}
 .vr-f b{color:var(--ink)}.vr-d{margin-top:4px;font-weight:600}
+/* Mapa de la verificación (admin) */
+.vg{display:flex;align-items:center;gap:6px;margin-top:14px;font-size:13px;color:var(--ink)}
+.vg-map{height:300px;border-radius:12px;overflow:hidden;margin-top:6px;background:var(--gray-bg);border:1px solid var(--line)}
+.vg-l{margin-top:8px;font-size:12.5px}.vg-f{display:flex;gap:8px;align-items:flex-start;padding:3px 0}
+.vg-n{flex:0 0 20px;height:20px;border-radius:50%;color:#fff;font:700 11px Inter,sans-serif;display:flex;align-items:center;justify-content:center}
+.vg-mk{width:26px;height:26px;border-radius:50%;border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.4);color:#fff;font:700 12px Inter,sans-serif;display:flex;align-items:center;justify-content:center}
+.vg-g{border-radius:13px}
+.vg-r{background:#fff!important;border:3px solid #64748b;border-radius:4px;width:18px;height:18px;flex-basis:18px;box-sizing:border-box}
 /* Refinanciar: historial de calificaciones */
 .rf-hi{display:block;width:100%;text-align:left;font:inherit;font-size:13px;color:var(--ink);background:transparent;border:0;border-top:1px solid var(--line);padding:8px 2px}
 .rf-hi:first-child{border-top:0}.rf-hb{cursor:pointer}.rf-hb:hover{background:var(--brand2)}
@@ -894,7 +902,7 @@ body.nav-min .sn-vt span{display:none}
 // App disponible sin señal (sw.js debe estar junto a index.html). Va primero para registrarse aunque falle otra cosa.
 if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) navigator.serviceWorker.register('sw.js').catch(() => {});
 // Versión de esta copia de la app: cambia en cada entrega. La app la compara con la publicada y se actualiza sola.
-const APP_VER = '2026-11-25.1430';
+const APP_VER = '2026-11-26.1100';
 // 'admin' = cambio solo para el administrador: los demás usuarios no ven el aviso de versión nueva (se actualiza en silencio)
 // y sus NOVEDADES deben llevar r:['admin']. 'todos' = cambio que ven los usuarios.
 const APP_AVISO = 'todos';
@@ -903,6 +911,9 @@ const APP_AVISO = 'todos';
 // r = roles que la ven (sin r = todos; el admin ve todo).
 // Regla: las novedades de control (GPS, horas de los verificadores, permisos, auditoría) van SOLO con r:['admin'].
 const NOVEDADES = [
+  { v:'2026-11-26.1100', f:'26 de noviembre de 2026', items:[
+    { i:'•', t:'Mapa de cada verificación', r:['admin'],
+      d:'En el detalle de la solicitud, al final de la verificación, hay un mapa con cada punto que marcó el verificador (en camino, llegó, completada, efectivo entregado), numerados en el orden en que los marcó y unidos por el recorrido, junto a la dirección registrada por el asesor. Debajo, la lista con la hora y la distancia de cada punto. Solo lo ve usted y quien usted autorice en Usuarios.' } ] },
   { v:'2026-11-25.1430', f:'25 de noviembre de 2026', items:[
     { i:'•', t:'Verificación más rápida, como un delivery', r:['verificador'],
       d:'Cada visita tiene un solo botón grande con el siguiente paso: "Voy en camino", "Llegué" y "Verificación completada". Ya no hay que marcar la casilla Verificado ni capturar el GPS: la ubicación y la hora se guardan solas en cada paso. En Mi recorrido puede tocar "Verificación completada" sin abrir la solicitud. La entrega de efectivo es el botón "Efectivo entregado".' },
@@ -4679,11 +4690,66 @@ function verificacionHTML(s, items){
     ${fin ? `<label class="f">Observación final</label><textarea id="vNota" rows="2"></textarea>
       ${s.forma_desembolso === 'efectivo' ? fechaColocHTML(s, 'vFc') : ''}
       <div class="btns"><button class="btn ok" id="vOk">Verificación exitosa${s.forma_desembolso==='efectivo'?' · efectivo entregado':''}</button><button class="btn bad" id="vBad">Rechazar</button></div>` : ''}
+    ${vgPuntos(s, items).length ? `<div class="vg">${ico('lock', 'sm')}<b>Mapa de la verificación · solo administración</b></div><div id="vgMap" class="vg-map"></div><div id="vgLista" class="vg-l"></div>` : ''}
   </div>`;
+}
+// ----- Mapa con cada punto marcado por el verificador (solo admin o autorizados) -----
+const VG_COL = { en_camino:'#1d6fe8', llegada:'#d97706', completada:'#15803d', entregado:'#0f766e', reg:'#64748b' };
+function vgPuntos(s, items){
+  if (!verGps()) return [];
+  const out = [], lugar = { domicilio:'domicilio', trabajo:'trabajo', entrega_efectivo:'entrega de efectivo' };
+  for (const i of items){
+    const pre = i.item === 'trabajo' ? 'trab' : 'dom', ref = [s[pre + '_lat'], s[pre + '_lng']];
+    const add = (k, tx, ts, lat, lng) => { if (lat != null && lng != null) out.push({ k, tx, ts, lat:+lat, lng:+lng, item:i.item, dist:ref[0] != null ? distM(+ref[0], +ref[1], +lat, +lng) : null }); };
+    if (['domicilio', 'trabajo'].includes(i.item)){
+      add('en_camino', 'En camino al ' + lugar[i.item], i.en_camino_en, i.en_camino_lat, i.en_camino_lng);
+      add('llegada', 'Llegó al ' + lugar[i.item], i.llegada_en, i.llegada_lat, i.llegada_lng);
+      if (i.completado) add('completada', 'Completó ' + lugar[i.item], i.completado_en || i.actualizado_en, i.lat, i.lng);
+    } else if (i.completado) add(i.item === 'entrega_efectivo' ? 'entregado' : 'completada', i.item === 'entrega_efectivo' ? 'Entregó el efectivo' : 'Completó ' + (ITEM[i.item] || i.item).toLowerCase(), i.completado_en || i.actualizado_en, i.lat, i.lng);
+  }
+  return out.sort((a, b) => String(a.ts || '').localeCompare(String(b.ts || '')));
+}
+async function asegurarLeaflet(){
+  if (window.L && window.L.map) return;
+  if (!document.querySelector('link[data-leaflet]')){ const l = document.createElement('link'); l.rel = 'stylesheet'; l.dataset.leaflet = 1; l.href = 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css'; document.head.appendChild(l); }
+  await cargarScript('https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js');
+}
+async function pintarMapaVerif(s, items){
+  const box = $('#vgMap'), lista = $('#vgLista'); if (!box) return;
+  const pts = vgPuntos(s, items);
+  lista.innerHTML = pts.map((p, n) => `<div class="vg-f"><span class="vg-n" style="background:${VG_COL[p.k]}">${n + 1}</span><span><b>${esc(p.tx)}</b> · ${esc(p.ts ? fDT(p.ts) : '—')}${p.dist != null ? `<span class="muted"> · ${distTx(p.dist)} de lo registrado</span>` : ''}</span></div>`).join('')
+    + `<div class="vg-f muted"><span class="vg-n vg-r"></span><span>Dirección registrada por el asesor</span></div>`;
+  try { await asegurarLeaflet(); } catch(e){ box.innerHTML = '<div class="small muted" style="padding:12px">El mapa necesita conexión a internet.</div>'; return; }
+  if (!document.body.contains(box) || box.dataset.ok) return; box.dataset.ok = 1;
+  const LF = window.L, m = LF.map(box, { scrollWheelZoom:false });
+  LF.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom:19, attribution:'© OpenStreetMap' }).addTo(m);
+  const todos = [];
+  // Direcciones registradas (cuadro gris)
+  [['dom', 'Domicilio registrado'], ['trab', 'Trabajo registrado']].forEach(([pre, tx]) => {
+    const la = s[pre + '_lat'], ln = s[pre + '_lng']; if (la == null || ln == null) return;
+    if (pre === 'trab' && !items.some(i => i.item === 'trabajo')) return;
+    LF.marker([+la, +ln], { zIndexOffset:-1000, icon:LF.divIcon({ className:'', html:`<div class="vg-mk vg-r" title="${tx}"></div>`, iconSize:[18, 18], iconAnchor:[9, 9] }) }).addTo(m).bindPopup(`<b>${tx}</b>`);
+    todos.push([+la, +ln]);
+  });
+  // Recorrido en orden de hora
+  if (pts.length > 1) LF.polyline(pts.map(p => [p.lat, p.lng]), { color:'#334155', weight:2, opacity:.6, dashArray:'6 6' }).addTo(m);
+  // Los pasos marcados en el mismo lugar (menos de 30 m) van en un solo marcador con todos sus números
+  const grupos = [];
+  pts.forEach((p, n) => { const g = grupos.find(g => distM(g.lat, g.lng, p.lat, p.lng) < 30); if (g) g.l.push([n + 1, p]); else grupos.push({ lat:p.lat, lng:p.lng, l:[[n + 1, p]] }); });
+  grupos.forEach(g => {
+    const nums = g.l.map(x => x[0]), uno = g.l.length === 1, tx = uno ? nums[0] : nums.join(' · ');
+    const w = uno ? 26 : 16 + tx.length * 7;
+    LF.marker([g.lat, g.lng], { icon:LF.divIcon({ className:'', html:`<div class="vg-mk${uno ? '' : ' vg-g'}" style="background:${uno ? VG_COL[g.l[0][1].k] : '#0f172a'};width:${w}px">${tx}</div>`, iconSize:[w, 26], iconAnchor:[w / 2, 13] }) }).addTo(m)
+      .bindPopup(g.l.map(([n, p]) => `<b>${n}. ${esc(p.tx)}</b><br>${esc(p.ts ? fDT(p.ts) : '')}${p.dist != null ? ` · ${distTx(p.dist)} de lo registrado` : ''}`).join('<hr style="margin:4px 0;border:0;border-top:1px solid #ddd">'));
+    todos.push([g.lat, g.lng]);
+  });
+  if (todos.length === 1) m.setView(todos[0], 16); else m.fitBounds(todos, { padding:[28, 28], maxZoom:17 });
+  setTimeout(() => m.invalidateSize(), 200);
 }
 
 function enlazarDetalle(s, c){
   const B = $('#sheetBody');
+  if ($('#vgMap')) pintarMapaVerif(s, (S.detData?.items || []).filter(i => itemAplica(s, i.item)));
   const refrescar = async () => { await cargarSolicitudes(); const n = S.sols.find(x => x.id === s.id); if (n) { S.dirty=false; await abrirDetalle(s.id, true); } pintarTabs(); };
   enlazarUbicacion(s, refrescar);
 
