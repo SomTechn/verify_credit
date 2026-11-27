@@ -943,7 +943,7 @@ body.nav-min .sn-vt span{display:none}
 // App disponible sin señal (sw.js debe estar junto a index.html). Va primero para registrarse aunque falle otra cosa.
 if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) navigator.serviceWorker.register('sw.js').catch(() => {});
 // Versión de esta copia de la app: cambia en cada entrega. La app la compara con la publicada y se actualiza sola.
-const APP_VER = '2026-11-27.1930';
+const APP_VER = '2026-11-27.2015';
 // 'admin' = cambio solo para el administrador: los demás usuarios no ven el aviso de versión nueva (se actualiza en silencio)
 // y sus NOVEDADES deben llevar r:['admin']. 'todos' = cambio que ven los usuarios.
 const APP_AVISO = 'todos';
@@ -952,6 +952,9 @@ const APP_AVISO = 'todos';
 // r = roles que la ven (sin r = todos; el admin ve todo).
 // Regla: las novedades de control (GPS, horas de los verificadores, permisos, auditoría) van SOLO con r:['admin'].
 const NOVEDADES = [
+  { v:'2026-11-27.2015', f:'27 de noviembre de 2026', items:[
+    { i:'•', t:'Cámbiate a nivelado en Estadísticas', r:['asesor','analista'],
+      d:'En Estadísticas, la sección "Cámbiate a nivelado · contactos por gestor" muestra por día y por gestor cuántos clientes contactaron, cuántos aceptaron, cuántos no, cuántos lo pensarán, las solicitudes que generaron y cuántas ya se completaron (desembolsadas). Usa el período que elija arriba.' } ] },
   { v:'2026-11-27.1930', f:'27 de noviembre de 2026', items:[
     { i:'•', t:'Campaña "Cámbiate a nivelado"', r:['gestor'],
       d:'En el menú tiene "Cámbiate a nivelado" con los clientes de su cartera que tienen préstamo solo interés y aplican para pasarse a nivelado. Llame al cliente, toque "Gestionar" y marque su respuesta: no contesta, volver a llamar (con fecha y hora), lo pensará, acepta, no le interesa o número equivocado. Si acepta, genere ahí mismo la solicitud de cambio: le llega al asesor para revisarla y enviarla a análisis, y usted ve en qué paso va. "Para hoy" muestra las llamadas que tiene programadas.' },
@@ -7890,6 +7893,8 @@ async function pintarStats(){
   </div>
   <div class="card"><h4 class="sec" style="margin-top:0">Colocado por día</h4><div class="chart" id="chCap"></div></div>
   <div class="card"><h4 class="sec" style="margin-top:0">Solicitudes exitosas por día</h4><div class="chart" id="chExi"></div></div>
+  <h4 class="sec" id="stNivT">Cámbiate a nivelado · contactos por gestor</h4>
+  <div class="card" style="overflow-x:auto" id="stNiv"><div class="muted small">Cargando…</div></div>
   <h4 class="sec" id="ctrlVisitas">📋 Control de visitas por verificador</h4>
   <div class="card" style="overflow-x:auto">${(r.visitas || []).length ? `<table class="t"><thead><tr><th>Verificador</th><th class="num">🏠 Domicilio</th><th class="num">🏢 Trabajo</th><th class="num">💵 Desembolso</th><th class="num">Total</th><th class="num">Rechaz.</th></tr></thead><tbody>
     ${r.visitas.map(v => `<tr><td>${esc(v.nombre)}</td><td class="num">${v.domicilio}</td><td class="num">${v.trabajo}</td><td class="num">${v.desembolso}</td><td class="num"><b>${v.total}</b></td><td class="num">${v.rechazadas}</td></tr>`).join('')}</tbody></table>
@@ -7919,6 +7924,52 @@ async function pintarStats(){
   graficoLinea($('#chCap'), activos.map(x => ({ l: fd(x), v: +x.capital, t: L(Math.round(x.capital)), tip: `${fDate(x.dia + 'T12:00')}<br>${L(x.capital)} · ${x.desembolsadas} exitosa(s)` })));
   graficoBarras($('#chExi'), activos.map(x => ({ l: fd(x), v: x.desembolsadas, t: String(x.desembolsadas), tip: `${fDate(x.dia + 'T12:00')}<br>${x.desembolsadas} exitosa(s) · ${L(x.capital)}` })));
   if (es('analista')) mapaVisitas(d0, d1);
+  nvStatsPintar(d0, d1);
+}
+// Estadísticas · Cámbiate a nivelado: contactos por día y por gestor en el período.
+// Por gestor y día se cuentan clientes distintos: contactados (habló con el cliente), aceptaron, no aceptaron,
+// lo pensarán / volver a llamar, no contestaron, solicitudes generadas y completadas (solicitud ya desembolsada).
+async function nvStatsPintar(d0, d1){
+  const box = $('#stNiv'); if (!box) return;
+  try { await nvCargar(true); } catch(e){}
+  if (!$('#stNiv')) return;
+  const d = NV.d;
+  if (!d || !d.todos){ box.innerHTML = `<div class="muted small">${NV.err ? 'No se pudo cargar la campaña: ' + esc(NV.err) : 'Sin datos de la campaña.'}</div>`; return; }
+  const solDe = {}; (d.rows || []).forEach(r => { if (r.sol) solDe[r.sol.id] = r.sol; });
+  const gs = (d.gestiones || []).filter(g => { const x = diaHN(g.en); return x >= d0 && x <= d1; });
+  if (!gs.length){ box.innerHTML = '<div class="muted small">Sin gestiones de la campaña en el período.</div>'; return; }
+  const nuevo = () => ({ g:{}, sols:new Set(), comp:new Set() });
+  // Por cliente: lo más avanzado que pasó con ese gestor ese día
+  const sumar = (o, g) => { const c = o.g[g.p] = o.g[g.p] || new Set(); c.add(g.r); if (g.r === 'solicitud' && g.sol){ o.sols.add(g.sol); if (solDe[g.sol]?.estado === 'desembolsada') o.comp.add(g.sol); } };
+  const porDia = {}, porPer = {}, nombres = {};
+  for (const g of gs){
+    const k = g.autor_id || '?', dia = diaHN(g.en); nombres[k] = g.autor || '—';
+    sumar(((porDia[dia] = porDia[dia] || {})[k] = porDia[dia][k] || nuevo()), g);
+    sumar((porPer[k] = porPer[k] || nuevo()), g);
+  }
+  const contar = o => { const c = { cont:0, acep:0, noac:0, pens:0, nocon:0, sols:o.sols.size, comp:o.comp.size };
+    for (const rs of Object.values(o.g)){
+      if (rs.has('acepta') || rs.has('solicitud')){ c.cont++; c.acep++; }
+      else if (rs.has('no_interesa')){ c.cont++; c.noac++; }
+      else if (rs.has('volver_llamar') || rs.has('lo_pensara')){ c.cont++; c.pens++; }
+      else c.nocon++;
+    }
+    return c; };
+  const sumaC = cs => cs.reduce((a, c) => { for (const k in c) a[k] = (a[k] || 0) + c[k]; return a; }, {});
+  const head = `<thead><tr><th>Gestor</th><th class="num">Contactados</th><th class="num">Aceptaron</th><th class="num">No aceptaron</th><th class="num">Lo pensarán</th><th class="num">No contestaron</th><th class="num">Solicitudes</th><th class="num">Completadas</th></tr></thead>`;
+  const fila = (t, c, cls = '') => `<tr${cls ? ` class="${cls}"` : ''}><td>${t}</td><td class="num"><b>${c.cont}</b></td><td class="num" style="color:var(--green)">${c.acep}${c.cont ? ` <span class="small muted">${Math.round(c.acep / c.cont * 100)}%</span>` : ''}</td><td class="num" style="color:var(--red)">${c.noac}</td><td class="num">${c.pens}</td><td class="num muted">${c.nocon}</td><td class="num">${c.sols}</td><td class="num"><b style="color:var(--green)">${c.comp}</b></td></tr>`;
+  const ordenar = obj => Object.entries(obj).map(([k, o]) => [k, contar(o)]).sort((a, b) => b[1].cont - a[1].cont || (nombres[a[0]] || '').localeCompare(nombres[b[0]] || ''));
+  const per = ordenar(porPer), dias = Object.keys(porDia).sort().reverse();
+  const DS = ['dom','lun','mar','mié','jue','vie','sáb'];
+  const diaT = x => { const f = new Date(x + 'T12:00'); return `${DS[f.getDay()]} ${f.getDate()} ${MESES_C[f.getMonth()]}`; };
+  box.innerHTML = `<table class="t nv-t">${head}<tbody>
+      <tr><td colspan="8" class="small muted" style="font-weight:700;letter-spacing:.04em">TOTAL DEL PERÍODO</td></tr>
+      ${per.map(([k, c]) => fila(esc(nombres[k]), c)).join('')}
+      ${per.length > 1 ? fila('<b>Total</b>', sumaC(per.map(x => x[1])), 'nv-tot') : ''}
+      ${dias.map(dia => { const ls = ordenar(porDia[dia]);
+        return `<tr><td colspan="8" class="small muted" style="font-weight:700;letter-spacing:.04em;padding-top:14px">${diaT(dia).toUpperCase()}</td></tr>${ls.map(([k, c]) => fila(esc(nombres[k]), c)).join('')}${ls.length > 1 ? fila('<b>Total del día</b>', sumaC(ls.map(x => x[1])), 'nv-tot') : ''}`; }).join('')}
+    </tbody></table>
+    <div class="small muted" style="margin-top:6px">Cuenta clientes distintos por gestor y día. Contactados = habló con el cliente (aceptó, no aceptó o lo pensará / pidió que le llamen). Solicitudes = solicitudes de cambio que generó; Completadas = de esas, las que ya se desembolsaron (el cambio a nivelado está hecho).</div>`;
 }
 // Tabla verificador × día: lugares visitados (domicilio/trabajo) y entregas
 function visitasPorDia(vs){
