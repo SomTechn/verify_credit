@@ -1,6 +1,6 @@
 // VerifiCrédito · service worker: permite abrir la app sin señal.
 // Los datos (Supabase) NO pasan por aquí: la app los guarda en el teléfono y envía los cambios al volver la conexión.
-const V = 'verificredito-v6';
+const V = 'verificredito-v7';
 const CDN = /^(cdn\.jsdelivr\.net|cdnjs\.cloudflare\.com|fonts\.googleapis\.com|fonts\.gstatic\.com|unpkg\.com)$/;
 
 self.addEventListener('install', e => {
@@ -18,6 +18,7 @@ self.addEventListener('fetch', e => {
   const u = new URL(r.url);
   if (u.hostname.endsWith('supabase.co') || u.hostname.endsWith('supabase.in')) return;   // datos en vivo
   if (u.searchParams.has('vc')) return;   // revisión de versión nueva: siempre directo a la red
+  if (u.pathname.includes('/tutoriales/')) return;   // videos: directo a la red (se piden por partes y no se guardan)
   // La app (index.html y archivos propios): red primero, con límite de 5 s; si falla, la copia guardada
   if (r.mode === 'navigate' || u.origin === location.origin){
     // la app siempre se revalida con el servidor (no usa la copia vieja del navegador)

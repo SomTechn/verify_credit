@@ -835,6 +835,8 @@ body.nav-min .sn-vt span{display:none}
 .cart-b.on{border-color:var(--brand);background:var(--brand2);color:var(--brand)}
 .cart-chk{border:1px solid var(--line);border-radius:7px;padding:7px 10px;margin:0}
 /* Gestor de cobro */
+.tu-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:16px}.tu-c{padding:0;overflow:hidden}.tu-v{background:#0A2A66;aspect-ratio:16/9}.tu-v video{width:100%;height:100%;display:block;background:#0A2A66}
+.tu-tx{padding:12px 14px 14px;display:flex;flex-direction:column;gap:4px}.tu-tx b{font-size:15.5px}
 .nv-bar{display:flex;width:100%;background:var(--line);border-radius:6px;overflow:hidden;flex:1;min-width:60px}.nv-bar i{display:block;height:100%}
 .nv-ley{display:flex;flex-wrap:wrap;gap:6px 14px;margin-top:9px;font-size:12.5px;color:var(--ink2)}.nv-ley span{display:inline-flex;align-items:center;gap:5px}.nv-ley i{width:10px;height:10px;border-radius:3px;display:inline-block}
 .nv-av-g{margin-bottom:16px}.nv-t td.nv-av{min-width:150px}.nv-t tr.nv-tot td{border-top:2px solid var(--line);font-weight:700}
@@ -992,7 +994,7 @@ body.nav-min .sn-vt span{display:none}
 // App disponible sin señal (sw.js debe estar junto a index.html). Va primero para registrarse aunque falle otra cosa.
 if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) navigator.serviceWorker.register('sw.js').catch(() => {});
 // Versión de esta copia de la app: cambia en cada entrega. La app la compara con la publicada y se actualiza sola.
-const APP_VER = '2026-11-28.0930';
+const APP_VER = '2026-11-28.1010';
 // 'admin' = cambio solo para el administrador: los demás usuarios no ven el aviso de versión nueva (se actualiza en silencio)
 // y sus NOVEDADES deben llevar r:['admin']. 'todos' = cambio que ven los usuarios.
 const APP_AVISO = 'todos';
@@ -1001,6 +1003,9 @@ const APP_AVISO = 'todos';
 // r = roles que la ven (sin r = todos; el admin ve todo).
 // Regla: las novedades de control (GPS, horas de los verificadores, permisos, auditoría) van SOLO con r:['admin'].
 const NOVEDADES = [
+  { v:'2026-11-28.1010', f:'28 de noviembre de 2026', items:[
+    { i:'•', t:'Tutoriales en video', r:['gestor','asesor','analista'],
+      d:'Nueva pestaña "Tutoriales" (en Más) con tres videos cortos: cómo ingresar e instalar la app, cómo registrar una solicitud de refinanciamiento y el proceso completo de Cámbiate a nivelado. Cada uno muestra la computadora y el celular.' } ] },
   { v:'2026-11-28.0930', f:'28 de noviembre de 2026', items:[
     { i:'•', t:'WhatsApp: responder desde VerifyCredit', r:['admin'],
       d:'En cada chat de WhatsApp ahora puede escribirle al cliente desde aquí (sale del número del bot). Al responder, o con "Tomar conversación", el bot deja de contestarle a ese cliente; con "Devolver al bot" vuelve a atenderlo. WhatsApp solo deja escribir dentro de las 24 h desde el último mensaje del cliente: la ventana se muestra abajo del chat.' } ] },
@@ -1998,6 +2003,7 @@ function tabsRol(){
     whatsapp:['whatsapp','WhatsApp'],
     gestor:['gestor','Mi cartera'],
     nivelado:['nivelado','Cámbiate a nivelado'],
+    tutoriales:['tutoriales','Tutoriales'],
     stats:['stats','Estadísticas'], referidos:['referidos','Referidos'], usuarios:['usuarios','Usuarios'], params:['params','Parámetros'], pagos:['pagos','Pago verificadores'], vercomo:['vercomo','Vista verificador'], notifs:['notifs','Notificaciones']
   };
   const m = { asesor:['trabajo','tablero','alertas','prospectos','solicitudes','revisadas','proceso','verificar',...(asesorDesembolsa() ? ['desembolsos'] : []),'todas','refi','nivelado','historial','stats'],
@@ -2007,6 +2013,7 @@ function tabsRol(){
     admin:['trabajo','tablero','alertas','prospectos','solicitudes','revisadas','analisis','verificar','desembolsos','posteo','todas','refi','nivelado','referidos','historial','stats','pagos','vercomo','usuarios','notifs','params'] };
   let lista = gerenteAct() ? [...new Set([...m[rol()], ...m.asesor, ...m.analista])] : m[rol()];
   if (waVe() && !lista.includes('whatsapp')) lista = [...lista, 'whatsapp'];   // CRM de WhatsApp: solo con permiso
+  if (['asesor','analista','gestor','admin'].includes(rol()) && !lista.includes('tutoriales')) lista = [...lista, 'tutoriales'];   // videos de entrenamiento
   return lista.map(k => T[k]);
 }
 function pintarTabs(){
@@ -3304,6 +3311,23 @@ async function initGestor(){
   document.addEventListener('visibilitychange', () => { if (!document.hidden) refrescarG(); });
 }
 
+// ================== Tutoriales en video ==================
+// Videos de entrenamiento grabados sobre la app con datos de ejemplo (archivos en /tutoriales, no pasan por el service worker).
+const TUTOS = [
+  { id:'ingresar_instalar', t:'Cómo ingresar a VerifyCredit e instalar la app', d:'Entrar desde la computadora y desde el celular, e instalar la aplicación en Chrome y en Android (y cómo hacerlo en iPhone).', dur:'2:36' },
+  { id:'refinanciamiento', t:'Cómo registrar una solicitud de refinanciamiento', d:'Registrar un refinanciamiento o un reingreso desde Mi cartera y darle seguimiento paso a paso.', dur:'2:25' },
+  { id:'cambiate_a_nivelado', t:'Cámbiate a nivelado: el proceso completo', d:'Llamar a los clientes, registrar su respuesta, armar el nuevo préstamo con su cuota y contrato, y enviar la solicitud.', dur:'3:25' },
+];
+function pintarTutoriales(){
+  $('#main').innerHTML = `<div class="mt-hdr"><div><h2>Tutoriales</h2><div class="muted small">Videos cortos para gestores de cobro, con PC y celular. Necesitan conexión a internet.</div></div></div>
+    <div class="tu-grid">${TUTOS.map((v, i) => `<div class="card tu-c">
+      <div class="tu-v"><video controls preload="none" playsinline poster="tutoriales/${v.id}.jpg" src="tutoriales/${v.id}.mp4"></video></div>
+      <div class="tu-tx"><div class="small muted">Video ${i + 1} de ${TUTOS.length} · ${v.dur}</div><b>${esc(v.t)}</b><div class="small">${esc(v.d)}</div></div></div>`).join('')}</div>`;
+  // solo un video a la vez
+  const vs = [...document.querySelectorAll('#main video')];
+  vs.forEach(v => v.addEventListener('play', () => vs.forEach(o => { if (o !== v) o.pause(); })));
+}
+
 // ================== Campaña "Cámbiate a nivelado" ==================
 // Préstamos solo interés (obsoleto) que los gestores de cobro invitan a pasarse a nivelado.
 // Todo viene de niv_datos(): el gestor recibe solo los préstamos que aplican de sus carteras; asesor, analista, gerente y admin, todos.
@@ -4559,7 +4583,7 @@ function pintarSuave(){
   if ((S.dlgs || []).some(w => w.isConnected)) return;
   if (document.body.classList.contains('arrastrando-kc')) return;   // no repintar mientras se arrastra una tarjeta
   const a = document.activeElement; if (a && /^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName) && a.id !== 'q') return;
-  if (['stats','pagos','params','usuarios','refi','referidos','vercomo','gestor','nivelado','notifs'].includes(S.tab)) return;   // pantallas pesadas: se actualizan al entrar
+  if (['stats','pagos','params','usuarios','refi','referidos','vercomo','gestor','nivelado','tutoriales','notifs'].includes(S.tab)) return;   // pantallas pesadas: se actualizan al entrar
   pintarConservando();
 }
 function pintar(){
@@ -4571,6 +4595,7 @@ function pintar(){
   $('#main').classList.toggle('board-wide', S.tab === 'tablero');
   if (S.tab === 'gestor') return pintarGestor();
   if (S.tab === 'nivelado') return pintarNivelado();
+  if (S.tab === 'tutoriales') return pintarTutoriales();
   if (S.tab === 'trabajo') return pintarTrabajo();
   if (S.tab === 'tablero') return pintarTablero();
   if (S.tab === 'historial') return pintarHistorial();
