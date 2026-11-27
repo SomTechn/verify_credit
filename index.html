@@ -166,6 +166,7 @@ label.f{display:block;font-size:12px;color:var(--ink2);margin:10px 0 4px;font-we
 .hj-pasos b{font-size:11.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}.hj-pasos small{font-size:11px;color:var(--ink2)}
 .hj-pasos button.on{border-color:var(--brand);color:var(--brand);background:var(--brand2)}.hj-pasos button.on .n{background:var(--brand);color:#fff}
 .hj-pasos button.ok .n{background:var(--green,#16a34a);color:#fff}.hj-pasos button.ok small{color:var(--green,#16a34a)}
+.hj-ro{padding:9px 12px;border:1px dashed var(--line);border-radius:10px;background:var(--gray-bg)}
 .hj-f .seg{flex-wrap:wrap}.hj-rf{margin-top:10px;padding:2px 0 10px;border-bottom:1px solid var(--line)}.hj-rf:last-child{border-bottom:0}.hj-rft{font:700 13px Inter,sans-serif;color:var(--ink2);text-transform:uppercase;letter-spacing:.4px;margin-top:6px}
 .lg{border-left:3px solid var(--line);padding-left:10px}
 .bl-r{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:9px 0;border-top:1px solid var(--line)}.bl-a{display:flex;align-items:center;gap:4px;flex-shrink:0}
@@ -933,7 +934,7 @@ body.nav-min .sn-vt span{display:none}
 // App disponible sin señal (sw.js debe estar junto a index.html). Va primero para registrarse aunque falle otra cosa.
 if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) navigator.serviceWorker.register('sw.js').catch(() => {});
 // Versión de esta copia de la app: cambia en cada entrega. La app la compara con la publicada y se actualiza sola.
-const APP_VER = '2026-11-27.1430';
+const APP_VER = '2026-11-27.1530';
 // 'admin' = cambio solo para el administrador: los demás usuarios no ven el aviso de versión nueva (se actualiza en silencio)
 // y sus NOVEDADES deben llevar r:['admin']. 'todos' = cambio que ven los usuarios.
 const APP_AVISO = 'todos';
@@ -942,9 +943,9 @@ const APP_AVISO = 'todos';
 // r = roles que la ven (sin r = todos; el admin ve todo).
 // Regla: las novedades de control (GPS, horas de los verificadores, permisos, auditoría) van SOLO con r:['admin'].
 const NOVEDADES = [
-  { v:'2026-11-27.1430', f:'27 de noviembre de 2026', items:[
+  { v:'2026-11-27.1530', f:'27 de noviembre de 2026', items:[
     { i:'•', t:'Hoja de solicitud dentro de VerifyCredit', r:['asesor','analista'],
-      d:'La solicitud se crea igual que siempre. Ya creada, abra el detalle y toque "Llenar" en la tarjeta "Hoja de solicitud": se abre en toda la pantalla, dividida en 5 partes (Cliente, Empresa, Ingresos, Domicilio y Familiares) que se recorren con "Siguiente"; "Guardar" arriba guarda en cualquier momento. Son los mismos datos del Excel y en el mismo orden (cantidad y plazo, fecha de nacimiento, empresa, rubro, dirección de la empresa, puesto, antigüedad, salario, prestaciones, otros ingresos, forma y día de pago, domicilio, tipo de vivienda y referencias familiares). Con "Copiar todo para el Excel" se pega completa en la hoja de Excel.' },
+      d:'La solicitud se crea igual que siempre. Ya creada, abra el detalle y toque "Llenar" en la tarjeta "Hoja de solicitud": se abre en toda la pantalla, dividida en 5 partes (Cliente, Empresa, Ingresos, Domicilio y Familiares) que se recorren con "Siguiente"; "Guardar" arriba guarda en cualquier momento. El referente se toma solo de "Cómo llegó" y el parentesco de las referencias se elige de una lista. Son los mismos datos del Excel y en el mismo orden (cantidad y plazo, fecha de nacimiento, empresa, rubro, dirección de la empresa, puesto, antigüedad, salario, prestaciones, otros ingresos, forma y día de pago, domicilio, tipo de vivienda y referencias familiares). Con "Copiar todo para el Excel" se pega completa en la hoja de Excel.' },
     { i:'•', t:'Departamento, ciudad, sector y colonia con lista', r:['asesor','analista'],
       d:'En domicilio y dirección de la empresa cada campo tiene su lista: toque la flecha para verla completa o escriba parte del nombre para buscar. El departamento ya viene en Cortés. Al elegir una colonia se llena sola su sector. Si la colonia no está en la lista, escríbala completa y se agrega al banco al guardar la hoja.' },
     { i:'•', t:'Datos para el sistema, listos para copiar', r:['asesor','analista'],
@@ -2737,6 +2738,10 @@ function lugarLeer(box){
 }
 
 // ---------- Formulario de la hoja (en el orden del Excel) ----------
+const HJ_PAR = [['Familiares', ['Madre','Padre','Hermano','Hermana','Hijo','Hija','Esposo','Esposa','Compañero de hogar','Compañera de hogar','Abuelo','Abuela','Tío','Tía','Primo','Prima','Sobrino','Sobrina','Nieto','Nieta','Cuñado','Cuñada','Suegro','Suegra','Yerno','Nuera','Padrastro','Madrastra','Padrino','Madrina']],
+  ['Otros', ['Amigo','Amiga','Conocido','Conocida']]];
+const hjParSel = (i, v) => { const t = String(v || '').trim(), todos = HJ_PAR.flatMap(g => g[1]), hay = todos.find(x => norm(x) === norm(t));
+  return `<select data-rfp="${i}"><option value="">Elegir</option>${HJ_PAR.map(([g, l]) => `<optgroup label="${g}">${l.map(x => `<option value="${x.toLowerCase()}" ${hay === x ? 'selected' : ''}>${x}</option>`).join('')}</optgroup>`).join('')}${t && !hay ? `<option value="${esc(t)}" selected>${esc(t)}</option>` : ''}</select>`; };
 const HJ_PASOS = [['Cliente'], ['Empresa'], ['Ingresos'], ['Domicilio'], ['Familiares']];
 function hojaCampos(h = {}, opt = {}){
   const seg = (id, ops, val) => `<div class="seg" id="${id}">${ops.map(([k, t]) => `<button type="button" data-v="${k}" class="${val === k ? 'on' : ''}">${t}</button>`).join('')}</div>`;
@@ -2753,7 +2758,7 @@ function hojaCampos(h = {}, opt = {}){
       <div><label class="f">Sexo <span class="muted">(para el sistema)</span></label>${seg('hSexo', [['h','Hombre'],['m','Mujer']], h.sexo)}</div></div>
     <div class="small" id="hEdad"></div>
     ${opt.tel != null ? `<label class="f">Teléfono del cliente</label><input id="hTel" inputmode="tel" autocomplete="off" value="${esc(opt.tel || '')}">` : ''}
-    ${opt.referente ? `<label class="f">Referente</label><input id="hRef" autocomplete="off" value="${esc(h.referente || '')}" placeholder="Quién lo refirió (si aplica)">` : ''}
+    ${opt.referente != null ? `<label class="f">Referente</label><div class="hj-ro">${opt.referente ? `<b>${esc(opt.referente)}</b>` : '<span class="muted">Sin referente</span>'}<div class="small muted">Se toma de "Cómo llegó", lo que se puso al crear la solicitud.</div></div>` : ''}
     </section>
     <section class="hj-p hidden" data-p="1">
     <label class="f">Empresa</label><input id="hEmp" autocomplete="off" value="${esc(h.empresa || '')}">
@@ -2776,7 +2781,7 @@ function hojaCampos(h = {}, opt = {}){
     </section>
     <section class="hj-p hidden" data-p="4">
     ${[0, 1].map(i => `<div class="hj-rf"><div class="hj-rft">Referencia ${i + 1}</div><label class="f">Nombre</label><input data-rfn="${i}" value="${esc(r[i]?.nombre || '')}" autocomplete="off">
-      <div class="grid2"><div><label class="f">Parentesco</label><input data-rfp="${i}" placeholder="Ej. madre, prima" value="${esc(r[i]?.par || '')}" autocomplete="off"></div><div><label class="f">Teléfono</label><input data-rft="${i}" inputmode="tel" value="${esc(r[i]?.tel || '')}" autocomplete="off"></div></div></div>`).join('')}
+      <div class="grid2"><div><label class="f">Parentesco</label>${hjParSel(i, r[i]?.par)}</div><div><label class="f">Teléfono</label><input data-rft="${i}" inputmode="tel" value="${esc(r[i]?.tel || '')}" autocomplete="off"></div></div></div>`).join('')}
     </section>
   </div>`;
 }
@@ -2816,7 +2821,6 @@ function hojaLeer(w){
   const hoja = { monto:num(v('#hMonto')) || null, nac:v('#hNac') || null, sexo:sg('hSexo'), empresa:v('#hEmp') || null, rubro:v('#hRubro') || null, trab:trab.v,
     puesto:v('#hPuesto') || null, emp_desde:desde('hEmpDesde'), salario:num(v('#hSal')) || null, prest:sg('hPrest'), otros:v('#hOtros') || null,
     fpago:sg('hFPago'), dia:v('#hDia') || null, dom:dom.v, dom_desde:desde('hDomDesde'), vivienda:sg('hViv'), refs };
-  if (q('#hRef')) hoja.referente = v('#hRef') || null;
   const nuevos = [dom, trab].filter(x => x.nuevo).map(x => x.v);
   const lleno = Object.entries(hoja).some(([k, x]) => k === 'refs' ? x.length : (k === 'dom' || k === 'trab') ? Object.entries(x).some(([kk, y]) => kk !== 'depto' && y) : x != null && x !== '');
   return { hoja, plazo:+v('#hPlazo') || null, nuevos, lleno, tel:q('#hTel') ? v('#hTel') : null, nombre:q('#hNombre') ? v('#hNombre') : null };
@@ -2830,9 +2834,9 @@ async function hojaGuardar(id, r){
 
 // ---------- Textos para copiar ----------
 const hjSi = v => v === 'si' ? 'Si' : v === 'no' ? 'No' : '';
-const hjRef = s => { const h = s.datos_cliente?.hoja || {}; if (h.referente) return h.referente;
-  if (s.origen_canal === 'referido_cliente' || s.origen_canal === 'otro') return s.referido_nombre || '';
-  if (s.origen_canal === 'referido_empleado') return (S.empleados || []).find(e => e.id === s.referido_empleado_id)?.nombre || ''; return ''; };
+// El referente sale siempre de "Cómo llegó" (lo que se puso al crear la solicitud)
+const hjRef = s => { if (s.origen_canal === 'referido_cliente' || s.origen_canal === 'otro') return s.referido_nombre || '';
+  if (s.origen_canal === 'referido_empleado'){ const r = referidor(s); return r === '—' ? '' : r; } return ''; };
 const hjDir = (l, conCiudad) => l ? [l.colonia, l.ref, l.sector && !norm(l.colonia || '').includes(norm(l.sector)) ? 'sector ' + l.sector : '', conCiudad ? l.ciudad : ''].filter(Boolean).join(', ') : '';
 function hojaFilas(s){
   const h = s.datos_cliente?.hoja || {};
@@ -2926,10 +2930,9 @@ function hojaCardEnlazar(s){
 function hojaDialogo(s){
   const h = s.datos_cliente?.hoja || {};
   const w = dialogo(`<h3>Hoja de solicitud</h3><div class="small muted">${esc(s.nombre_cliente)} · ${esc(s.dni || '')}</div>
-    ${hojaCampos(h, { nombre:s.nombre_cliente, plazo:s.plazo_meses, referente:true, tel:s.telefono || '' })}
+    ${hojaCampos(h, { nombre:s.nombre_cliente, plazo:s.plazo_meses, referente:hjRef(s), tel:s.telefono || '' })}
     <div class="btns"><button class="btn ghost" id="hjAnt" type="button">Cancelar</button><button class="btn pri" id="hjSig" type="button">Siguiente</button><button class="btn pri hidden" id="hjOk">Guardar hoja</button></div>`, { pantalla:'Hoja de solicitud' });
   w.querySelector('.dlg-top').insertAdjacentHTML('beforeend', '<button type="button" class="btn sm ghost" id="hjOk2" style="margin-left:auto">Guardar</button>');
-  if (!h.referente) { const r = hjRef(s); if (r) w.querySelector('#hRef').value = r; }
   hojaEnlazar(w);
   w.querySelector('#hjOk2').onclick = () => w.querySelector('#hjOk').click();
   w.querySelector('#hjOk').onclick = e => run(e.target, async () => {
