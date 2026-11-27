@@ -935,7 +935,7 @@ body.nav-min .sn-vt span{display:none}
 // App disponible sin señal (sw.js debe estar junto a index.html). Va primero para registrarse aunque falle otra cosa.
 if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) navigator.serviceWorker.register('sw.js').catch(() => {});
 // Versión de esta copia de la app: cambia en cada entrega. La app la compara con la publicada y se actualiza sola.
-const APP_VER = '2026-11-27.1730';
+const APP_VER = '2026-11-27.1800';
 // 'admin' = cambio solo para el administrador: los demás usuarios no ven el aviso de versión nueva (se actualiza en silencio)
 // y sus NOVEDADES deben llevar r:['admin']. 'todos' = cambio que ven los usuarios.
 const APP_AVISO = 'todos';
@@ -2172,7 +2172,7 @@ function trabajoDatos(){
         add(s, 'gr', 'Llame al cliente y complete monto, forma de entrega y visitas', [['abrir', 'Completar con el cliente', 'arrow'], ['tel', '', 'phone', 1]],
           `<span class="chip c-green">Aprobada ${L(s.monto_aprobado)}</span>`);
       } else if (s.estado === 'por_verificar' && !s.verificador_id){
-        add(s, 'bl', `${s.dom_sector ? esc(s.dom_sector) + ' · ' : ''}asigne quién hace la visita`, [['asignar', 'Asignar verificador', 'user']], `<span class="chip c-violet">Sin verificador</span>`);
+        add(s, 'bl', `${dirTexto(s, 'dom').lugar ? esc(dirTexto(s, 'dom').lugar) + ' · ' : ''}asigne quién hace la visita`, [['asignar', 'Asignar verificador', 'user']], `<span class="chip c-violet">Sin verificador</span>`);
       } else if (s.estado === 'desembolso_pendiente' && asesorDesembolsa()){
         add(s, 'gr', `Transferir ${L(montoLibre(s))} y confirmar`, [['abrir', 'Confirmar transferencia', 'bank']]);
       } else if (s.estado === 'en_analisis') esp('analisis', 'En análisis', 'search');
@@ -2195,7 +2195,7 @@ function trabajoDatos(){
   }
   if (r === 'verificador'){
     abiertas.filter(s => s.estado === 'por_verificar' && (s.verificador_id === yo || s.verificador_trabajo_id === yo)).sort((a, b) => new Date(a.estado_desde) - new Date(b.estado_desde)).forEach(s => {
-      const lugar = [s.dom_sector, s.dom_ciudad].filter(Boolean).join(', ');
+      const lugar = dirLinea(s, 'dom') || dirLinea(s, 'trab');
       add(s, s.en_espera ? 'am' : 'bl', `${lugar ? esc(lugar) : 'Sin ubicación registrada'}${s.forma_desembolso === 'efectivo' ? ` · entregar <b>${L(montoLibre(s))}</b> en efectivo` : ''}`,
         [['abrir', 'Abrir visita', 'arrow'], ...(s.dom_lat ? [['navegar', 'Navegar', 'pin', 1]] : []), ['tel', '', 'phone', 1]],
         s.verificador_trabajo_id === yo && s.verificador_id !== yo ? '<span class="chip c-violet">Trabajo</span>' : '');
@@ -2462,6 +2462,7 @@ function pintarTrabajo(){
     if (k === 'com') return abrirDetalle(id).then(() => setTimeout(() => document.querySelector('[data-ircom]')?.click(), 400));
     if (k === 'asignar'){ S.tab = 'verificar'; S.vVerif = 'sin'; pintarTabs(); pintar(); return; }
     if (k === 'enviar'){
+      if (!hojaListaParaEnviar(s)) return;
       if (!confirm(`¿Enviar a análisis la solicitud de ${s.nombre_cliente}?\n\nEl analista podrá agregar o corregir los ingresos.`)) return;
       return run(b, async () => { await rpc('enviar_analisis', { p_id: id }); toast('Enviada a análisis'); S.rendAt = 0; await cargarSolicitudes(); pintarTabs(); pintar(); });
     }
@@ -2905,6 +2906,33 @@ function yitSecciones(s){
       ['Antigüedad (fecha desde)', fDMY(h.emp_desde?.f)], ['Puesto', h.puesto || ''], ['Prestaciones', hjSi(h.prest)], ['Salario', h.salario ? String(h.salario) : '']]]
   ];
 }
+// La hoja es obligatoria para enviar a análisis las solicitudes nuevas creadas desde el 27-nov-2026 12:05 (las que ya estaban en curso quedan exentas).
+// La misma regla está en la base (enviar_analisis / hoja_faltan).
+const HOJA_DESDE = '2026-11-27T18:05:00Z';
+const hojaObligatoria = s => s.tipo === 'nuevo' && new Date(s.creado_en || Date.now()) >= new Date(HOJA_DESDE);
+function hojaFaltan(s){
+  const h = s.datos_cliente?.hoja || {}, f = [], v = x => x != null && String(x).trim() !== '';
+  if (!v(h.monto)) f.push('Cantidad solicitada'); if (!s.plazo_meses) f.push('Plazo'); if (!v(h.nac)) f.push('Fecha de nacimiento'); if (!v(h.sexo)) f.push('Sexo');
+  if (!v(s.telefono)) f.push('Teléfono del cliente'); if (!v(h.empresa)) f.push('Empresa'); if (!v(h.rubro)) f.push('Rubro de la empresa');
+  if (!v(h.trab?.ciudad) || !v(h.trab?.colonia)) f.push('Dirección de la empresa (ciudad y colonia)'); if (!v(h.puesto)) f.push('Puesto');
+  if (!v(h.emp_desde?.f)) f.push('Antigüedad en la empresa'); if (!v(h.salario)) f.push('Cuánto gana'); if (!v(h.prest)) f.push('Prestaciones laborales');
+  if (!v(h.fpago)) f.push('Forma de pago'); if (!v(h.dia)) f.push('Día de cobro');
+  if (!v(h.dom?.ciudad) || !v(h.dom?.colonia)) f.push('Domicilio (ciudad y colonia)'); if (!v(h.dom?.ref)) f.push('Punto de referencia del domicilio');
+  if (!v(h.dom_desde?.f)) f.push('Antigüedad en el domicilio'); if (!v(h.vivienda)) f.push('Tipo de vivienda');
+  [0, 1].forEach(i => { const r = (h.refs || [])[i]; if (!r || !v(r.nombre) || !v(r.par) || !v(r.tel)) f.push(`Referencia ${i + 1} (nombre, parentesco y teléfono)`); });
+  return f;
+}
+// Antes de enviar a análisis: si la hoja es obligatoria y le faltan datos, lo dice y ofrece llenarla. Devuelve true si puede seguir.
+function hojaListaParaEnviar(s){
+  if (!hojaObligatoria(s)) return true;
+  const f = hojaFaltan(s); if (!f.length) return true;
+  const w = dialogo(`<h3>Complete la hoja de solicitud</h3>
+    <div class="small">Para enviar a análisis la solicitud de <b>${esc(s.nombre_cliente)}</b> hay que llenar la hoja de solicitud. Falta${f.length === 1 ? '' : 'n'} ${f.length} dato${f.length === 1 ? '' : 's'}:</div>
+    <ul class="small" style="margin:8px 0 0;padding-left:20px;max-height:260px;overflow:auto">${f.map(x => `<li>${esc(x)}</li>`).join('')}</ul>
+    <div class="btns"><button class="btn ghost" data-close>Ahora no</button><button class="btn pri" id="hjIr">Llenar la hoja</button></div>`);
+  w.querySelector('#hjIr').onclick = async () => { await cerrarDialogo(w); hojaDialogo(s); };
+  return false;
+}
 function hojaVacia(s){ const h = s.datos_cliente?.hoja; return !h || !Object.keys(h).length; }
 function hojaCardHTML(s){
   if (!es('asesor', 'analista') || s.id < 0) return '';
@@ -2920,6 +2948,7 @@ function hojaCardHTML(s){
   const faltan = filas.filter(f => !f[1]).length;
   return `<div class="card" id="hojaCard"><div class="row" style="align-items:center;gap:8px;flex-wrap:wrap"><h4 class="sec" style="margin:0">Hoja de solicitud</h4><span class="spacer"></span>
       ${edit ? `<button class="btn sm ghost" id="hjEdit">${ico('edit', 'sm')}${vacia ? 'Llenar' : 'Editar'}</button>` : ''}</div>
+    ${s.estado === 'borrador' && hojaObligatoria(s) && hojaFaltan(s).length ? `<div class="alert warn small" style="margin:8px 0 0">Obligatoria para enviar a análisis: faltan ${hojaFaltan(s).length} dato${hojaFaltan(s).length === 1 ? '' : 's'}.</div>` : ''}
     ${vacia ? `<div class="small muted" style="margin-top:6px">Todavía no se llenó. Son los mismos datos del Excel: al llenarla aquí puede copiarlos completos al Excel y al sistema.</div>` : `
     <div class="seg hj-tabs" id="hjTabs" style="margin-top:10px"><button type="button" data-v="hoja" class="${vista === 'hoja' ? 'on' : ''}">Hoja (Excel)</button><button type="button" data-v="yit" class="${vista === 'yit' ? 'on' : ''}">Para el sistema</button></div>
     <div id="hjVHoja" class="${vista === 'hoja' ? '' : 'hidden'}">
@@ -4250,7 +4279,7 @@ async function mapaVerificar(pts){
     const sug = Object.entries(cerca).sort((a, c) => a[1].d - c[1].d).slice(0, 2);
     const fnAsig = x.lugar === 'trabajo' && itemAplica(s, 'domicilio') ? 't' : 'd';
     const pop = `<div style="min-width:220px"><b>${conCopiar(s.nombre_cliente)}</b><br>${ico} <b>${x.lugar === 'trabajo' ? 'Trabajo' : 'Domicilio'}</b> · ${esc(s.codigo)}<br>
-      <span class="small">${esc([x.lugar === 'trabajo' ? s.trab_sector : s.dom_sector, x.lugar === 'trabajo' ? s.trab_ciudad : s.dom_ciudad].filter(Boolean).join(', ') || 'Sin sector')}</span>
+      <span class="small">${esc(dirLinea(s, x.lugar === 'trabajo' ? 'trab' : 'dom') || 'Sin dirección')}</span>
       ${s.forma_desembolso === 'efectivo' && montoLibre(s) != null ? `<br>💵 Entregar <b>${L(montoLibre(s))}</b>` : ''}
       ${puede ? `<div style="margin-top:6px"><label class="small">Verificador ${x.lugar === 'trabajo' && fnAsig === 't' ? 'del trabajo' : ''}</label><br>
         <select data-mapasig="${s.id}" data-fn="${fnAsig}" style="width:100%;padding:4px"><option value="">${fnAsig === 't' ? 'El mismo del domicilio' : '— Sin asignar —'}</option>${verifs.map(p => `<option value="${p.id}" ${p.id === (fnAsig === 't' ? s.verificador_trabajo_id : s.verificador_id) ? 'selected' : ''}>${esc(p.nombre)}</option>`).join('')}</select>
@@ -4878,7 +4907,14 @@ function distKm(a, b){
 const fKm = d => d == null ? '' : d < 1 ? Math.round(d * 1000) + ' m' : d.toFixed(1) + ' km';
 // Punto principal a visitar: domicilio; si no tiene, el trabajo
 const puntoVerif = s => (rol() === 'verificador' && s.verificador_trabajo_id === S.me?.id && s.verificador_id !== S.me?.id && s.trab_lat != null) ? { lat:+s.trab_lat, lng:+s.trab_lng, lugar:'trabajo' } : s.dom_lat != null ? { lat:+s.dom_lat, lng:+s.dom_lng, lugar:'domicilio' } : s.trab_lat != null ? { lat:+s.trab_lat, lng:+s.trab_lng, lugar:'trabajo' } : null;
-const sectorDe = s => s.dom_sector || s.trab_sector || s.datos_cliente?.sector || null;
+// Dirección para el verificador: si la hoja de solicitud tiene la dirección, se usa la de la hoja (colonia, sector, ciudad y punto de referencia)
+function dirTexto(s, k){
+  const l = s.datos_cliente?.hoja?.[k], ref = (l?.ref || s[k + '_ref'] || '').trim();
+  if (l && (l.colonia || l.ciudad)) return { lugar:[l.colonia, l.sector && !norm(l.colonia || '').includes(norm(l.sector)) ? 'sector ' + l.sector : '', l.ciudad].filter(Boolean).join(', '), ref, hoja:true };
+  return { lugar:[s[k + '_sector'], s[k + '_ciudad']].filter(Boolean).join(', '), ref, hoja:false };
+}
+const dirLinea = (s, k) => { const d = dirTexto(s, k); return [d.lugar, d.ref].filter(Boolean).join(' · '); };
+const sectorDe = s => s.datos_cliente?.hoja?.dom?.sector || s.dom_sector || s.datos_cliente?.hoja?.trab?.sector || s.trab_sector || s.datos_cliente?.sector || null;
 const ciudadDe = s => s.dom_ciudad || s.trab_ciudad || s.datos_cliente?.ciudad || null;
 const linkMapa = (lat, lng) => `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`;
 const linkRuta = (lat, lng) => `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`;
@@ -4892,9 +4928,9 @@ function miUbicacion(){
 }
 // Línea con sector, ciudad, distancia y enlaces (para tarjetas)
 function locHTML(s, extra){
-  const pt = puntoVerif(s), sec = sectorDe(s), ciu = ciudadDe(s);
-  if (!pt && !sec && !['aprobada','por_verificar'].includes(s.estado)) return '';
-  return `<div class="loc">${extra || ''}<span>📍 ${sec || ciu ? esc([sec, ciu].filter(Boolean).join(' · ')) : '<span class="sin">Sin sector</span>'}</span>
+  const pt = puntoVerif(s), dl = dirTexto(s, 'dom').lugar || dirTexto(s, 'trab').lugar;
+  if (!pt && !dl && !['aprobada','por_verificar'].includes(s.estado)) return '';
+  return `<div class="loc">${extra || ''}<span>📍 ${dl ? esc(dl) : '<span class="sin">Sin dirección</span>'}</span>
     ${pt ? `<a href="${linkRuta(pt.lat, pt.lng)}" target="_blank" rel="noopener" data-stop>Cómo llegar</a>` : '<span class="sin">Sin coordenadas</span>'}</div>`;
 }
 function ubicacionHTML(s){
@@ -4903,19 +4939,21 @@ function ubicacionHTML(s){
   const tieneTrab = s.trab_lat != null || s.trab_sector || s.actualizar_trabajo || (s.tipo === 'nuevo' && s.estado === 'aprobada');
   const bloque = (lugar, ico, tit) => {
     const k = lugar === 'domicilio' ? 'dom' : 'trab';
-    const lat = s[k + '_lat'], lng = s[k + '_lng'], sec = s[k + '_sector'], ciu = s[k + '_ciudad'], ref = s[k + '_ref'];
-    if (!edit) return lat == null && !sec ? '' : `<div class="ubi"><div class="hd">${ico} ${tit}${lat != null ? ` <span class="spacer"></span><a href="${linkMapa(lat,lng)}" target="_blank">Ver en mapa</a>` : ''}</div>
-      <div class="small">${esc([sec, ciu].filter(Boolean).join(' · ') || '—')}${ref ? ' · ' + esc(ref) : ''}</div></div>`;
+    const lat = s[k + '_lat'], lng = s[k + '_lng'], sec = s[k + '_sector'], ciu = s[k + '_ciudad'], ref = s[k + '_ref'], dh = dirTexto(s, k);
+    if (!edit) return lat == null && !sec && !dh.lugar ? '' : `<div class="ubi"><div class="hd">${ico} ${tit}${lat != null ? ` <span class="spacer"></span><a href="${linkMapa(lat,lng)}" target="_blank">Ver en mapa</a>` : ''}</div>
+      <div class="small">${esc(dh.lugar || '—')}${dh.ref ? ' · ' + esc(dh.ref) : ''}</div></div>`;
     return `<div class="ubi" data-lugar="${lugar}">
       <div class="hd">${ico} ${tit}${lugar === 'trabajo' ? ' <span class="small muted" style="font-weight:500">(si se visita)</span>' : ''}<span class="spacer"></span>
         ${lat != null ? `<a href="${linkMapa(lat,lng)}" target="_blank">Ver en mapa</a><a href="${linkRuta(lat,lng)}" target="_blank">Cómo llegar</a>` : ''}</div>
+      ${dh.hoja ? `<div class="hj-ro" style="margin-top:6px"><b>${esc(dh.lugar)}</b>${dh.ref ? `<div class="small">${esc(dh.ref)}</div>` : ''}<div class="small muted">De la hoja de solicitud; para cambiarla edite la hoja. Es la que ve el verificador.</div></div>
+      <input type="hidden" data-u="sector" value="${esc(sec||'')}"><input type="hidden" data-u="ciudad" value="${esc(ciu||'')}"><input type="hidden" data-u="ref" value="${esc(ref||'')}">` : `
       <div class="grid2"><div><label class="f">Sector / colonia</label><input data-u="sector" list="dlSectores" value="${esc(sec||'')}" placeholder="Ej. Col. Rivera Hernández"></div>
-        <div><label class="f">Ciudad</label><select data-u="ciudad"><option value="">—</option>${CIUDADES.map(c => `<option ${c === ciu ? 'selected' : ''}>${c}</option>`).join('')}${ciu && !CIUDADES.includes(ciu) ? `<option selected>${esc(ciu)}</option>` : ''}</select></div></div>
+        <div><label class="f">Ciudad</label><select data-u="ciudad"><option value="">—</option>${CIUDADES.map(c => `<option ${c === ciu ? 'selected' : ''}>${c}</option>`).join('')}${ciu && !CIUDADES.includes(ciu) ? `<option selected>${esc(ciu)}</option>` : ''}</select></div></div>`}
       <label class="f">Coordenadas o enlace de Google Maps</label>
       <div class="row" style="gap:6px"><input data-u="coord" value="${lat != null ? `${(+lat).toFixed(6)}, ${(+lng).toFixed(6)}` : ''}" placeholder="15.50417, -88.02500 o pegue el enlace" style="flex:1">
         <button type="button" class="btn sm ghost" data-gpsu title="Usar la ubicación de este teléfono">📍 Aquí</button></div>
       <div class="prev muted" data-prev></div>
-      <label class="f">Referencia</label><input data-u="ref" value="${esc(ref||'')}" placeholder="Ej. frente a pulpería La Bendición, portón negro">
+      ${dh.hoja ? '' : `<label class="f">Referencia</label><input data-u="ref" value="${esc(ref||'')}" placeholder="Ej. frente a pulpería La Bendición, portón negro">`}
       <div class="btns" style="margin-top:8px"><button type="button" class="btn sm pri" data-saveu>Guardar ${lugar}</button></div></div>`;
   };
   const dom = bloque('domicilio', '🏠', 'Domicilio'), trab = tieneTrab || !edit ? bloque('trabajo', '🏢', 'Trabajo') : '';
@@ -5102,8 +5140,8 @@ function completarHTML(s){
 // Qué puntos aplican: si el desembolso es por transferencia no hay entrega de efectivo; trabajo solo si se marcó
 const itemAplica = (s, it) => it === 'domicilio' ? (s.tipo === 'nuevo' || !!s.actualizar_domicilio) : it === 'trabajo' ? !!s.actualizar_trabajo : it === 'entrega_efectivo' ? s.forma_desembolso === 'efectivo' : true;
 function datosVisitaHTML(s){
-  const lug = (k, ico, t) => { const lat = s[k + '_lat'], sec = s[k + '_sector'], ciu = s[k + '_ciudad'], ref = s[k + '_ref'];
-    return `<div class="dv"><span>${ico} <b>${t}</b></span><span>${esc([sec, ciu].filter(Boolean).join(' · ') || 'Sin sector registrado')}${ref ? ' · ' + esc(ref) : ''}</span>
+  const lug = (k, ico, t) => { const lat = s[k + '_lat'], d = dirTexto(s, k);
+    return `<div class="dv"><span>${ico} <b>${t}</b></span><span>${esc(d.lugar || 'Sin dirección registrada')}${d.ref ? ' · ' + esc(d.ref) : ''}</span>
       ${lat != null ? `<a href="${linkRuta(lat, s[k + '_lng'])}" target="_blank" rel="noopener">🧭 Cómo llegar</a>` : '<span class="muted small">sin coordenadas</span>'}</div>`; };
   const libre = montoLibre(s);
   return `<div class="dvbox">
@@ -5277,6 +5315,7 @@ function enlazarDetalle(s, c){
   if ($('#dAsesor')) $('#dAsesor').onchange = e => run(e.target, async () => { await rpc('reasignar_asesor', { p_id: s.id, p_asesor: e.target.value }); toast('Asesor reasignado'); await refrescar(); });
   // Asesor: enviar
   if ($('#aEnviar')) $('#aEnviar').onclick = e => {
+    if (!hojaListaParaEnviar(s)) return;
     const nIng = (S.detData.ing || []).length;
     const msj = s.tipo === 'nuevo' ? `${nIng} registro(s) de ingresos.${nIng ? '' : ' ⚠ No tiene ingresos.'}\nSe enviará al analista y ya no podrá editar los ingresos.`
       : `${nIng ? nIng + ' registro(s) de ingresos.' : 'Sin ingresos: el analista los agregará.'}\nSe enviará al analista; él podrá agregar o corregir los ingresos.`;
@@ -7008,7 +7047,7 @@ function cardK(s, dia){
     <div class="ln">${ab && !s.en_espera ? '' : chip(s.estado)}${tipoChip(s.tipo)}${esperaChip(s)}${pendChip(s)}${tomaChip(s)}${s.estado === 'por_verificar' && !s.verificador_id && !s.en_espera ? '<span class="chip c-red">⚠ Sin verificador</span>' : ''}</div>
     ${s.en_espera ? `<div class="ln" style="color:var(--gray)">${ESP_CAT[s.espera_categoria]?.i || '⏸'} ${esc(s.espera_motivo||'')} · ${hace(s.espera_desde)}</div>` : ''}
     <div class="ln"><span>${esc(s.codigo)}</span><span>👤 ${esc(nombre(s.asesor_id).split(' ')[0])}</span>${monto ? `<b style="color:var(--ink)">${monto}</b>` : ''}${comChip(s)}</div>
-    ${['aprobada','por_verificar'].includes(s.estado) && (sectorDe(s) || ciudadDe(s)) ? `<div class="ln">📍 ${esc([sectorDe(s), ciudadDe(s)].filter(Boolean).join(' · '))}</div>` : ''}
+    ${['aprobada','por_verificar'].includes(s.estado) && (dirTexto(s, 'dom').lugar || sectorDe(s) || ciudadDe(s)) ? `<div class="ln">📍 ${esc(dirTexto(s, 'dom').lugar || [sectorDe(s), ciudadDe(s)].filter(Boolean).join(' · '))}</div>` : ''}
     ${entregaHTML(s, true)}${segLinea(s)}
     <div class="tm">${tm}</div></div>`;
 }
