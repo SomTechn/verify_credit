@@ -879,6 +879,45 @@ body.nav-min .sn-vt span{display:none}
 .pb-vivo i{width:8px;height:8px;border-radius:50%;background:var(--green);box-shadow:0 0 0 0 rgba(22,163,74,.5);animation:pbPulso 2s infinite}
 @keyframes pbPulso{0%{box-shadow:0 0 0 0 rgba(22,163,74,.5)}70%{box-shadow:0 0 0 7px rgba(22,163,74,0)}100%{box-shadow:0 0 0 0 rgba(22,163,74,0)}}
 @media (prefers-reduced-motion: reduce){ .pb-vivo i{animation:none} }
+/* WhatsApp (CRM): bandeja de conversaciones */
+.wa-wrap{display:grid;grid-template-columns:minmax(260px,360px) minmax(0,1fr);gap:14px;align-items:start}
+.wa-lista,.wa-chat{background:var(--card);border:1px solid var(--line);border-radius:14px;min-width:0}
+.wa-lista{padding:10px}
+.wa-lista .search{margin:0 0 8px}
+.wa-items{display:flex;flex-direction:column;max-height:calc(100vh - 230px);overflow:auto;margin:0 -4px}
+.wa-it{all:unset;box-sizing:border-box;display:flex;gap:10px;padding:10px 8px;border-radius:10px;cursor:pointer;border-left:3px solid transparent}
+.wa-it:hover{background:var(--bg)} .wa-it.on{background:var(--blue-bg);border-left-color:var(--blue)}
+.wa-it:focus-visible{outline:2px solid var(--blue);outline-offset:-2px}
+.wa-it .av,.wa-chat-h .av{flex:none;width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:14px}
+.wa-it-t{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px}
+.wa-it-1{display:flex;justify-content:space-between;gap:8px} .wa-it-1 b{white-space:nowrap;overflow:hidden;text-overflow:ellipsis} .wa-it-1 span{flex:none;font-size:12px;color:var(--muted)}
+.wa-it-2{font-size:13px;color:var(--ink2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.wa-it-3{display:flex;gap:6px;align-items:center} .wa-it-3 .chip{font-size:11px}
+.wa-nl{margin-left:auto;background:var(--blue);color:#fff;font-size:11px;font-weight:700;padding:1px 7px;border-radius:9px}
+.wa-chat{display:flex;flex-direction:column;min-height:420px}
+.wa-chat-h{display:flex;align-items:center;gap:10px;padding:10px 12px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+.wa-chat-t{flex:1;min-width:140px;display:flex;flex-direction:column} .wa-chat-t small{color:var(--muted);font-size:12px}
+.wa-back{display:none}
+.wa-ficha{margin:10px 12px 0;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--bg);display:flex;flex-direction:column;gap:6px}
+.wa-fi-h{display:flex;gap:6px;align-items:center;flex-wrap:wrap} .wa-ficha .btn{align-self:flex-start}
+.wa-msjs{flex:1;padding:12px;display:flex;flex-direction:column;gap:6px;max-height:calc(100vh - 300px);overflow:auto}
+.wa-dia{align-self:center;font-size:12px;color:var(--muted);background:var(--bg);border:1px solid var(--line);padding:2px 10px;border-radius:10px;margin:6px 0;text-transform:capitalize}
+.wa-b{max-width:min(78%,520px);padding:8px 10px;border-radius:12px;font-size:14px;line-height:1.4;word-wrap:break-word;overflow-wrap:anywhere}
+.wa-b.cliente{align-self:flex-start;background:var(--bg);border:1px solid var(--line);border-top-left-radius:4px}
+.wa-b.bot{align-self:flex-end;background:var(--blue-bg);border-top-right-radius:4px}
+.wa-b.asesor{align-self:flex-end;background:var(--green-bg);border-top-right-radius:4px}
+.wa-q{font-size:11px;font-weight:700;color:var(--blue);margin-bottom:2px} .wa-b.asesor .wa-q{color:var(--green)}
+.wa-h{font-size:11px;color:var(--muted);text-align:right;margin-top:2px}
+.wa-img{display:block;max-width:240px;max-height:260px;width:100%;object-fit:cover;border-radius:8px;margin-bottom:4px;background:var(--line)}
+.wa-file{display:inline-flex;gap:6px;align-items:center;font-size:13px;color:var(--ink2);margin-bottom:4px}
+.wa-pie{padding:8px 12px 12px;border-top:1px solid var(--line)}
+.wa-vacio{margin:auto}
+@media (max-width: 760px){
+  .wa-wrap{grid-template-columns:1fr}
+  .wa-wrap.con-chat .wa-lista{display:none} .wa-wrap:not(.con-chat) .wa-chat{display:none}
+  .wa-back{display:inline-flex} .wa-items{max-height:none} .wa-msjs{max-height:none}
+  .wa-b{max-width:88%}
+}
 .pb-vivo.off{color:var(--muted)}.pb-vivo.off i{background:var(--muted);animation:none}
 @media (max-width:520px){ .pb-rt{display:none} }
 .card.pb-new{border-color:var(--brand);box-shadow:0 0 0 2px var(--brand2)}
@@ -943,15 +982,18 @@ body.nav-min .sn-vt span{display:none}
 // App disponible sin señal (sw.js debe estar junto a index.html). Va primero para registrarse aunque falle otra cosa.
 if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) navigator.serviceWorker.register('sw.js').catch(() => {});
 // Versión de esta copia de la app: cambia en cada entrega. La app la compara con la publicada y se actualiza sola.
-const APP_VER = '2026-11-27.2015';
+const APP_VER = '2026-11-27.2330';
 // 'admin' = cambio solo para el administrador: los demás usuarios no ven el aviso de versión nueva (se actualiza en silencio)
 // y sus NOVEDADES deben llevar r:['admin']. 'todos' = cambio que ven los usuarios.
-const APP_AVISO = 'todos';
+const APP_AVISO = 'admin';
 // Novedades que ve cada usuario al abrir una versión nueva (la más reciente primero).
 // Al publicar cambios: subir APP_VER y agregar aquí una entrada con la misma versión.
 // r = roles que la ven (sin r = todos; el admin ve todo).
 // Regla: las novedades de control (GPS, horas de los verificadores, permisos, auditoría) van SOLO con r:['admin'].
 const NOVEDADES = [
+  { v:'2026-11-27.2330', f:'27 de noviembre de 2026', items:[
+    { i:'•', t:'WhatsApp: los chats del bot dentro de VerifyCredit', r:['admin'],
+      d:'Nueva sección "WhatsApp" (en Más): todas las conversaciones del bot con cada cliente, en vivo, con las fotos que manda (identidad y comprobantes) guardadas de forma privada, y la ficha del prospecto al lado. Por ahora es solo de consulta: para responder use "Abrir en WhatsApp". Solo la ve quien tenga el permiso "Ver los chats de WhatsApp del bot" (Usuarios → editar); hoy solo el administrador.' } ] },
   { v:'2026-11-27.2015', f:'27 de noviembre de 2026', items:[
     { i:'•', t:'Cámbiate a nivelado en Estadísticas', r:['asesor','analista'],
       d:'En Estadísticas, la sección "Cámbiate a nivelado · contactos por gestor" muestra por día y por gestor cuántos clientes contactaron, cuántos aceptaron, cuántos no, cuántos lo pensarán, las solicitudes que generaron y cuántas ya se completaron (desembolsadas). Usa el período que elija arriba.' } ] },
@@ -1928,6 +1970,7 @@ function tabsRol(){
     refi:['refi','Refinanciar'],
     posteo:['posteo','Posteo', s => posteoPendiente(s)],
     prospectos:['prospectos','Prospectos'],
+    whatsapp:['whatsapp','WhatsApp'],
     gestor:['gestor','Mi cartera'],
     nivelado:['nivelado','Cámbiate a nivelado'],
     stats:['stats','Estadísticas'], referidos:['referidos','Referidos'], usuarios:['usuarios','Usuarios'], params:['params','Parámetros'], pagos:['pagos','Pago verificadores'], vercomo:['vercomo','Vista verificador'], notifs:['notifs','Notificaciones']
@@ -1937,7 +1980,8 @@ function tabsRol(){
     verificador:['trabajo','verificar','tablero','verificadas','historial','stats'],
     gestor:['gestor','nivelado'],
     admin:['trabajo','tablero','alertas','prospectos','solicitudes','revisadas','analisis','verificar','desembolsos','posteo','todas','refi','nivelado','referidos','historial','stats','pagos','vercomo','usuarios','notifs','params'] };
-  const lista = gerenteAct() ? [...new Set([...m[rol()], ...m.asesor, ...m.analista])] : m[rol()];
+  let lista = gerenteAct() ? [...new Set([...m[rol()], ...m.asesor, ...m.analista])] : m[rol()];
+  if (waVe() && !lista.includes('whatsapp')) lista = [...lista, 'whatsapp'];   // CRM de WhatsApp: solo con permiso
   return lista.map(k => T[k]);
 }
 function pintarTabs(){
@@ -1945,6 +1989,7 @@ function pintarTabs(){
   $('#tabs').innerHTML = tabsRol().map(([k, t, f]) => {
     let n = '';
     if (k === 'prospectos'){ const c = PB.lista.filter(p => p.estado === 'nuevo').length; if (c) n = `<span class="n">${c}</span>`; }
+    if (k === 'whatsapp'){ const c = waSinLeer(); if (c) n = `<span class="n">${c}</span>`; }
     if (f && k !== 'todas' && k !== 'verificadas'){
       const c = S.sols.filter(f).filter(s => k !== 'desembolsos' || s.estado === 'desembolso_pendiente').filter(s => k !== 'proceso' || s.estado !== 'desembolsada').length;
       if (c) n = `<span class="n">${c}</span>`;
@@ -2045,7 +2090,7 @@ const ico = (n, cls = '') => `<svg class="ic ${cls}" viewBox="0 0 24 24" aria-hi
 
 // Ícono de cada pestaña
 const TAB_ICO = { trabajo:'home', tablero:'board', todas:'list', refi:'refresh', desembolsos:'bank', posteo:'receipt', verificar:'pin', verificadas:'checksq',
-  historial:'clock', stats:'bars', alertas:'alert', prospectos:'inbox', solicitudes:'file', revisadas:'checksq', proceso:'loader', analisis:'search',
+  historial:'clock', stats:'bars', alertas:'alert', prospectos:'inbox', whatsapp:'msg', solicitudes:'file', revisadas:'checksq', proceso:'loader', analisis:'search',
   referidos:'users', gestor:'briefcase', nivelado:'nivel', pagos:'cash', vercomo:'eye', usuarios:'user', params:'sliders', tutoriales:'play', notifs:'bell' };
 // Accesos principales por rol (el resto queda en "Más")
 const NAV_PRIN = { asesor:['trabajo','tablero','todas','refi'], analista:['trabajo','tablero','desembolsos','refi'],
@@ -2110,6 +2155,7 @@ function navBadge(k, f){
   let n = 0;
   if (k === 'trabajo') n = trabajoDatos().toca.length + trabajoComentarios().length;
   else if (k === 'prospectos') n = PB.lista.filter(p => p.estado === 'nuevo').length;
+  else if (k === 'whatsapp') n = waSinLeer();
   else if (k === 'nivelado') n = esGestor() && NV.d ? nvStats(NV.d.rows || []).hoy : 0;
   else if (f && !['todas','verificadas'].includes(k)) n = S.sols.filter(f).filter(s => k !== 'desembolsos' || s.estado === 'desembolso_pendiente').filter(s => k !== 'proceso' || s.estado !== 'desembolsada').length;
   return n ? `<span class="nb">${n}</span>` : '';
@@ -4419,7 +4465,7 @@ function pintar(){
   // Si la pestaña actual ya no está disponible para este usuario (p. ej. cambió un permiso), vuelve a la primera
   if (!tabsRol().some(t => t[0] === S.tab) && !['tutoriales'].includes(S.tab)){ S.tab = tabsRol()[0][0]; pintarTabs(); }
   const tab = tabsRol().find(t => t[0] === S.tab);
-  $('#main').classList.toggle('wide', ['tablero','historial','referidos'].includes(S.tab));
+  $('#main').classList.toggle('wide', ['tablero','historial','referidos','whatsapp'].includes(S.tab));
   $('#main').classList.toggle('board-wide', S.tab === 'tablero');
   if (S.tab === 'gestor') return pintarGestor();
   if (S.tab === 'nivelado') return pintarNivelado();
@@ -4429,6 +4475,7 @@ function pintar(){
   if (S.tab === 'stats') return pintarStats();
   if (S.tab === 'referidos') return pintarReferidos();
   if (S.tab === 'prospectos') return pintarProspectos();
+  if (S.tab === 'whatsapp') return pintarWhatsapp(true);
   if (S.tab === 'refi') return $('#rfTop') ? rfPintar() : pintarRefi();
   if (S.tab === 'posteo') return pintarPosteo();
   if (S.tab === 'usuarios') return pintarUsuarios();
@@ -8547,6 +8594,7 @@ function pintarUsuarios(){
       ${usrRolExtraHTML(u, 'e')}
       <label class="f">Notificaciones</label><select id="eAv"><option value="rol"${u.avisos !== 'transferencias' ? ' selected' : ''}>Las de su rol</option><option value="transferencias"${u.avisos === 'transferencias' ? ' selected' : ''}>Solo transferencias por confirmar (gerente)</option></select>
       <label class="chk" id="eGpsF" style="margin-top:10px;align-items:flex-start${u.rol === 'admin' ? ';display:none' : ''}"><input type="checkbox" id="eGps" ${u.ver_gps?'checked':''}> <span><b>Ver horas y ubicación GPS de las verificaciones</b><br><span class="small muted">Registro de cada paso del verificador (en camino, llegó, completada) con la hora y el lugar donde marcó. El administrador siempre lo ve.</span></span></label>
+      <label class="chk" style="margin-top:10px;align-items:flex-start"><input type="checkbox" id="eWa" ${u.ver_whatsapp?'checked':''}> <span><b>Ver los chats de WhatsApp del bot</b><br><span class="small muted">Sección WhatsApp: conversaciones, fotos y datos que mandan los clientes. Contiene información personal: désela solo a quien la necesite. También el administrador necesita este permiso.</span></span></label>
       <label class="chk" style="margin-top:10px"><input type="checkbox" id="eA" ${u.activo?'checked':''}> Activo</label>
       <label class="f">Nueva contraseña (opcional)</label><input id="eP" type="text" placeholder="Dejar vacío para no cambiar">
       <div class="btns"><button class="btn ghost" data-close>Cancelar</button><button class="btn pri" id="eOk">Guardar</button></div>`);
@@ -8561,6 +8609,7 @@ function pintarUsuarios(){
         if (ger !== esGerente(u)) await rpc('fijar_roles_extra', { p_id: u.id, p_roles: ger ? ['gerente'] : [] }); }
       if ($('#eAv').value !== (u.avisos || 'rol')) await rpc('fijar_avisos', { p_id: u.id, p_avisos: $('#eAv').value });
       if (rolN !== 'admin' && $('#eGps').checked !== !!u.ver_gps) await rpc('fijar_ver_gps', { p_id: u.id, p_valor: $('#eGps').checked });
+      if ($('#eWa').checked !== !!u.ver_whatsapp) await rpc('fijar_ver_whatsapp', { p_id: u.id, p_valor: $('#eWa').checked });
       if ($('#eP').value) await fnUsuarios({ accion:'password', user_id: u.id, password: $('#eP').value });
       cerrarDialogo(w); await cargarPerfiles(); pintarUsuarios(); toast('Guardado');
     });
@@ -8926,6 +8975,155 @@ function pintarProspectos(){
   }));
 }
 
+// ================== WhatsApp: bandeja de conversaciones del bot (CRM, fase 2: solo lectura) ==================
+// Solo la ven los usuarios con perfiles.ver_whatsapp (lo concede el administrador en Usuarios).
+// Las tablas wa_conversaciones / wa_mensajes y las fotos (bucket privado wa-media) también lo exigen en la base de datos.
+const WA = { convs:[], cargado:false, cargando:false, error:null, sel:null, msjs:{}, urls:{}, q:'', filtro:'todos' };
+const waVe = () => !!S.me?.ver_whatsapp && !S.verComo;
+const waTel8 = t => String(t || '').replace(/\D/g, '').slice(-8);
+const waTelFmt = t => { const d = String(t || '').replace(/\D/g, ''); const l = d.slice(-8); return (d.length > 8 ? '+' + d.slice(0, d.length - 8) + ' ' : '') + l.slice(0, 4) + '-' + l.slice(4); };
+const waSinLeer = () => WA.convs.filter(c => c.no_leidos > 0).length;
+// Formato de WhatsApp: *negrita*, _cursiva_, ~tachado~ y saltos de línea (después de escapar el texto)
+const waFmt = t => esc(t || '').replace(/\*([^*\n]+)\*/g, '<b>$1</b>').replace(/(^|\s)_([^_\n]+)_/g, '$1<i>$2</i>').replace(/~([^~\n]+)~/g, '<s>$1</s>').replace(/\n/g, '<br>');
+function waHora(d){
+  const x = new Date(d), hoy = new Date();
+  if (x.toDateString() === hoy.toDateString()) return x.toLocaleTimeString('es-HN', { hour:'numeric', minute:'2-digit' });
+  const ay = new Date(hoy); ay.setDate(hoy.getDate() - 1);
+  if (x.toDateString() === ay.toDateString()) return 'Ayer';
+  return x.toLocaleDateString('es-HN', { day:'numeric', month:'short' });
+}
+async function waCargar(){
+  if (!S.me || !waVe()) return;
+  if (WA.cargando){ WA.otraVez = true; return; }
+  WA.cargando = true;
+  try {
+    const { data, error } = await sb.from('wa_conversaciones').select('*').order('ultimo_en', { ascending:false, nullsFirst:false }).limit(300);
+    if (error) throw error;
+    WA.convs = data || []; WA.error = null; WA.cargado = true; WA.at = Date.now();
+  } catch(e){ WA.error = esRed(e) ? 'Sin señal: los chats se cargan al volver la conexión.' : errMsg(e); }
+  finally { WA.cargando = false; }
+  pintarTabs();
+  if (S.tab === 'whatsapp') waRepintar();
+  if (WA.otraVez){ WA.otraVez = false; waCargar(); }
+}
+async function waCargarChat(tel){
+  const { data, error } = await sb.from('wa_mensajes').select('*').eq('telefono', tel).order('enviado_en').order('id').limit(800);
+  if (error) throw error;
+  WA.msjs[tel] = data || [];
+  const rutas = WA.msjs[tel].filter(m => m.media_path && !WA.urls[m.media_path]).map(m => m.media_path);
+  if (rutas.length){
+    const { data:u } = await sb.storage.from('wa-media').createSignedUrls(rutas, 3600);
+    (u || []).forEach(x => { if (x.signedUrl) WA.urls[x.path] = x.signedUrl; });
+  }
+}
+async function waAbrir(tel){
+  WA.sel = tel; pintarWhatsapp();
+  try { await waCargarChat(tel); } catch(e){ toast(esRed(e) ? 'Sin señal para cargar el chat' : errMsg(e)); }
+  const c = WA.convs.find(x => x.telefono === tel);
+  if (c?.no_leidos){ c.no_leidos = 0; pintarTabs(); sb.rpc('wa_marcar_leida', { p_tel: tel }).then(() => {}, () => {}); }
+  if (S.tab === 'whatsapp' && WA.sel === tel) pintarWhatsapp(true);
+}
+// Repinta sin perder el lugar; si hay una ventana abierta o se escribe en la búsqueda, espera
+function waRepintar(){
+  if (S.tab !== 'whatsapp' || !$('#sheet').classList.contains('hidden')) return;
+  if ((S.dlgs || []).some(w => w.isConnected) || document.activeElement?.id === 'waQ'){ WA.pendPintar = true; return; }
+  WA.pendPintar = false; pintarWhatsapp();
+}
+let waT = null;
+function waCambio(p){
+  if (!waVe()) return;
+  const m = p?.table === 'wa_mensajes' ? p.new : null;
+  if (m && p.eventType === 'INSERT' && m.autor === 'cliente' && S.tab !== 'whatsapp')
+    toast('WhatsApp: mensaje de ' + (WA.convs.find(c => c.telefono === m.telefono)?.nombre || waTelFmt(m.telefono)));
+  clearTimeout(waT);
+  waT = setTimeout(async () => {
+    if (m && WA.sel === m.telefono && S.tab === 'whatsapp'){
+      try { await waCargarChat(m.telefono); } catch(e){}
+      if (m.autor === 'cliente') sb.rpc('wa_marcar_leida', { p_tel: m.telefono }).then(() => {}, () => {});
+    }
+    await waCargar();
+  }, 500);
+}
+setInterval(() => { if (!S.me || document.hidden || !waVe()) return;
+  if (WA.pendPintar) waRepintar();
+  if (S.tab === 'whatsapp' ? Date.now() - (WA.at || 0) > 30000 : Date.now() - (WA.at || 0) > 120000) waCargar(); }, 10000);
+function waEtiqueta(c){
+  const p = PB.lista.find(x => waTel8(x.telefono) === waTel8(c.telefono));
+  if (p?.estado === 'nuevo') return ['Expediente completo','c-green'];
+  if (p?.estado === 'contactado') return ['Contactado','c-amber'];
+  if (p?.estado === 'convertido') return ['Con solicitud','c-violet'];
+  if (c.ultimo_autor === 'asesor') return ['Asesor','c-amber'];
+  return ['Con bot','c-blue'];
+}
+function waItem(c){
+  const [et, cl] = waEtiqueta(c), nom = c.nombre || waTelFmt(c.telefono);
+  const pre = c.ultimo_autor === 'bot' ? 'Bot: ' : c.ultimo_autor === 'asesor' ? 'Asesor: ' : '';
+  return `<button class="wa-it${WA.sel === c.telefono ? ' on' : ''}" data-wa="${esc(c.telefono)}">
+    <div class="av" style="background:${avColor(c.telefono)}">${esc(iniciales(nom))}</div>
+    <div class="wa-it-t"><div class="wa-it-1"><b>${esc(nom)}</b><span>${c.ultimo_en ? waHora(c.ultimo_en) : ''}</span></div>
+      <div class="wa-it-2">${esc(pre + (c.ultimo_texto || '').replace(/\s+/g, ' ').slice(0, 90))}</div>
+      <div class="wa-it-3"><span class="chip ${cl}">${et}</span>${c.no_leidos ? `<span class="wa-nl">${c.no_leidos}</span>` : ''}</div></div></button>`;
+}
+function waBurbuja(m){
+  const quien = m.autor === 'bot' ? 'Bot' : m.autor === 'asesor' ? 'Asesor' : '';
+  let media = '';
+  if (m.tipo === 'image'){
+    const u = m.media_path && WA.urls[m.media_path];
+    media = u ? `<a href="${esc(u)}" target="_blank" rel="noopener"><img class="wa-img" src="${esc(u)}" alt="Foto enviada por el cliente" loading="lazy"></a>`
+      : `<div class="wa-file">${ico('file','sm')} ${m.media_estado === 'error' ? 'Foto no disponible' : 'Foto (cargando…)'}</div>`;
+  } else if (m.tipo !== 'text'){
+    const u = m.media_path && WA.urls[m.media_path], nom = { document:'Documento', audio:'Audio', video:'Video', sticker:'Sticker' }[m.tipo] || 'Archivo';
+    media = u ? `<a class="wa-file" href="${esc(u)}" target="_blank" rel="noopener">${ico('file','sm')} ${nom} · abrir</a>` : `<div class="wa-file">${ico('file','sm')} ${nom}${m.media_estado === 'error' ? ' no disponible' : ''}</div>`;
+  }
+  return `<div class="wa-b ${m.autor}">${quien ? `<div class="wa-q">${quien}</div>` : ''}${media}${m.texto ? `<div>${waFmt(m.texto)}</div>` : ''}<div class="wa-h">${new Date(m.enviado_en).toLocaleTimeString('es-HN', { hour:'numeric', minute:'2-digit' })}</div></div>`;
+}
+function waChat(tel){
+  const c = WA.convs.find(x => x.telefono === tel) || { telefono:tel };
+  const nom = c.nombre || waTelFmt(tel), ms = WA.msjs[tel];
+  const p = PB.lista.find(x => waTel8(x.telefono) === waTel8(tel));
+  const fotos = (ms || []).filter(m => m.tipo === 'image' && m.media_path && WA.urls[m.media_path]);
+  let dia = '', cuerpo = '';
+  (ms || []).forEach(m => {
+    const d = new Date(m.enviado_en).toLocaleDateString('es-HN', { weekday:'long', day:'numeric', month:'long' });
+    if (d !== dia){ dia = d; cuerpo += `<div class="wa-dia">${esc(d)}</div>`; }
+    cuerpo += waBurbuja(m);
+  });
+  const ficha = p ? `<div class="wa-ficha"><div class="wa-fi-h"><b>${esc(p.nombre || 'Prospecto')}</b>${PB_RES[p.resultado] ? `<span class="chip ${PB_RES[p.resultado][1]}">${PB_RES[p.resultado][0]}</span>` : ''}<span class="chip ${(PB_EST[p.estado] || ['', 'c-gray'])[1]}">${(PB_EST[p.estado] || [p.estado])[0]}</span></div>
+      <div class="small muted">${[p.dni, p.empresa, p.ingreso_pago ? L(p.ingreso_pago) + (p.tipo_pago ? ' ' + String(p.tipo_pago).toLowerCase() : '') : '', [p.sector, p.ciudad].filter(Boolean).join(', ')].filter(Boolean).map(esc).join(' · ')}</div>
+      <button class="btn sm ghost" data-waprosp>${ico('inbox','sm')}Ver en Prospectos</button></div>` : '';
+  return `<div class="wa-chat-h"><button class="btn ghost sm wa-back" data-waback aria-label="Volver a los chats">${ico('chevL')}</button>
+      <div class="av" style="background:${avColor(tel)}">${esc(iniciales(nom))}</div>
+      <div class="wa-chat-t"><b>${esc(nom)}</b><small>${esc(waTelFmt(tel))}${fotos.length ? ` · ${fotos.length} foto${fotos.length > 1 ? 's' : ''}` : ''}</small></div>
+      <a class="btn sm ghost" href="https://wa.me/${esc(String(tel).replace(/\D/g, ''))}" target="_blank" rel="noopener">${ico('msg','sm')}Abrir en WhatsApp</a></div>
+    ${ficha}
+    <div class="wa-msjs" id="waMsjs">${ms ? (cuerpo || '<div class="empty">Sin mensajes.</div>') : '<div class="empty">Cargando conversación…</div>'}</div>
+    <div class="wa-pie small muted">Solo lectura por ahora: para responder, use "Abrir en WhatsApp". Pronto se podrá contestar desde aquí.</div>`;
+}
+function pintarWhatsapp(alFinal){
+  if (!waVe()) return;
+  if (!WA.cargado && !WA.cargando && !WA.error) waCargar();
+  if (!PB.cargado && !PB.cargando && pbVe()) pbCargar();
+  const q = WA.q.trim().toLowerCase(), qd = q.replace(/\D/g, '');
+  let lista = WA.filtro === 'sinleer' ? WA.convs.filter(c => c.no_leidos > 0) : WA.convs;
+  if (q) lista = lista.filter(c => (c.nombre || '').toLowerCase().includes(q) || (c.ultimo_texto || '').toLowerCase().includes(q) || (qd.length >= 3 && String(c.telefono).includes(qd)));
+  const prevScroll = $('#waMsjs') ? $('#waMsjs').scrollTop : null;
+  $('#main').innerHTML = `<div class="wa-wrap${WA.sel ? ' con-chat' : ''}">
+    <section class="wa-lista" aria-label="Conversaciones">
+      <div class="search"><input id="waQ" placeholder="Buscar nombre, teléfono o texto" value="${esc(WA.q)}">${navigator.onLine && !S.rtCaido ? '<span class="pb-vivo"><i></i>En vivo</span>' : '<span class="pb-vivo off"><i></i>Sin conexión</span>'}</div>
+      <div class="filters"><button data-waf="todos" class="${WA.filtro === 'todos' ? 'on' : ''}">Todos · ${WA.convs.length}</button><button data-waf="sinleer" class="${WA.filtro === 'sinleer' ? 'on' : ''}">Sin leer${waSinLeer() ? ' · ' + waSinLeer() : ''}</button></div>
+      ${WA.error ? `<div class="alert warn small">${esc(WA.error)}</div>` : ''}
+      ${!WA.cargado && !WA.error ? '<div class="empty">Cargando chats…</div>' : lista.length ? `<div class="wa-items">${lista.map(waItem).join('')}</div>` : `<div class="empty">${q ? 'Ningún chat coincide.' : 'Todavía no hay conversaciones.'}</div>`}
+    </section>
+    <section class="wa-chat" aria-label="Conversación">${WA.sel ? waChat(WA.sel) : '<div class="empty wa-vacio">Elija una conversación para verla.</div>'}</section>
+  </div>`;
+  const box = $('#waMsjs'); if (box) box.scrollTop = alFinal || prevScroll == null ? box.scrollHeight : prevScroll;
+  const qi = $('#waQ'); qi.oninput = () => { WA.q = qi.value; const c = qi.selectionStart; pintarWhatsapp(); const n = $('#waQ'); n.focus(); n.setSelectionRange(c, c); };
+  $('#main').querySelectorAll('[data-waf]').forEach(b => b.onclick = () => { WA.filtro = b.dataset.waf; pintarWhatsapp(); });
+  $('#main').querySelectorAll('[data-wa]').forEach(b => b.onclick = () => waAbrir(b.dataset.wa));
+  const bk = $('#main [data-waback]'); if (bk) bk.onclick = () => { WA.sel = null; pintarWhatsapp(); };
+  const vp = $('#main [data-waprosp]'); if (vp) vp.onclick = () => { S.tab = 'prospectos'; PB.filtro = 'todos'; PB.q = waTel8(WA.sel); pintarTabs(); pintar(); window.scrollTo(0, 0); };
+}
+
 // ================== Tiempo real ==================
 let tRe = null, canal = null;
 function suscribir(){
@@ -8947,6 +9145,8 @@ function suscribir(){
     .on('postgres_changes', { event:'*', schema:'public', table:'refi_clientes' }, p => rfCambio(p))
     .on('postgres_changes', { event:'*', schema:'public', table:'refi_cortes' }, p => rfCambio(p, true))
     .on('postgres_changes', { event:'*', schema:'public', table:'bot_leads' }, p => pbCambio(p))
+    .on('postgres_changes', { event:'*', schema:'public', table:'wa_mensajes' }, p => waCambio(p))
+    .on('postgres_changes', { event:'*', schema:'public', table:'wa_conversaciones' }, p => waCambio(p))
     .on('postgres_changes', { event:'*', schema:'public', table:'comentario_likes' }, () => { if (S.det) cargarComentarios(); })
     .on('postgres_changes', { event:'*', schema:'public', table:'ingresos' }, p => {
       const sid = p.new?.solicitud_id || p.old?.solicitud_id;
