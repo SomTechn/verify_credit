@@ -935,7 +935,7 @@ body.nav-min .sn-vt span{display:none}
 // App disponible sin señal (sw.js debe estar junto a index.html). Va primero para registrarse aunque falle otra cosa.
 if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) navigator.serviceWorker.register('sw.js').catch(() => {});
 // Versión de esta copia de la app: cambia en cada entrega. La app la compara con la publicada y se actualiza sola.
-const APP_VER = '2026-11-27.1810';
+const APP_VER = '2026-11-27.1830';
 // 'admin' = cambio solo para el administrador: los demás usuarios no ven el aviso de versión nueva (se actualiza en silencio)
 // y sus NOVEDADES deben llevar r:['admin']. 'todos' = cambio que ven los usuarios.
 const APP_AVISO = 'todos';
@@ -2186,8 +2186,9 @@ function trabajoDatos(){
         [['tomar', 'Tomar análisis', 'hand'], ['abrir', 'Ver', 'arrow', 1]], `<span class="chip c-amber">Sin tomar</span>`);
       else if (s.analisis_tomado_por === yo) add(s, 'bl', `La tomó usted ${hace(s.analisis_tomado_en)}`, [['abrir', 'Continuar análisis', 'arrow']], `<span class="chip c-blue">En análisis</span>`);
     });
-    abiertas.filter(s => s.estado === 'desembolso_pendiente' && !s.en_espera).forEach(s =>
-      add(s, 'gr', `${s.cuenta_banco ? esc(s.cuenta_banco) + ' · ' : ''}transferir ${L(montoLibre(s))}`, [['abrir', 'Confirmar transferencia', 'bank']], `<span class="chip c-green">Por confirmar</span>`));
+    // Confirmar transferencias es tarea del gerente: no cuenta en el tiempo del analista
+    if (esGerente() || r === 'admin') abiertas.filter(s => s.estado === 'desembolso_pendiente' && !s.en_espera).forEach(s =>
+      add(s, 'gr', `${s.cuenta_banco ? esc(s.cuenta_banco) + ' · ' : ''}transferir ${L(montoLibre(s))}`, [['abrir', 'Confirmar transferencia', 'bank']], `<span class="chip c-green">Por confirmar · gerente</span>`));
     if (r === 'admin'){
       const pp = S.sols.filter(s => typeof posteoPendiente === 'function' && posteoPendiente(s)).length;
       if (pp) esperaMap.posteo = { t:'Desembolsos por postear en el sistema', i:'receipt', n:pp, tab:'posteo' };
@@ -2226,7 +2227,7 @@ function trabajoKpis(d){
 // Tiempo hábil en el paso (o en espera / sin tomar) con semáforo según la meta por paso
 function mtDesde(s){ return s.en_espera ? s.espera_desde : (s.estado === 'en_analisis' && !s.analisis_tomado_en ? (s.enviado_analisis_en || s.estado_desde) : s.estado_desde) || s.creado_en; }
 function mtTiempo(s){
-  const desde = mtDesde(s), seg = segHabiles(desde, new Date()), cls = s.en_espera ? '' : semPaso(seg);
+  const desde = mtDesde(s), seg = segHabiles(desde, new Date()), cls = s.en_espera || s.estado === 'desembolso_pendiente' ? '' : semPaso(seg);   // confirmar desembolso: del gerente, sin meta
   const et = s.en_espera ? 'En espera' : s.estado === 'en_analisis' && !s.analisis_tomado_en ? 'Esperando analista' : 'En este paso';
   return `<span class="mt-t ${cls}" data-mtt="${s.id}">${ico('clock', 'sm')}${et} ${fmtDur(seg)}</span>`;
 }
@@ -2435,7 +2436,7 @@ function pintarTrabajo(){
   else if (!S.rend || Date.now() - (S.rendAt || 0) > 120000) cargarRitmo().then(() => { if (S.tab === 'trabajo') document.querySelectorAll('.mt-ritmo').forEach(el => el.innerHTML = ritmoHTML()); });
   const repProg = () => { if (S.tab !== 'trabajo') return; document.querySelectorAll('.mt-prog').forEach(el => el.innerHTML = progresoHTML()); document.querySelectorAll('.mt-ritmo').forEach(el => el.innerHTML = ritmoHTML()); enlazarProg(); };
   cargarProgreso(recienLimpia).then(() => { repProg(); quizaSemana(); });
-  if (!d.toca.length && !coms.length) registrarLimpia();
+  if (!d.toca.filter(x => x.s.estado !== 'desembolso_pendiente').length && !coms.length) registrarLimpia();   // confirmar desembolsos no cuenta
   function enlazarProg(){ document.querySelectorAll('[data-semana]').forEach(b => b.onclick = () => dialogoSemana(false)); }
   enlazarProg();
   main.querySelectorAll('[data-nueva]').forEach(b => b.onclick = () => nuevaSolicitudDlg());
@@ -2562,10 +2563,10 @@ function vtPintar(ya){
   const doc = VT.win.document, root = doc.getElementById('vt'); if (!root || !S.me) return;
   const d = trabajoDatos(), coms = trabajoComentarios(), r = rol(), ahora = new Date(), ini = hoyIni();
   const its = d.toca.map(x => { const s = x.s, seg = segHabiles(mtDesde(s), ahora);
-    return { x, s, seg, cls: s.en_espera ? 'esp' : semPaso(seg), tomar: x.acc.some(a => a[0] === 'tomar') }; });
+    return { x, s, seg, cls: s.en_espera ? 'esp' : s.estado === 'desembolso_pendiente' ? 'ger' : semPaso(seg), tomar: x.acc.some(a => a[0] === 'tomar') }; });
   const late = its.filter(i => i.cls === 'late').sort((a, b) => b.seg - a.seg);
   const paso = s => PASO[pasoActual(s)]?.t || EST[s.estado]?.t || s.estado;
-  const pl = i => `<span class="pl ${i.cls}">${i.cls === 'esp' ? 'En espera' : fmtDur(i.seg)}</span>`;
+  const pl = i => `<span class="pl ${i.cls === 'ger' ? 'esp' : i.cls}">${i.cls === 'esp' ? 'En espera' : i.cls === 'ger' ? 'Por confirmar' : fmtDur(i.seg)}</span>`;
   const fila = i => `<div class="it${i.cls === 'late' ? ' late' : ''}" data-vt="abrir" data-id="${i.s.id}" role="button" tabindex="0">
       <div class="tx"><div class="nm">${esc(i.s.nombre_cliente)}</div><div class="dt">${esc(paso(i.s))} · ${esc(TIPO[i.s.tipo] || i.s.tipo)}${i.s.monto_solicitado || i.s.monto_aprobado ? ' · ' + L(i.s.monto_solicitado || i.s.monto_aprobado) : ''}</div></div>
       ${pl(i)}${i.tomar ? `<button class="bt p" data-vt="tomar" data-id="${i.s.id}">Tomar</button>` : `<button class="bt" data-vt="abrir" data-id="${i.s.id}">Abrir</button>`}</div>`;
@@ -2573,7 +2574,7 @@ function vtPintar(ya){
   doc.body.classList.toggle('parp', its.some(i => i.cls !== 'esp'));
   const vivo = navigator.onLine ? '<div class="vivo"><i></i>En vivo</div>' : '<div class="vivo off"><i></i>Sin conexión</div>';
   if (VT.compacto){
-    const u = late[0] || its.find(i => i.cls !== 'esp') || its[0];
+    const u = late[0] || its.find(i => !['esp','ger'].includes(i.cls)) || its[0];
     root.innerHTML = `<div class="cp"><div class="tp"><div>${its.length} pendiente${its.length === 1 ? '' : 's'}${coms.length ? ` · ${coms.length} con comentarios` : ''}</div>${late.length ? `<span>${late.length} fuera de meta</span>` : vivo}</div>
       <div class="row">${u ? `<div class="tx" style="flex:1;min-width:0" data-vt="abrir" data-id="${u.s.id}"><div style="font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(u.s.nombre_cliente)}</div><div style="font-size:11.5px;color:var(--ink2)">${esc(paso(u.s))}</div></div>${pl(u)}`
         : '<div style="flex:1;color:var(--g);font-weight:600">Todo al día</div>'}
@@ -2586,7 +2587,7 @@ function vtPintar(ya){
   else if (r === 'verificador'){ hoyT = 'Cerradas hoy'; hoyV = d.cerradas.length; }
   else { hoyT = 'Colocado hoy'; hoyV = L(S.sols.filter(s => s.estado === 'desembolsada' && diaColoc(s) === hoyHN() && esMia(s)).reduce((a, s) => a + capitalColocado(s), 0)); }
   // Meta de 1 hora: la solicitud abierta más antigua desde que entró a análisis
-  const enH = its.filter(i => i.cls !== 'esp' && i.s.enviado_analisis_en).map(i => ({ s:i.s, seg: segHabiles(i.s.enviado_analisis_en, ahora) })).sort((a, b) => b.seg - a.seg)[0];
+  const enH = its.filter(i => !['esp','ger'].includes(i.cls) && i.s.enviado_analisis_en).map(i => ({ s:i.s, seg: segHabiles(i.s.enviado_analisis_en, ahora) })).sort((a, b) => b.seg - a.seg)[0];
   let mh = '';
   if (enH){ const min = Math.round(enH.seg / 60), pct = Math.min(100, min / 60 * 100), col = pct >= 100 ? 'var(--r)' : pct >= 75 ? '#D99A00' : 'var(--g)';
     mh = `<div class="mh"><div class="t"><span>Meta de 1 hora · la más antigua</span><span style="color:${col}">${min} de 60 min</span></div>
@@ -6853,7 +6854,7 @@ function segHabiles(t0, t1){
   }
   return Math.round(tot / 1000);
 }
-const ESPERA = { borrador:'Asesor', en_analisis:'Analista', aprobada:'Asesor', por_verificar:'Verificador', desembolso_pendiente:'Analista' };
+const ESPERA = { borrador:'Asesor', en_analisis:'Analista', aprobada:'Asesor', por_verificar:'Verificador', desembolso_pendiente:'Gerente' };
 // Código de color por rol y nombre de cada paso
 const RC = {
   asesor:{ t:'Asesor' }, analista:{ t:'Analista' }, verificador:{ t:'Verificador' },
@@ -6874,7 +6875,7 @@ const responsable = s => { const r = rolDe(s.estado);
   if (r === 'verificador' && s.verificador_id) return nombre(s.verificador_id);
   return null; };
 const rolPill = (s) => { const r = rolDe(s.estado), who = responsable(s);
-  return `<span class="rol" style="${rcVars(colorDe(s.estado))}">${who ? esc(who.split(' ').slice(0,2).join(' ')) : (s.estado === 'desembolso_pendiente' ? 'Analista' : RC[r].t)}${PASO[s.estado] ? ' · ' + PASO[s.estado].t : ''}</span>`; };
+  return `<span class="rol" style="${rcVars(colorDe(s.estado))}">${who ? esc(who.split(' ').slice(0,2).join(' ')) : (s.estado === 'desembolso_pendiente' ? 'Gerente' : RC[r].t)}${PASO[s.estado] ? ' · ' + PASO[s.estado].t : ''}</span>`; };
 const leyendaHTML = () => `<div class="leyenda">${[['asesor','Asesor · Captura'],['analista','Analista · Análisis'],['completar','Asesor · Completar datos'],['verificador','Verificador'],['desembolso','Desembolso'],['finalizada','Finalizada'],['cerrada','Cancelada / rechazada']].map(([r,t]) => `<span class="rol" style="${rcVars(r)}">${t}</span>`).join('')}<span class="rol" style="--rc:var(--gray);--rb:var(--gray-bg)">En espera</span></div>`;
 // Tiempo acumulado por paso (no por rol) de una solicitud, a partir de sus eventos
 function pasosDe(s){
@@ -7087,7 +7088,7 @@ function destinosRegreso(s){
     .filter(k => k !== 'por_verificar' || !!s.forma_desembolso)
     .filter(k => !['aprobada','por_verificar','desembolso_pendiente'].includes(k) || s.monto_aprobado != null);
 }
-const pasoTxt = k => `${PASO[k].t} · ${k === 'desembolso_pendiente' ? 'Analista' : RC[PASO[k].r].t}`;
+const pasoTxt = k => `${PASO[k].t} · ${k === 'desembolso_pendiente' ? 'Gerente' : RC[PASO[k].r].t}`;
 function dialogoRegresar(s, opciones){
   const ops = (opciones && opciones.length ? opciones : destinosRegreso(s));
   if (!ops.length) return toast('No hay pasos anteriores a los que regresar', true);
@@ -7922,7 +7923,7 @@ function dondeTiempoHTML(d){
     ${barras(d.desistidas.map(x => [`Se cayó en ${pn(x.estado)}`, +x.total_seg || 0, `${x.n} · normal ${fmtDur(x.mediana_seg)}`, pc(x.estado)]))}</div>` : ''}
   ${es('analista') ? `<div class="card" style="overflow-x:auto"><b>👤 Por persona</b>
     ${(d.por_asesor || []).length ? `<table class="t" style="margin-top:6px"><thead><tr><th>Asesor</th><th class="num">Capturas</th><th class="num">Captura normal</th><th class="num">Captura lenta</th><th class="num">Completar datos</th></tr></thead><tbody>${d.por_asesor.map(x => `<tr><td>${esc(x.nombre)}</td><td class="num">${x.n}</td><td class="num"><b>${fmtDur(x.captura_mediana_seg)}</b></td><td class="num">${fmtDur(x.captura_p90_seg)}</td><td class="num">${fmtDur(x.completar_mediana_seg)}</td></tr>`).join('')}</tbody></table>` : ''}
-    ${(d.por_analista || []).length ? `<table class="t" style="margin-top:10px"><thead><tr><th>Analista</th><th>Paso</th><th class="num">Gestiones</th><th class="num">Normal</th><th class="num">Lentas</th></tr></thead><tbody>${d.por_analista.map(x => `<tr><td>${esc(x.nombre)}</td><td>${pn(x.estado)}</td><td class="num">${x.n}</td><td class="num"><b>${fmtDur(x.mediana_seg)}</b></td><td class="num">${fmtDur(x.p90_seg)}</td></tr>`).join('')}</tbody></table>` : ''}
+    ${[['Analista', (d.por_analista || []).filter(x => x.estado !== 'desembolso_pendiente')], ['Gerente · confirmar desembolso', (d.por_analista || []).filter(x => x.estado === 'desembolso_pendiente')]].map(([tt, l]) => l.length ? `<table class="t" style="margin-top:10px"><thead><tr><th>${tt}</th><th>Paso</th><th class="num">Gestiones</th><th class="num">Normal</th><th class="num">Lentas</th></tr></thead><tbody>${l.map(x => `<tr><td>${esc(x.nombre)}</td><td>${pn(x.estado)}</td><td class="num">${x.n}</td><td class="num"><b>${fmtDur(x.mediana_seg)}</b></td><td class="num">${fmtDur(x.p90_seg)}</td></tr>`).join('')}</tbody></table>` : '').join('')}
     ${(d.por_verificador || []).length ? `<table class="t" style="margin-top:10px"><thead><tr><th>Verificador</th><th class="num">Verificaciones</th><th class="num">Normal</th><th class="num">Asignada → visita</th><th class="num">Lentas</th></tr></thead><tbody>${d.por_verificador.map(x => `<tr><td>${esc(x.nombre)}</td><td class="num">${x.n}</td><td class="num"><b>${fmtDur(x.mediana_seg)}</b></td><td class="num">${fmtDur(x.ruta_mediana_seg)}</td><td class="num">${fmtDur(x.p90_seg)}</td></tr>`).join('')}</tbody></table>` : ''}</div>` : ''}
   ${(d.lentas || []).length ? `<div class="card" style="overflow-x:auto"><b>🐢 Las 10 más lentas del período</b>
     <table class="t" style="margin-top:6px"><tbody>${d.lentas.map(x => `<tr data-lenta="${x.id}" style="cursor:pointer"><td><b>${esc(x.cliente)}</b><div class="small muted">${esc(x.codigo)}</div></td><td><span class="rol" style="${rcVars(PASO[x.estado]?.c || 'cerrada')}">${pn(x.estado)}</span></td><td class="num"><b>${fmtDur(x.seg)}</b></td></tr>`).join('')}</tbody></table></div>` : ''}`;
