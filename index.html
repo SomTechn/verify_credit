@@ -935,7 +935,7 @@ body.nav-min .sn-vt span{display:none}
 // App disponible sin señal (sw.js debe estar junto a index.html). Va primero para registrarse aunque falle otra cosa.
 if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) navigator.serviceWorker.register('sw.js').catch(() => {});
 // Versión de esta copia de la app: cambia en cada entrega. La app la compara con la publicada y se actualiza sola.
-const APP_VER = '2026-11-27.1800';
+const APP_VER = '2026-11-27.1810';
 // 'admin' = cambio solo para el administrador: los demás usuarios no ven el aviso de versión nueva (se actualiza en silencio)
 // y sus NOVEDADES deben llevar r:['admin']. 'todos' = cambio que ven los usuarios.
 const APP_AVISO = 'todos';
@@ -2912,7 +2912,7 @@ const HOJA_DESDE = '2026-11-27T18:05:00Z';
 const hojaObligatoria = s => s.tipo === 'nuevo' && new Date(s.creado_en || Date.now()) >= new Date(HOJA_DESDE);
 function hojaFaltan(s){
   const h = s.datos_cliente?.hoja || {}, f = [], v = x => x != null && String(x).trim() !== '';
-  if (!v(h.monto)) f.push('Cantidad solicitada'); if (!s.plazo_meses) f.push('Plazo'); if (!v(h.nac)) f.push('Fecha de nacimiento'); if (!v(h.sexo)) f.push('Sexo');
+  if (!v(h.monto)) f.push('Cantidad solicitada'); if (!v(h.nac)) f.push('Fecha de nacimiento'); if (!v(h.sexo)) f.push('Sexo');
   if (!v(s.telefono)) f.push('Teléfono del cliente'); if (!v(h.empresa)) f.push('Empresa'); if (!v(h.rubro)) f.push('Rubro de la empresa');
   if (!v(h.trab?.ciudad) || !v(h.trab?.colonia)) f.push('Dirección de la empresa (ciudad y colonia)'); if (!v(h.puesto)) f.push('Puesto');
   if (!v(h.emp_desde?.f)) f.push('Antigüedad en la empresa'); if (!v(h.salario)) f.push('Cuánto gana'); if (!v(h.prest)) f.push('Prestaciones laborales');
@@ -5514,7 +5514,7 @@ function enlazarCompletar(s, refrescar){
     const pCuenta = cuenta();
     const r = await rpc('completar_solicitud', { p_id: s.id, p_datos: {}, p_forma: forma,
       p_act_domicilio: !nuevo && $('#cDom').checked, p_act_trabajo: nuevo ? verTrab : $('#cTrab').checked, p_act_foto: false,
-      p_verificador: s.verificador_id || null, p_plazo: +$('#cPlazo')?.value || null, p_monto_solicitado: (() => { const m = num($('#cMonto').value); if (!m || m <= 0) throw new Error('Indique el monto que toma el cliente'); if (m > +s.monto_aprobado) throw new Error(`El monto excede el aprobado (${L(s.monto_aprobado)})`); return m; })(), p_plazo: null, p_cuenta: pCuenta });
+      p_verificador: s.verificador_id || null, p_plazo: +$('#cPlazo')?.value || null, p_monto_solicitado: (() => { const m = num($('#cMonto').value); if (!m || m <= 0) throw new Error('Indique el monto que toma el cliente'); if (m > +s.monto_aprobado) throw new Error(`El monto excede el aprobado (${L(s.monto_aprobado)})`); return m; })(), p_cuenta: pCuenta });
     S.dirty = false;
     if (r === 'por_verificar'){
       // El verificador se asigna en la pantalla Por verificar

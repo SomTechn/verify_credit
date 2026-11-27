@@ -6,7 +6,7 @@ declare h jsonb := coalesce(s.datos_cliente->'hoja', '{}'::jsonb); f text[] := '
   vacio constant text := '';
 begin
   if coalesce(h->>'monto', vacio) = vacio then f := f || 'Cantidad solicitada'::text; end if;
-  if s.plazo_meses is null then f := f || 'Plazo'::text; end if;
+  -- El plazo es opcional: se puede poner después, al completar datos.
   if coalesce(h->>'nac', vacio) = vacio then f := f || 'Fecha de nacimiento'::text; end if;
   if coalesce(h->>'sexo', vacio) = vacio then f := f || 'Sexo'::text; end if;
   if coalesce(s.telefono, vacio) = vacio then f := f || 'Teléfono del cliente'::text; end if;
