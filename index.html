@@ -917,7 +917,10 @@ body.nav-min .sn-vt span{display:none}
 .wa-h{font-size:11px;color:var(--muted);text-align:right;margin-top:2px}
 .wa-img{display:block;max-width:240px;max-height:260px;width:100%;object-fit:cover;border-radius:8px;margin-bottom:4px;background:var(--line)}
 .wa-file{display:inline-flex;gap:6px;align-items:center;font-size:13px;color:var(--ink2);margin-bottom:4px}
-.wa-pie{padding:8px 12px 12px;border-top:1px solid var(--line)}
+.wa-pie{padding:8px 12px 12px;border-top:1px solid var(--line);display:flex;flex-direction:column;gap:6px}
+.wa-comp{display:flex;gap:8px;align-items:flex-end} .wa-comp textarea{flex:1;min-width:0;resize:vertical;min-height:44px;max-height:180px;font:inherit}
+.wa-ok{color:var(--green)} .wa-warn{color:var(--amber, #b45309)}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 .wa-vacio{margin:auto}
 @media (max-width: 760px){
   .wa-wrap{grid-template-columns:1fr}
@@ -989,7 +992,7 @@ body.nav-min .sn-vt span{display:none}
 // App disponible sin señal (sw.js debe estar junto a index.html). Va primero para registrarse aunque falle otra cosa.
 if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) navigator.serviceWorker.register('sw.js').catch(() => {});
 // Versión de esta copia de la app: cambia en cada entrega. La app la compara con la publicada y se actualiza sola.
-const APP_VER = '2026-11-27.2330';
+const APP_VER = '2026-11-28.0930';
 // 'admin' = cambio solo para el administrador: los demás usuarios no ven el aviso de versión nueva (se actualiza en silencio)
 // y sus NOVEDADES deben llevar r:['admin']. 'todos' = cambio que ven los usuarios.
 const APP_AVISO = 'todos';
@@ -998,6 +1001,9 @@ const APP_AVISO = 'todos';
 // r = roles que la ven (sin r = todos; el admin ve todo).
 // Regla: las novedades de control (GPS, horas de los verificadores, permisos, auditoría) van SOLO con r:['admin'].
 const NOVEDADES = [
+  { v:'2026-11-28.0930', f:'28 de noviembre de 2026', items:[
+    { i:'•', t:'WhatsApp: responder desde VerifyCredit', r:['admin'],
+      d:'En cada chat de WhatsApp ahora puede escribirle al cliente desde aquí (sale del número del bot). Al responder, o con "Tomar conversación", el bot deja de contestarle a ese cliente; con "Devolver al bot" vuelve a atenderlo. WhatsApp solo deja escribir dentro de las 24 h desde el último mensaje del cliente: la ventana se muestra abajo del chat.' } ] },
   { v:'2026-11-27.2330', f:'27 de noviembre de 2026', items:[
     { i:'•', t:'WhatsApp: los chats del bot dentro de VerifyCredit', r:['admin'],
       d:'Nueva sección "WhatsApp" (en Más): todas las conversaciones del bot con cada cliente, en vivo, con las fotos que manda (identidad y comprobantes) guardadas de forma privada, y la ficha del prospecto al lado. Por ahora es solo de consulta: para responder use "Abrir en WhatsApp". Solo la ve quien tenga el permiso "Ver los chats de WhatsApp del bot" (Usuarios → editar); hoy solo el administrador.' } ] },
@@ -9077,7 +9083,7 @@ function pintarProspectos(){
 // ================== WhatsApp: bandeja de conversaciones del bot (CRM, fase 2: solo lectura) ==================
 // Solo la ven los usuarios con perfiles.ver_whatsapp (lo concede el administrador en Usuarios).
 // Las tablas wa_conversaciones / wa_mensajes y las fotos (bucket privado wa-media) también lo exigen en la base de datos.
-const WA = { convs:[], cargado:false, cargando:false, error:null, sel:null, msjs:{}, urls:{}, q:'', filtro:'todos' };
+const WA = { convs:[], cargado:false, cargando:false, error:null, sel:null, msjs:{}, urls:{}, q:'', filtro:'todos', bor:{} };
 const waVe = () => !!S.me?.ver_whatsapp && !S.verComo;
 const waTel8 = t => String(t || '').replace(/\D/g, '').slice(-8);
 const waTelFmt = t => { const d = String(t || '').replace(/\D/g, ''); const l = d.slice(-8); return (d.length > 8 ? '+' + d.slice(0, d.length - 8) + ' ' : '') + l.slice(0, 4) + '-' + l.slice(4); };
@@ -9125,7 +9131,7 @@ async function waAbrir(tel){
 // Repinta sin perder el lugar; si hay una ventana abierta o se escribe en la búsqueda, espera
 function waRepintar(){
   if (S.tab !== 'whatsapp' || !$('#sheet').classList.contains('hidden')) return;
-  if ((S.dlgs || []).some(w => w.isConnected) || document.activeElement?.id === 'waQ'){ WA.pendPintar = true; return; }
+  if ((S.dlgs || []).some(w => w.isConnected) || ['waQ','waTx'].includes(document.activeElement?.id)){ WA.pendPintar = true; return; }
   WA.pendPintar = false; pintarWhatsapp();
 }
 let waT = null;
@@ -9146,11 +9152,29 @@ function waCambio(p){
 setInterval(() => { if (!S.me || document.hidden || !waVe()) return;
   if (WA.pendPintar) waRepintar();
   if (S.tab === 'whatsapp' ? Date.now() - (WA.at || 0) > 30000 : Date.now() - (WA.at || 0) > 120000) waCargar(); }, 10000);
+// Acciones del asesor (función wa-enviar): enviar, tomar o devolver al bot
+async function waFn(body){
+  if (!navigator.onLine) throw new Error('Sin conexión: esta acción necesita señal');
+  const { data, error } = await sb.functions.invoke('wa-enviar', { body });
+  if (error){ let m = error.message; try { const j = await error.context.json(); if (j?.error) m = j.error; } catch(e){} throw new Error(m); }
+  if (data?.error) throw new Error(data.error);
+  return data;
+}
+// WhatsApp solo deja escribir texto libre dentro de las 24 h desde el último mensaje del cliente
+function waVentana(tel){
+  const ult = (WA.msjs[tel] || []).filter(m => m.autor === 'cliente').slice(-1)[0];
+  if (!ult) return { abierta:false, txt:'El cliente no ha escrito: WhatsApp solo permite iniciar con una plantilla aprobada.' };
+  const resta = 24 * 3600e3 - (Date.now() - new Date(ult.enviado_en));
+  if (resta <= 0) return { abierta:false, txt:'Pasaron más de 24 h desde el último mensaje del cliente: WhatsApp no deja escribirle hasta que él vuelva a escribir (o con una plantilla aprobada).' };
+  const h = Math.floor(resta / 3600e3), mi = Math.floor(resta % 3600e3 / 60e3);
+  return { abierta:true, txt:`Ventana de 24 h abierta · quedan ${h ? h + ' h ' : ''}${mi} min` };
+}
 function waEtiqueta(c){
   const p = PB.lista.find(x => waTel8(x.telefono) === waTel8(c.telefono));
   if (p?.estado === 'nuevo') return ['Expediente completo','c-green'];
   if (p?.estado === 'contactado') return ['Contactado','c-amber'];
   if (p?.estado === 'convertido') return ['Con solicitud','c-violet'];
+  if (c.atendido_por) return ['Lo atiende ' + (S.perfiles[c.atendido_por]?.nombre || 'un asesor').split(' ')[0],'c-amber'];
   if (c.ultimo_autor === 'asesor') return ['Asesor','c-amber'];
   return ['Con bot','c-blue'];
 }
@@ -9164,7 +9188,7 @@ function waItem(c){
       <div class="wa-it-3"><span class="chip ${cl}">${et}</span>${c.no_leidos ? `<span class="wa-nl">${c.no_leidos}</span>` : ''}</div></div></button>`;
 }
 function waBurbuja(m){
-  const quien = m.autor === 'bot' ? 'Bot' : m.autor === 'asesor' ? 'Asesor' : '';
+  const quien = m.autor === 'bot' ? 'Bot' : m.autor === 'asesor' ? (m.enviado_por ? S.perfiles[m.enviado_por]?.nombre || 'Asesor' : 'Asesor (desde el teléfono)') : '';
   let media = '';
   if (m.tipo === 'image'){
     const u = m.media_path && WA.urls[m.media_path];
@@ -9175,6 +9199,17 @@ function waBurbuja(m){
     media = u ? `<a class="wa-file" href="${esc(u)}" target="_blank" rel="noopener">${ico('file','sm')} ${nom} · abrir</a>` : `<div class="wa-file">${ico('file','sm')} ${nom}${m.media_estado === 'error' ? ' no disponible' : ''}</div>`;
   }
   return `<div class="wa-b ${m.autor}">${quien ? `<div class="wa-q">${quien}</div>` : ''}${media}${m.texto ? `<div>${waFmt(m.texto)}</div>` : ''}<div class="wa-h">${new Date(m.enviado_en).toLocaleTimeString('es-HN', { hour:'numeric', minute:'2-digit' })}</div></div>`;
+}
+function waPie(tel, c){
+  const v = waVentana(tel), bor = WA.bor[tel] || '';
+  if (!WA.msjs[tel]) return '';
+  return `<div class="wa-pie">
+    <div class="small ${v.abierta ? 'wa-ok' : 'wa-warn'}">${esc(v.txt)}</div>
+    ${v.abierta ? `<div class="wa-comp"><label for="waTx" class="sr">Mensaje para el cliente</label>
+      <textarea id="waTx" rows="2" maxlength="4000" placeholder="${c.atendido_por ? 'Escriba su respuesta…' : 'Escriba su respuesta (al enviar, toma la conversación y el bot deja de contestar)'}">${esc(bor)}</textarea>
+      <button class="btn pri" id="waEnv">${ico('send','sm')}Enviar</button></div>
+      <div class="small muted">Se envía desde el número del bot. Enter = nueva línea · Ctrl+Enter = enviar.</div>` : ''}
+  </div>`;
 }
 function waChat(tel){
   const c = WA.convs.find(x => x.telefono === tel) || { telefono:tel };
@@ -9193,10 +9228,11 @@ function waChat(tel){
   return `<div class="wa-chat-h"><button class="btn ghost sm wa-back" data-waback aria-label="Volver a los chats">${ico('chevL')}</button>
       <div class="av" style="background:${avColor(tel)}">${esc(iniciales(nom))}</div>
       <div class="wa-chat-t"><b>${esc(nom)}</b><small>${esc(waTelFmt(tel))}${fotos.length ? ` · ${fotos.length} foto${fotos.length > 1 ? 's' : ''}` : ''}</small></div>
-      <a class="btn sm ghost" href="https://wa.me/${esc(String(tel).replace(/\D/g, ''))}" target="_blank" rel="noopener">${ico('msg','sm')}Abrir en WhatsApp</a></div>
+      <span class="chip ${c.atendido_por ? 'c-amber' : 'c-blue'}">${c.atendido_por ? 'Lo atiende ' + esc(S.perfiles[c.atendido_por]?.nombre || 'un asesor') : 'Lo atiende el bot'}</span>
+      ${c.atendido_por ? `<button class="btn sm ghost" data-waac="soltar">${ico('refresh','sm')}Devolver al bot</button>` : `<button class="btn sm pri" data-waac="tomar">${ico('user','sm')}Tomar conversación</button>`}</div>
     ${ficha}
     <div class="wa-msjs" id="waMsjs">${ms ? (cuerpo || '<div class="empty">Sin mensajes.</div>') : '<div class="empty">Cargando conversación…</div>'}</div>
-    <div class="wa-pie small muted">Solo lectura por ahora: para responder, use "Abrir en WhatsApp". Pronto se podrá contestar desde aquí.</div>`;
+    ${waPie(tel, c)}`;
 }
 function pintarWhatsapp(alFinal){
   if (!waVe()) return;
@@ -9221,6 +9257,23 @@ function pintarWhatsapp(alFinal){
   $('#main').querySelectorAll('[data-wa]').forEach(b => b.onclick = () => waAbrir(b.dataset.wa));
   const bk = $('#main [data-waback]'); if (bk) bk.onclick = () => { WA.sel = null; pintarWhatsapp(); };
   const vp = $('#main [data-waprosp]'); if (vp) vp.onclick = () => { S.tab = 'prospectos'; PB.filtro = 'todos'; PB.q = waTel8(WA.sel); pintarTabs(); pintar(); window.scrollTo(0, 0); };
+  const tel = WA.sel, tx = $('#waTx'), env = $('#waEnv');
+  if (tx){ tx.oninput = () => { WA.bor[tel] = tx.value; };
+    tx.onkeydown = e => { if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)){ e.preventDefault(); env.click(); } }; }
+  if (env) env.onclick = e => run(e.currentTarget, async () => {
+    const texto = (tx.value || '').trim(); if (!texto) throw new Error('Escriba un mensaje');
+    await waFn({ accion:'enviar', telefono:tel, texto });
+    WA.bor[tel] = ''; const c = WA.convs.find(x => x.telefono === tel); if (c && !c.atendido_por) c.atendido_por = S.me.id;
+    await waCargarChat(tel); pintarWhatsapp(true); waCargar();
+  });
+  $('#main').querySelectorAll('[data-waac]').forEach(b => b.onclick = e => run(e.currentTarget, async () => {
+    const ac = b.dataset.waac, c = WA.convs.find(x => x.telefono === tel);
+    if (ac === 'soltar' && !confirm('¿Devolver esta conversación al bot? El bot volverá a contestarle al cliente.')) return;
+    await waFn({ accion:ac, telefono:tel });
+    if (c){ c.atendido_por = ac === 'tomar' ? S.me.id : null; }
+    toast(ac === 'tomar' ? 'Conversación tomada: el bot ya no le contesta a este cliente' : 'Conversación devuelta al bot');
+    pintarWhatsapp(); waCargar();
+  }));
 }
 
 // ================== Tiempo real ==================

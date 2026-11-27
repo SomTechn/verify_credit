@@ -80,6 +80,14 @@ async function procesar(eventoId: number, payload: any, recibido?: string) {
   const esMedia = MEDIA.has(tipo);
   if (!texto && !esMedia) return;
 
+  // Un mensaje que mandó un asesor desde VerifyCredit (wa-enviar) vuelve como "saliente": no duplicarlo como del bot
+  if (saliente && texto) {
+    const desde = new Date(Date.now() - 5 * 60 * 1000).toISOString();
+    const { data: ya } = await sb.from("wa_mensajes").select("id").eq("telefono", tel).eq("autor", "asesor")
+      .eq("texto", texto).gte("enviado_en", desde).limit(1);
+    if (ya?.length) return;
+  }
+
   const { data: id, error } = await sb.rpc("wa_guardar_mensaje", {
     p_tel: tel,
     p_nombre: saliente ? "" : String(d.pushName ?? d.name ?? ""),
