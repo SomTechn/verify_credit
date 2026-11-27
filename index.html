@@ -842,6 +842,9 @@ body.nav-min .sn-vt span{display:none}
 .nv-vs button b{font-weight:800;margin-left:3px}.nv-vs button.on{background:var(--brand);border-color:var(--brand);color:#fff}.nv-vs button.al:not(.on){border-color:var(--red);color:var(--red)}
 .nv-rb{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:7px}.nv-rb .btn{width:100%}
 .nv-hist .nv-h{border-top:1px solid var(--line);padding:8px 0}.nv-hist .nv-h:first-child{border-top:0}
+.nv-vista .body{max-width:1180px}.nv-vg{display:grid;grid-template-columns:1fr;gap:0 16px;margin-top:12px}@media(min-width:900px){.nv-vg{grid-template-columns:1.15fr .85fr}}
+.nv-vc > .card{margin-bottom:12px}.nv-tot-c small{font-size:11px;color:var(--muted)}.nv-acc{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}
+.nv-res-s{display:grid;grid-template-columns:1fr 1fr;gap:8px 14px;background:var(--bg2,rgba(127,127,127,.08));border-radius:8px;padding:10px 12px;margin:6px 0 4px}.nv-res-s div{display:flex;flex-direction:column;font-size:12.5px;color:var(--muted)}.nv-res-s b{color:var(--ink);font-size:14.5px}
 .nv-tot-c{display:grid;grid-template-columns:1fr 1fr;gap:6px 14px;margin-top:10px;padding:10px 12px}.nv-tot-c div{display:flex;flex-direction:column;font-size:12.5px;color:var(--muted)}.nv-tot-c b{color:var(--ink);font-size:15px}.nv-tot-c .t b{color:var(--brand);font-size:17px}
 .nv-proy tr[data-pl]{cursor:pointer}.nv-proy tr.on td{background:color-mix(in srgb,var(--brand) 12%,transparent)}.nv-rd{display:inline-block;width:14px;height:14px;border:2px solid var(--line);border-radius:50%;vertical-align:middle}.nv-proy tr.on .nv-rd{border-color:var(--brand);background:radial-gradient(var(--brand) 45%,transparent 50%)}
 .ct-page table.anx{width:100%;border-collapse:collapse;margin:6pt 0 10pt;font-size:9.6pt}.ct-page table.anx td{border:.6pt solid #999;padding:4pt 7pt}.ct-page table.anx td.r{text-align:right;width:40%}.ct-page table.anx tr.sb td{background:#EAF2FF;font-weight:700;color:#0A2A66}
@@ -947,7 +950,7 @@ body.nav-min .sn-vt span{display:none}
 // App disponible sin señal (sw.js debe estar junto a index.html). Va primero para registrarse aunque falle otra cosa.
 if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) navigator.serviceWorker.register('sw.js').catch(() => {});
 // Versión de esta copia de la app: cambia en cada entrega. La app la compara con la publicada y se actualiza sola.
-const APP_VER = '2026-11-27.2115';
+const APP_VER = '2026-11-27.2200';
 // 'admin' = cambio solo para el administrador: los demás usuarios no ven el aviso de versión nueva (se actualiza en silencio)
 // y sus NOVEDADES deben llevar r:['admin']. 'todos' = cambio que ven los usuarios.
 const APP_AVISO = 'todos';
@@ -956,6 +959,9 @@ const APP_AVISO = 'todos';
 // r = roles que la ven (sin r = todos; el admin ve todo).
 // Regla: las novedades de control (GPS, horas de los verificadores, permisos, auditoría) van SOLO con r:['admin'].
 const NOVEDADES = [
+  { v:'2026-11-27.2200', f:'27 de noviembre de 2026', items:[
+    { i:'•', t:'Cámbiate a nivelado: el cliente se gestiona en pantalla completa', r:['gestor','asesor','analista'],
+      d:'Al tocar "Gestionar" se abre la vista completa del cliente: su préstamo actual con el total adeudado, el nuevo préstamo nivelado con el monto (editable) y la cuota de cada plazo, el contrato del plazo elegido, la respuesta del cliente y el historial. Ya con el monto y el plazo definidos, "Generar solicitud" solo pide la identidad, el teléfono y una nota.' } ] },
   { v:'2026-11-27.2115', f:'27 de noviembre de 2026', items:[
     { i:'•', t:'Cámbiate a nivelado: total adeudado, cuotas y contrato', r:['gestor','asesor','analista'],
       d:'Cada cliente de la campaña muestra su total adeudado: saldo de capital + intereses acumulados + mora. La solicitud de cambio se crea con ese total (se puede editar) y muestra la cuota para 3, 6, 8, 10 y 12 meses. Al tocar un plazo se puede ver el contrato con el anexo del plan de pago, imprimirlo o descargarlo en PDF. La solicitud llega al asesor con el monto y el plazo elegidos.' } ] },
@@ -3440,68 +3446,117 @@ function nvEnlazar(){
 }
 // Fecha y hora local (Honduras) de un input datetime-local a ISO
 const nvISO = v => v ? new Date(v + ':00-06:00').toISOString() : null;
+// Vista completa del cliente (no modal): préstamo y total adeudado, cuotas por plazo, contrato, respuesta del cliente,
+// solicitud e historial. El monto y el plazo elegidos se recuerdan por préstamo mientras la app esté abierta.
+NV.sel = NV.sel || {};
 function nvDetalle(id){
-  const r = (NV.d?.rows || []).find(x => x.id === id); if (!r) return;
+  const viejo = (S.dlgs || []).find(x => x.classList?.contains('nv-vista'));
+  if (viejo){ nvVistaPintar(viejo, id); return; }
+  const w = document.createElement('div'); w.className = 'sheet nv-vista';
+  w.innerHTML = `<div class="bar"><button class="back" data-x>←</button><h2 data-t></h2><span data-c></span></div><div class="body" data-b></div>`;
+  document.body.appendChild(w); history.pushState({ nv:1 }, ''); S.dlgs = (S.dlgs || []).concat(w);
+  const ov = document.body.style.overflow; document.body.style.overflow = 'hidden';
+  const obs = new MutationObserver(() => { if (!w.isConnected){ obs.disconnect(); document.body.style.overflow = ov; if (S.tab === 'nivelado') pintarNivelado(); } }); obs.observe(document.body, { childList:true });
+  w.querySelector('[data-x]').onclick = () => cerrarDialogo(w);
+  nvVistaPintar(w, id);
+}
+async function nvRefrescarVista(w, id){
+  const y = w.scrollTop; await nvCargar(true); if (!w.isConnected) return; nvVistaPintar(w, id); w.scrollTop = y;
+}
+function nvVistaPintar(w, id){
+  const r = (NV.d?.rows || []).find(x => x.id === id); if (!r){ cerrarDialogo(w); return; }
   const e = nvEtapa(r), abierta = r.sol && !CERRADAS.includes(r.sol.estado), hist = (NV.d.gestiones || []).filter(g => g.p === r.id);
   const puede = !abierta && e !== 'cambiado' && (r.aplica || NV.d.todos);
-  const res = r.resultado && NV_RES[r.resultado], ab = (+r.capital || 0) - (+r.bal || 0);
-  const w = dialogo(`<div class="row" style="gap:6px;flex-wrap:wrap">${res ? `<span class="chip ${res[1]}">${res[0]}</span>` : '<span class="chip c-gray">Sin gestionar</span>'}${r.cartera_id ? `<span class="chip c-gray">${ico('briefcase', 'sm')}${esc(carteraNombre(r.cartera_id) || r.cartera_txt || '')}</span>` : ''}<span class="spacer"></span><span class="small muted">Cámbiate a nivelado</span></div>
-    <h3 style="margin:8px 0 2px">${esc(r.nombre)}</h3>
+  const res = r.resultado && NV_RES[r.resultado], ab = (+r.capital || 0) - (+r.bal || 0), tot = nvTotal(r), tp = nvFrec(r);
+  const sel = NV.sel[id] = NV.sel[id] || { monto: tot, plazo: null };
+  w.querySelector('[data-t]').textContent = r.nombre;
+  w.querySelector('[data-c]').innerHTML = res ? `<span class="chip ${res[1]}">${res[0]}</span>` : '<span class="chip c-gray">Sin gestionar</span>';
+  const b = w.querySelector('[data-b]');
+  b.innerHTML = `<div class="row" style="gap:6px;flex-wrap:wrap;margin-bottom:8px">${r.cartera_id ? `<span class="chip c-gray">${ico('briefcase', 'sm')}${esc(carteraNombre(r.cartera_id) || r.cartera_txt || '')}</span>` : ''}<span class="chip c-gray">Cámbiate a nivelado</span>${+r.mora > 0 ? `<span class="chip c-red">Mora ${rfL0(r.mora)}</span>` : ''}</div>
     <div class="alert ${r.aplica ? 'ok' : 'warn'} small">${esc(nvPorQue(r))}${!r.en_lista ? ' · ya no viene en el último listado' : ''}</div>
-    <dl class="kv">
-      <dt>Préstamo</dt><dd>${esc(r.tipo || '—')}${r.dia ? ' · ' + esc(r.dia) : ''}</dd>
-      <dt>Desembolso</dt><dd>${rfFd(r.fecha)} · ${nvMesesTxt(r.meses ?? nvMeses(r.fecha))}</dd>
-      <dt>Capital</dt><dd>${rfL0(r.capital)}</dd>
-      <dt>Saldo de capital</dt><dd><b>${L(r.bal)}</b>${ab > 0.5 ? ` <span class="small muted">· abonó ${rfL0(ab)}</span>` : ' <span class="small muted">· sin abono a capital</span>'}</dd>
-      <dt>Intereses acumulados</dt><dd>${L(r.cuotas || 0)}</dd>
-      <dt>Mora</dt><dd style="${+r.mora > 0 ? 'color:var(--red)' : ''}">${L(r.mora || 0)}</dd>
-      <dt>Total adeudado</dt><dd><b>${L(nvTotal(r))}</b> <span class="small muted">· capital + intereses + mora</span></dd>
-      <dt>Teléfono</dt><dd id="nvTelV">${r.telefono ? `<a href="tel:${telLimpio(r.telefono)}">${esc(r.telefono)}</a>${waUrl(r) ? ` · <a href="${waUrl(r)}" target="_blank" rel="noopener">WhatsApp</a>` : ''}` : '<span class="muted">Sin teléfono</span>'} ${puede || NV.d.todos ? '<a href="#" id="nvTelE" class="small">Cambiar</a>' : ''}</dd>
-      ${r.dni ? `<dt>Identidad</dt><dd>${esc(r.dni)}</dd>` : ''}
-      ${r.seguimiento_en && ['gestion','pendiente'].includes(e) ? `<dt>Volver a llamar</dt><dd style="${nvVencido(r) ? 'color:var(--red)' : ''}">${fDT(r.seguimiento_en)}</dd>` : ''}
-    </dl>
-    ${r.sol ? `<div class="card" style="margin-top:12px"><div class="row" style="justify-content:space-between;gap:8px"><b>Solicitud ${esc(r.sol.codigo || '')}</b>${NV.d.todos && S.sols.some(s => s.id === r.sol.id) ? `<button class="btn sm ghost" id="nvVerSol">Abrir</button>` : ''}</div>
-      <div class="small muted">${esc(gestorEstadoTxt(r.sol))}${r.sol.asesor ? ' · asesor ' + esc(r.sol.asesor) : ''}${r.sol.monto ? ' · ' + rfL0(r.sol.monto) : ''}</div>${gestorPasos(r.sol)}</div>` : ''}
-    ${puede ? `<h4 class="sec">Respuesta del cliente</h4>
-      <div class="nv-rb">${NV_BTN.map(k => `<button type="button" class="btn ghost sm" data-nvr="${k}">${NV_RES[k][0]}</button>`).join('')}</div>
-      <div id="nvForm" class="hidden">
-        <label class="f" id="nvNotaL">Nota</label><textarea id="nvNota" rows="2"></textarea>
-        <div id="nvSegW"><label class="f" id="nvSegL">Volver a llamar (opcional)</label><input type="datetime-local" id="nvSeg"></div>
-        <div id="nvTelW" class="hidden"><label class="f">Número correcto (si lo consiguió)</label><input id="nvTelN" inputmode="tel" placeholder="9999-9999"></div>
-        <div class="btns"><button class="btn pri" id="nvGuardar">Guardar respuesta</button></div>
+    <div class="nv-vg">
+      <div class="nv-vc">
+        <div class="card"><h4 class="sec" style="margin-top:0">Préstamo actual · solo interés</h4>
+          <dl class="kv">
+            <dt>Préstamo</dt><dd>${esc(r.tipo || '—')}${r.dia ? ' · ' + esc(r.dia) : ''}</dd>
+            <dt>Desembolso</dt><dd>${rfFd(r.fecha)} · ${nvMesesTxt(r.meses ?? nvMeses(r.fecha))}</dd>
+            <dt>Monto original</dt><dd>${rfL0(r.capital)}</dd>
+            <dt>Teléfono</dt><dd id="nvTelV">${r.telefono ? `<a href="tel:${telLimpio(r.telefono)}">${esc(r.telefono)}</a>${waUrl(r) ? ` · <a href="${waUrl(r)}" target="_blank" rel="noopener">WhatsApp</a>` : ''}` : '<span class="muted">Sin teléfono</span>'} ${puede || NV.d.todos ? '<a href="#" id="nvTelE" class="small">Cambiar</a>' : ''}</dd>
+            ${r.dni ? `<dt>Identidad</dt><dd>${esc(r.dni)}</dd>` : ''}
+            ${r.seguimiento_en && ['gestion','pendiente'].includes(e) ? `<dt>Volver a llamar</dt><dd style="${nvVencido(r) ? 'color:var(--red)' : ''}">${fDT(r.seguimiento_en)}</dd>` : ''}
+          </dl>
+          <div class="nv-tot-c"><div><span>Saldo de capital</span><b>${L(r.bal || 0)}</b>${ab > 0.5 ? `<small>abonó ${rfL0(ab)}</small>` : '<small>sin abono a capital</small>'}</div><div><span>Intereses acumulados</span><b>${L(r.cuotas || 0)}</b></div><div><span>Mora</span><b>${L(r.mora || 0)}</b></div><div class="t"><span>Total adeudado</span><b>${L(tot)}</b></div></div>
+        </div>
+        ${r.sol ? `<div class="card"><div class="row" style="justify-content:space-between;gap:8px"><b>Solicitud ${esc(r.sol.codigo || '')}</b>${NV.d.todos && S.sols.some(x => x.id === r.sol.id) ? `<button class="btn sm ghost" id="nvVerSol">Abrir</button>` : ''}</div>
+          <div class="small muted">${esc(gestorEstadoTxt(r.sol))}${r.sol.asesor ? ' · asesor ' + esc(r.sol.asesor) : ''}${r.sol.monto ? ' · ' + rfL0(r.sol.monto) : ''}</div>${gestorPasos(r.sol)}
+          ${abierta ? '<div class="small muted" style="margin-top:8px">La solicitud ya está en proceso; su avance se ve aquí y en Mi cartera.</div>' : ''}</div>` : ''}
+        ${puede ? `<div class="card" id="nvNuevo"><h4 class="sec" style="margin-top:0">Nuevo préstamo nivelado</h4>
+          <label class="f" style="margin-top:0">Monto</label><input id="nvMontoN" inputmode="decimal" value="${(+sel.monto || 0).toFixed(2)}">
+          <div id="nvMontoA" class="small" style="margin-top:3px"></div>
+          <label class="f">Cuota según el plazo · toque un plazo</label><div id="nvProy" style="overflow-x:auto"></div>
+          <div class="nv-acc"><button class="btn ghost" id="nvCtB">${ico('file', 'sm')} Ver contrato</button><button class="btn pri" id="nvGenB">Generar solicitud</button></div>
+        </div>` : ''}
       </div>
-      <button class="btn ${r.resultado === 'acepta' ? 'pri' : 'ok'}" style="width:100%;margin-top:12px" id="nvSolB">${ico('file', 'sm')} Generar solicitud de cambio a nivelado</button>` : abierta ? '<div class="small muted" style="margin-top:10px">La solicitud ya está en proceso; su avance se ve aquí y en Mi cartera.</div>' : ''}
-    ${hist.length ? `<h4 class="sec">Historial de gestiones</h4><div class="nv-hist">${hist.map(g => `<div class="nv-h"><div class="row" style="gap:6px;flex-wrap:wrap"><span class="chip ${NV_RES[g.r]?.[1] || 'c-gray'}">${NV_RES[g.r]?.[0] || esc(g.r)}</span><span class="small muted">${fDT(g.en)} · ${esc(g.autor || '')}</span></div>${g.nota ? `<div class="small" style="margin-top:3px">${esc(g.nota)}</div>` : ''}${g.seg ? `<div class="small muted">Volver a llamar: ${fDT(g.seg)}</div>` : ''}${g.monto > 0 ? `<div class="small muted">Monto adicional: ${rfL0(g.monto)}</div>` : ''}</div>`).join('')}</div>` : ''}
-    <div class="btns"><button class="btn ghost" data-close>Cerrar</button></div>`);
-  const q = s => w.querySelector(s);
-  let sel = null;
+      <div class="nv-vc">
+        ${puede ? `<div class="card"><h4 class="sec" style="margin-top:0">Respuesta del cliente</h4>
+          <div class="nv-rb">${NV_BTN.map(k => `<button type="button" class="btn ghost sm" data-nvr="${k}">${NV_RES[k][0]}</button>`).join('')}</div>
+          <div id="nvForm" class="hidden">
+            <label class="f" id="nvNotaL">Nota</label><textarea id="nvNota" rows="2"></textarea>
+            <div id="nvSegW"><label class="f" id="nvSegL">Volver a llamar (opcional)</label><input type="datetime-local" id="nvSeg"></div>
+            <div id="nvTelW" class="hidden"><label class="f">Número correcto (si lo consiguió)</label><input id="nvTelN" inputmode="tel" placeholder="9999-9999"></div>
+            <div class="btns"><button class="btn pri" id="nvGuardar">Guardar respuesta</button></div>
+          </div></div>` : ''}
+        <div class="card"><h4 class="sec" style="margin-top:0">Historial de gestiones</h4>
+          ${hist.length ? `<div class="nv-hist">${hist.map(g => `<div class="nv-h"><div class="row" style="gap:6px;flex-wrap:wrap"><span class="chip ${NV_RES[g.r]?.[1] || 'c-gray'}">${NV_RES[g.r]?.[0] || esc(g.r)}</span><span class="small muted">${fDT(g.en)} · ${esc(g.autor || '')}</span></div>${g.nota ? `<div class="small" style="margin-top:3px">${esc(g.nota)}</div>` : ''}${g.seg ? `<div class="small muted">Volver a llamar: ${fDT(g.seg)}</div>` : ''}</div>`).join('')}</div>` : '<div class="small muted">Todavía no hay gestiones.</div>'}
+        </div>
+      </div>
+    </div>`;
+  const q = x => b.querySelector(x);
+  // ---- Monto, cuotas y contrato
+  if (q('#nvNuevo')){
+    const pintarProy = () => {
+      q('#nvProy').innerHTML = nvProyeccionHTML(sel.monto, tp, sel.plazo);
+      q('#nvProy').querySelectorAll('[data-pl]').forEach(tr => tr.onclick = () => { sel.plazo = +tr.dataset.pl; pintarProy(); });
+      const listo = !!(sel.plazo && sel.monto > 0);
+      q('#nvCtB').disabled = !listo; q('#nvGenB').disabled = !listo;
+      q('#nvCtB').innerHTML = `${ico('file', 'sm')} ${sel.plazo ? `Ver contrato · ${sel.plazo} meses` : 'Ver contrato'}`;
+      const dif = Math.round((sel.monto - tot) * 100) / 100;
+      q('#nvMontoA').innerHTML = !(sel.monto > 0) ? '<span style="color:var(--red)">Monto no válido</span>' : dif < 0 ? `<span style="color:var(--red)">Es ${L(-dif)} menos que el total adeudado.</span>` : dif > 0 ? `<span class="muted">Incluye ${L(dif)} adicionales al total adeudado.</span>` : '<span class="muted">Igual al total adeudado. Puede cambiarlo.</span>';
+      if (!sel.plazo) q('#nvMontoA').innerHTML += '<div class="muted">Elija un plazo para ver el contrato y generar la solicitud.</div>';
+    };
+    q('#nvMontoN').oninput = () => { sel.monto = num(q('#nvMontoN').value) || 0; pintarProy(); };
+    pintarProy();
+    q('#nvCtB').onclick = () => { if (!sel.plazo) return;
+      abrirContrato({ nombre_cliente: r.nombre, dni: r.dni || '', codigo: 'Cámbiate a nivelado', monto_solicitado: sel.monto },
+        { encima: true, sinRegistro: true, sinMaximo: true, archivo: 'Contrato_Nivelado_', anexo: st => nvAnexoHTML(st, { plazo: sel.plazo, tp, fecha: r.fecha, capital: r.capital, bal: r.bal, cuotas: r.cuotas, mora: r.mora, totalDeuda: tot }) }); };
+    q('#nvGenB').onclick = () => nvSolicitudDlg(r, sel, w);
+  }
+  // ---- Respuesta del cliente
+  let rsel = null;
   const PH = { no_contesta:'Ej. timbró y no contestó', volver_llamar:'Ej. pidió que le llamen después de las 5', lo_pensara:'Ej. lo consulta con la esposa', acepta:'Ej. le interesa a 10 meses', no_interesa:'Motivo (obligatorio): ej. prefiere seguir pagando solo intereses', tel_equivocado:'Ej. el número es de otra persona' };
-  w.querySelectorAll('[data-nvr]').forEach(b => b.onclick = () => {
-    sel = b.dataset.nvr; w.querySelectorAll('[data-nvr]').forEach(x => x.classList.toggle('pri', x === b)); w.querySelectorAll('[data-nvr]').forEach(x => x.classList.toggle('ghost', x !== b));
+  b.querySelectorAll('[data-nvr]').forEach(x => x.onclick = () => {
+    rsel = x.dataset.nvr; b.querySelectorAll('[data-nvr]').forEach(y => { y.classList.toggle('pri', y === x); y.classList.toggle('ghost', y !== x); });
     q('#nvForm').classList.remove('hidden');
-    q('#nvNotaL').textContent = sel === 'no_interesa' ? 'Motivo' : 'Nota (opcional)'; q('#nvNota').placeholder = PH[sel] || '';
-    q('#nvSegW').classList.toggle('hidden', !NV_SEG.includes(sel)); q('#nvSegL').textContent = sel === 'volver_llamar' ? 'Cuándo volver a llamar' : 'Volver a llamar (opcional)';
-    q('#nvTelW').classList.toggle('hidden', sel !== 'tel_equivocado');
-    q('#nvGuardar').textContent = sel === 'acepta' ? 'Guardar y generar solicitud' : 'Guardar respuesta';
+    q('#nvNotaL').textContent = rsel === 'no_interesa' ? 'Motivo' : 'Nota (opcional)'; q('#nvNota').placeholder = PH[rsel] || '';
+    q('#nvSegW').classList.toggle('hidden', !NV_SEG.includes(rsel)); q('#nvSegL').textContent = rsel === 'volver_llamar' ? 'Cuándo volver a llamar' : 'Volver a llamar (opcional)';
+    q('#nvTelW').classList.toggle('hidden', rsel !== 'tel_equivocado');
     q('#nvNota').focus();
   });
   if (q('#nvGuardar')) q('#nvGuardar').onclick = ev => run(ev.target, async () => {
-    if (!sel) throw new Error('Elija la respuesta del cliente');
-    const seg = NV_SEG.includes(sel) ? nvISO(q('#nvSeg').value) : null;
-    if (sel === 'volver_llamar' && !seg) throw new Error('Indique cuándo volver a llamar');
-    if (sel === 'no_interesa' && !q('#nvNota').value.trim()) throw new Error('Escriba el motivo por el que no le interesa');
-    await rpc('niv_gestionar', { p_id: r.id, p_resultado: sel, p_nota: q('#nvNota').value, p_seguimiento: seg, p_monto_extra: null, p_telefono: sel === 'tel_equivocado' ? q('#nvTelN').value : null });
-    await cerrarDialogo(w); await nvCargar(true); if (S.tab === 'nivelado') pintarNivelado();
-    toast('Respuesta guardada');
-    if (sel === 'acepta'){ const r2 = (NV.d?.rows || []).find(x => x.id === r.id); if (r2) nvSolicitudDlg(r2); }
+    if (!rsel) throw new Error('Elija la respuesta del cliente');
+    const seg = NV_SEG.includes(rsel) ? nvISO(q('#nvSeg').value) : null;
+    if (rsel === 'volver_llamar' && !seg) throw new Error('Indique cuándo volver a llamar');
+    if (rsel === 'no_interesa' && !q('#nvNota').value.trim()) throw new Error('Escriba el motivo por el que no le interesa');
+    await rpc('niv_gestionar', { p_id: r.id, p_resultado: rsel, p_nota: q('#nvNota').value, p_seguimiento: seg, p_monto_extra: null, p_telefono: rsel === 'tel_equivocado' ? q('#nvTelN').value : null });
+    await nvRefrescarVista(w, r.id);
+    if (rsel === 'acepta'){ toast('Respuesta guardada. Elija el plazo y genere la solicitud.'); const n = w.querySelector('#nvNuevo'); if (n) n.scrollIntoView({ behavior:'smooth', block:'start' }); }
+    else toast('Respuesta guardada');
   });
-  if (q('#nvSolB')) q('#nvSolB').onclick = async () => { await cerrarDialogo(w); nvSolicitudDlg(r); };
   if (q('#nvVerSol')) q('#nvVerSol').onclick = async () => { await cerrarDialogo(w); abrirDetalle(r.sol.id); };
   if (q('#nvTelE')) q('#nvTelE').onclick = ev => { ev.preventDefault();
     q('#nvTelV').innerHTML = `<div class="row" style="gap:6px"><input id="nvTelI" inputmode="tel" value="${esc(r.telefono || '')}" style="flex:1"><button class="btn sm pri" id="nvTelOk">Guardar</button></div>`;
     q('#nvTelI').focus();
-    q('#nvTelOk').onclick = e2 => run(e2.target, async () => { await rpc('niv_telefono', { p_id: r.id, p_telefono: q('#nvTelI').value }); r.telefono = q('#nvTelI').value.trim() || null;
-      await cerrarDialogo(w); await nvCargar(true); if (S.tab === 'nivelado') pintarNivelado(); nvDetalle(r.id); toast('Teléfono guardado'); });
+    q('#nvTelOk').onclick = e2 => run(e2.target, async () => { await rpc('niv_telefono', { p_id: r.id, p_telefono: q('#nvTelI').value }); await nvRefrescarVista(w, r.id); toast('Teléfono guardado'); });
   };
 }
 const NV_PLAZOS = [3, 6, 8, 10, 12];
@@ -3546,39 +3601,19 @@ function nvAnexoHTML(st, a){
     <div class="firmas" style="margin-top:40pt"><div class="fcol"><div class="fila"><div class="firma"><div class="ln">Deudor</div><div class="sm">${esc(st.nombre || '')}</div><div class="sm">DNI. ${st.id ? esc(st.id) : '______________________'}</div></div><div class="huella"><span>Huella</span></div></div></div>
       <div><div class="firma acre" style="margin-top:50pt"><div class="ln">Acreedor</div><div class="sm">MAS PISTO S DE RL</div></div></div></div>`;
 }
-function nvSolicitudDlg(r){
-  const tot = nvTotal(r), tp = nvFrec(r);
-  let monto = tot, plazo = null;
-  const w = dialogo(`<h3 style="margin-top:0">Solicitud de cambio a nivelado</h3>
-    <div class="small muted">${esc(r.nombre)} · préstamo solo interés ${esc(NV_FREC_TXT[tp])}</div>
-    <div class="card nv-tot-c"><div><span>Saldo de capital</span><b>${L(r.bal || 0)}</b></div><div><span>Intereses acumulados</span><b>${L(r.cuotas || 0)}</b></div><div><span>Mora</span><b>${L(r.mora || 0)}</b></div><div class="t"><span>Total adeudado</span><b>${L(tot)}</b></div></div>
-    <label class="f">Monto de la solicitud</label><input id="nsMonto" inputmode="decimal" value="${tot.toFixed(2)}">
-    <div id="nsMontoA" class="small" style="margin-top:3px"></div>
-    <label class="f">Cuota según el plazo (toque un plazo)</label><div id="nsProy" style="overflow-x:auto"></div>
-    <button class="btn ghost" style="width:100%;margin-top:8px" id="nsCt" disabled>${ico('file', 'sm')} Ver contrato</button>
+// Generar la solicitud con el monto y el plazo elegidos en la vista: solo pide identidad, teléfono y nota
+function nvSolicitudDlg(r, sel, vista){
+  const tp = nvFrec(r), c = nvCuota(sel.monto, sel.plazo, tp);
+  const w = dialogo(`<h3 style="margin-top:0">Generar solicitud de cambio a nivelado</h3>
+    <div class="nv-res-s"><div><span>Cliente</span><b>${esc(r.nombre)}</b></div><div><span>Monto</span><b>${L(sel.monto)}</b></div><div><span>Plazo</span><b>${sel.plazo} meses</b></div><div><span>Cuota ${NV_FREC_TXT[tp]}</span><b>${L(c.cuota.toFixed(2))}</b></div></div>
     <label class="f">Identidad del cliente</label><input id="nsDni" inputmode="numeric" autocomplete="off" placeholder="0000-0000-00000" value="${esc(RD.fmtId(r.dni || ''))}">
     <div id="nsBus" class="small" style="margin-top:4px"></div>
     <label class="f">Teléfono</label><input id="nsTel" inputmode="tel" value="${esc(r.telefono || '')}">
     <label class="f">Nota para el asesor (opcional)</label><textarea id="nsNota" rows="2" placeholder="Ej. prefiere pagar el 15 y el 30"></textarea>
-    <div class="alert info small">Le llega al asesor como <b>Cambio de modalidad</b> (plan nivelado) con el monto y el plazo elegidos, para revisarla y enviarla a análisis. El analista define el monto y la tasa finales.</div>
+    <div class="alert info small">Le llega al asesor como <b>Cambio de modalidad</b> (plan nivelado) con este monto y plazo, para revisarla y enviarla a análisis. El analista define el monto y la tasa finales.</div>
     <div class="btns"><button class="btn ghost" data-close>Cancelar</button><button class="btn pri" id="nsOk">Enviar al asesor</button></div>`);
-  const q = s => w.querySelector(s);
+  const q = x => w.querySelector(x);
   let bloqueo = false;
-  const pintarProy = () => {
-    q('#nsProy').innerHTML = nvProyeccionHTML(monto, tp, plazo);
-    q('#nsProy').querySelectorAll('[data-pl]').forEach(tr => tr.onclick = () => { plazo = +tr.dataset.pl; pintarProy(); });
-    q('#nsCt').disabled = !(plazo && monto > 0);
-    q('#nsCt').innerHTML = `${ico('file', 'sm')} ${plazo ? `Ver contrato · ${plazo} meses` : 'Elija un plazo para ver el contrato'}`;
-    const dif = Math.round((monto - tot) * 100) / 100;
-    q('#nsMontoA').innerHTML = !(monto > 0) ? '<span style="color:var(--red)">Monto no válido</span>' : dif < 0 ? `<span style="color:var(--red)">Es ${L(-dif)} menos que el total adeudado.</span>` : dif > 0 ? `<span class="muted">Incluye ${L(dif)} adicionales al total adeudado.</span>` : '<span class="muted">Igual al total adeudado.</span>';
-  };
-  q('#nsMonto').oninput = () => { monto = num(q('#nsMonto').value) || 0; pintarProy(); };
-  pintarProy();
-  q('#nsCt').onclick = () => {
-    if (!plazo) return;
-    abrirContrato({ nombre_cliente: r.nombre, dni: q('#nsDni').value, codigo: 'Cámbiate a nivelado', monto_solicitado: monto },
-      { encima: true, sinRegistro: true, sinMaximo: true, archivo: 'Contrato_Nivelado_', anexo: st => nvAnexoHTML(st, { plazo, tp, fecha: r.fecha, capital: r.capital, bal: r.bal, cuotas: r.cuotas, mora: r.mora, totalDeuda: tot }) });
-  };
   const buscar = async () => {
     const dni = q('#nsDni').value.replace(/\D/g, ''); q('#nsBus').innerHTML = ''; bloqueo = false; q('#nsOk').disabled = false;
     if (dni.length !== 13) return;
@@ -3591,15 +3626,14 @@ function nvSolicitudDlg(r){
     } catch(e){}
   };
   q('#nsDni').oninput = () => { q('#nsDni').value = RD.fmtId(q('#nsDni').value); buscar(); };
-  if (r.dni) buscar();
+  if (r.dni) buscar(); else q('#nsDni').focus();
   q('#nsOk').onclick = ev => run(ev.target, async () => {
     if (bloqueo) throw new Error('El cliente ya tiene una solicitud en proceso');
-    if (!(monto > 0)) throw new Error('Escriba el monto de la solicitud');
-    if (!plazo) throw new Error('Elija el plazo');
     const dni = q('#nsDni').value.replace(/\D/g, ''); if (dni.length !== 13) throw new Error('Ingrese la identidad completa (13 dígitos)');
-    const c = nvCuota(monto, plazo, tp), nota = [q('#nsNota').value.trim(), `Cuota ${NV_FREC_TXT[tp]} estimada ${L(c.cuota.toFixed(2))} (${c.pagos} pagos, tasa ${pctT(c.tasa)}).`].filter(Boolean).join(' ');
-    const res = await rpc('niv_crear_solicitud', { p_id: r.id, p_dni: dni, p_telefono: q('#nsTel').value, p_monto: monto, p_plazo: plazo, p_nota: nota });
-    await cerrarDialogo(w); await nvCargar(true); if (S.tab === 'nivelado') pintarNivelado();
+    const nota = [q('#nsNota').value.trim(), `Cuota ${NV_FREC_TXT[tp]} estimada ${L(c.cuota.toFixed(2))} (${c.pagos} pagos, tasa ${pctT(c.tasa)}).`].filter(Boolean).join(' ');
+    const res = await rpc('niv_crear_solicitud', { p_id: r.id, p_dni: dni, p_telefono: q('#nsTel').value, p_monto: sel.monto, p_plazo: sel.plazo, p_nota: nota });
+    await cerrarDialogo(w);
+    if (vista && vista.isConnected) await nvRefrescarVista(vista, r.id); else { await nvCargar(true); if (S.tab === 'nivelado') pintarNivelado(); }
     toast(`Solicitud ${res?.codigo || ''} enviada al asesor`);
   });
 }
