@@ -935,7 +935,7 @@ body.nav-min .sn-vt span{display:none}
 // App disponible sin señal (sw.js debe estar junto a index.html). Va primero para registrarse aunque falle otra cosa.
 if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) navigator.serviceWorker.register('sw.js').catch(() => {});
 // Versión de esta copia de la app: cambia en cada entrega. La app la compara con la publicada y se actualiza sola.
-const APP_VER = '2026-11-27.1700';
+const APP_VER = '2026-11-27.1730';
 // 'admin' = cambio solo para el administrador: los demás usuarios no ven el aviso de versión nueva (se actualiza en silencio)
 // y sus NOVEDADES deben llevar r:['admin']. 'todos' = cambio que ven los usuarios.
 const APP_AVISO = 'todos';
@@ -944,6 +944,9 @@ const APP_AVISO = 'todos';
 // r = roles que la ven (sin r = todos; el admin ve todo).
 // Regla: las novedades de control (GPS, horas de los verificadores, permisos, auditoría) van SOLO con r:['admin'].
 const NOVEDADES = [
+  { v:'2026-11-27.1730', f:'27 de noviembre de 2026', items:[
+    { i:'•', t:'La ventanita parpadea cuando tiene pendientes', r:['asesor','analista','verificador'],
+      d:'En computadora, la ventanita de Mi trabajo parpadea en naranja (el marco y la parte de arriba) mientras tenga solicitudes pendientes, para que la vea aunque esté trabajando en otro programa. Deja de parpadear cuando ya no tiene nada pendiente; las solicitudes en espera no cuentan.' } ] },
   { v:'2026-11-27.1700', f:'27 de noviembre de 2026', items:[
     { i:'•', t:'Cruce de teléfonos', r:['analista','asesor'],
       d:'En el detalle de cada solicitud, debajo de las coincidencias, aparece "Cruce de teléfonos": el teléfono del cliente, los de sus referencias y el del referente se buscan en todas las demás solicitudes, como cliente, como referencia o como referente. Sale en rojo si la otra persona está en atraso en la cartera (según el último reporte de cuotas), bloqueada, o su solicitud fue denegada, rechazada o desistida, con el motivo. Tóquela para abrir esa solicitud.' } ] },
@@ -2515,6 +2518,13 @@ button{font:inherit;cursor:pointer}
 .cp .tp{display:flex;align-items:center;justify-content:space-between;padding:7px 10px;border-bottom:1px solid var(--line);font-weight:700;font-size:12px}
 .cp .tp span{padding:2px 7px;border-radius:999px;background:var(--rbg);color:var(--r)}
 .cp .row{flex:1;display:flex;align-items:center;gap:8px;padding:6px 10px}
+/* Con solicitudes pendientes la ventanita parpadea en naranja para llamar la atención */
+:root{--o:#FF7A00;--obg:#FFE6CC}
+@media (prefers-color-scheme: dark){:root{--o:#FF9A3D;--obg:#4A2A08}}
+@keyframes vtMarco{0%,100%{box-shadow:inset 0 0 0 4px var(--o)}50%{box-shadow:inset 0 0 0 4px transparent}}
+@keyframes vtFondo{0%,100%{background:var(--obg)}50%{background:var(--card)}}
+body.parp::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:50;animation:vtMarco 1.1s ease-in-out infinite}
+body.parp .hd,body.parp .cp .tp{animation:vtFondo 1.1s ease-in-out infinite}
 `;
 function vtBoton(){
   const b = $('#btnVent'); if (!b) return;
@@ -2558,6 +2568,8 @@ function vtPintar(ya){
   const fila = i => `<div class="it${i.cls === 'late' ? ' late' : ''}" data-vt="abrir" data-id="${i.s.id}" role="button" tabindex="0">
       <div class="tx"><div class="nm">${esc(i.s.nombre_cliente)}</div><div class="dt">${esc(paso(i.s))} · ${esc(TIPO[i.s.tipo] || i.s.tipo)}${i.s.monto_solicitado || i.s.monto_aprobado ? ' · ' + L(i.s.monto_solicitado || i.s.monto_aprobado) : ''}</div></div>
       ${pl(i)}${i.tomar ? `<button class="bt p" data-vt="tomar" data-id="${i.s.id}">Tomar</button>` : `<button class="bt" data-vt="abrir" data-id="${i.s.id}">Abrir</button>`}</div>`;
+  // Parpadea mientras haya algo pendiente (las que están en espera no cuentan)
+  doc.body.classList.toggle('parp', its.some(i => i.cls !== 'esp'));
   const vivo = navigator.onLine ? '<div class="vivo"><i></i>En vivo</div>' : '<div class="vivo off"><i></i>Sin conexión</div>';
   if (VT.compacto){
     const u = late[0] || its.find(i => i.cls !== 'esp') || its[0];
