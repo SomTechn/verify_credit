@@ -157,6 +157,21 @@ label.f{display:block;font-size:12px;color:var(--ink2);margin:10px 0 4px;font-we
 .vr{display:flex;gap:8px;margin-top:10px;padding:8px 10px;border-radius:10px;background:var(--gray-bg);font-size:12.5px;color:var(--ink2)}.vr>.ic{flex:0 0 auto;margin-top:2px}
 .vr-h{font-weight:700;color:var(--ink);margin-bottom:4px}.vr-f{display:grid;grid-template-columns:78px auto;gap:0 8px;padding:2px 0}.vr-f>span:last-child{grid-column:2}
 .vr-f b{color:var(--ink)}.vr-d{margin-top:4px;font-weight:600}
+/* Hoja de solicitud */
+.hj-d{margin-top:14px;border:1px solid var(--line);border-radius:10px;padding:10px 12px;background:var(--card)}.hj-d>summary{cursor:pointer;font-weight:700}
+.hj-sub{display:flex;align-items:center;gap:6px;margin:16px 0 2px;font:700 13px Inter,sans-serif;text-transform:uppercase;letter-spacing:.4px;color:var(--ink2)}
+.hj-f .seg{flex-wrap:wrap}.hj-rf{display:grid;grid-template-columns:2fr 1fr 1.2fr;gap:6px;margin-top:6px}
+.lg{border-left:3px solid var(--line);padding-left:10px}.lg-b{position:relative}
+.lg-s{position:absolute;left:0;right:0;top:100%;z-index:30;background:var(--card);border:1px solid var(--line);border-radius:10px;box-shadow:var(--shadow);max-height:260px;overflow:auto;margin-top:2px}
+.lg-s button{display:flex;flex-direction:column;align-items:flex-start;width:100%;text-align:left;background:none;border:0;border-top:1px solid var(--line);padding:8px 10px;font:inherit;color:var(--ink);cursor:pointer}
+.lg-s button:first-child{border-top:0}.lg-s button span{font-size:12px;color:var(--ink2)}.lg-s button.on,.lg-s button:hover{background:var(--brand2)}
+.lg-s button.nv{flex-direction:row;flex-wrap:wrap;gap:4px;align-items:center;color:var(--brand);font-weight:600}.lg-s button.nv span{width:100%;font-weight:400}
+.hj-t{width:100%;border-collapse:collapse;margin-top:8px;font-size:13.5px}.hj-t th{text-align:left;font-weight:600;color:var(--ink2);padding:5px 8px 5px 0;width:42%;vertical-align:top}
+.hj-t td{padding:5px 0;border-bottom:1px solid var(--line);overflow-wrap:anywhere}.hj-t th{border-bottom:1px solid var(--line)}.hj-t tr.vac th{color:var(--muted)}
+.yit-s{border:1px solid var(--line);border-radius:10px;margin-top:10px;overflow:hidden}.yit-h{background:var(--gray-bg);padding:7px 10px;font-weight:700;font-size:13px}
+.yit-r{display:grid;grid-template-columns:38% 1fr 32px;align-items:center;gap:6px;padding:6px 6px 6px 10px;border-top:1px solid var(--line);font-size:13.5px}
+.yit-r>span{color:var(--ink2)}.yit-r b{font-weight:600;overflow-wrap:anywhere}.yit-r.hecho{background:var(--green-bg)}.yit-r.hecho>span::before{content:'\2713  ';color:var(--green);font-weight:700}
+.yit-r .cpy{width:30px;height:30px;margin:0}
 /* Mapa de la verificación (admin) */
 .vg{display:flex;align-items:center;gap:6px;margin-top:14px;font-size:13px;color:var(--ink)}
 .vg-map{height:300px;border-radius:12px;overflow:hidden;margin-top:6px;background:var(--gray-bg);border:1px solid var(--line)}
@@ -902,7 +917,7 @@ body.nav-min .sn-vt span{display:none}
 // App disponible sin señal (sw.js debe estar junto a index.html). Va primero para registrarse aunque falle otra cosa.
 if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) navigator.serviceWorker.register('sw.js').catch(() => {});
 // Versión de esta copia de la app: cambia en cada entrega. La app la compara con la publicada y se actualiza sola.
-const APP_VER = '2026-11-26.1100';
+const APP_VER = '2026-11-27.1200';
 // 'admin' = cambio solo para el administrador: los demás usuarios no ven el aviso de versión nueva (se actualiza en silencio)
 // y sus NOVEDADES deben llevar r:['admin']. 'todos' = cambio que ven los usuarios.
 const APP_AVISO = 'todos';
@@ -911,6 +926,13 @@ const APP_AVISO = 'todos';
 // r = roles que la ven (sin r = todos; el admin ve todo).
 // Regla: las novedades de control (GPS, horas de los verificadores, permisos, auditoría) van SOLO con r:['admin'].
 const NOVEDADES = [
+  { v:'2026-11-27.1200', f:'27 de noviembre de 2026', items:[
+    { i:'•', t:'Hoja de solicitud dentro de VerifyCredit', r:['asesor','analista'],
+      d:'Al crear una solicitud nueva aparece la "Hoja de solicitud" con los mismos datos del Excel y en el mismo orden: cantidad y plazo, fecha de nacimiento, empresa, rubro, dirección de la empresa, puesto, antigüedad, salario, prestaciones, otros ingresos, forma y día de pago, domicilio, antigüedad, tipo de vivienda y referencias familiares. Se puede llenar después con el botón "Llenar" en el detalle. Con "Copiar todo para el Excel" se pega completa en la hoja de Excel.' },
+    { i:'•', t:'Banco de ciudades, sectores y colonias', r:['asesor','analista'],
+      d:'En domicilio y dirección de la empresa escriba parte del nombre de la colonia o del sector y elija de la lista. Si no aparece, toque "Usar…" y queda guardada para la próxima vez. El domicilio y el trabajo también le aparecen al verificador.' },
+    { i:'•', t:'Datos para el sistema, listos para copiar', r:['asesor','analista'],
+      d:'En "Completar con el cliente", la hoja muestra la pestaña "Para el sistema" con los datos en el mismo orden del formulario del sistema (info personal, dirección del domicilio y dirección de trabajo). Toque el botón de copiar de cada dato y péguelo en su campo; los que ya copió se marcan en verde. El plazo que eligió el cliente se puede poner en la hoja o al completar.' } ] },
   { v:'2026-11-26.1100', f:'26 de noviembre de 2026', items:[
     { i:'•', t:'Mapa de cada verificación', r:['admin'],
       d:'En el detalle de la solicitud, al final de la verificación, hay un mapa con cada punto que marcó el verificador (en camino, llegó, completada, efectivo entregado), numerados en el orden en que los marcó y unidos por el recorrido, junto a la dirección registrada por el asesor. Debajo, la lista con la hora y la distancia de cada punto. Solo lo ve usted y quien usted autorice en Usuarios.' } ] },
@@ -1180,9 +1202,9 @@ const lsGet = (k, d) => { try { return JSON.parse(localStorage.getItem(k)) ?? d;
 const lsSet = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch(e){} };
 const outbox = () => lsGet(OB_KEY(), []), fallidos = () => lsGet(OBF_KEY(), []);
 // Acciones que se pueden hacer sin señal (las de administración requieren conexión)
-const COLA = new Set(['crear_solicitud','enviar_analisis','dictaminar','completar_solicitud','guardar_item','finalizar_verificacion','marcar_desembolsada','desistir',
+const COLA = new Set(['guardar_hoja','agregar_lugar','crear_solicitud','enviar_analisis','dictaminar','completar_solicitud','guardar_item','finalizar_verificacion','marcar_desembolsada','desistir',
   'poner_en_espera','reanudar','guardar_ubicacion','asignar_verificador','actualizar_datos_refi','actualizar_datos_analisis','registrar_reconocimiento','regresar_a_revisadas','guardar_origen','guardar_origen_cliente','fijar_tasa','marcar_paso_verificacion']);
-const OB_DESC = { marcar_paso_verificacion:'Paso de la visita', fijar_tasa:'Fijar tasa de interés', crear_solicitud:'Crear solicitud', enviar_analisis:'Enviar a análisis', dictaminar:'Dictamen', completar_solicitud:'Completar con el cliente',
+const OB_DESC = { guardar_hoja:'Hoja de solicitud', agregar_lugar:'Agregar colonia al banco', marcar_paso_verificacion:'Paso de la visita', fijar_tasa:'Fijar tasa de interés', crear_solicitud:'Crear solicitud', enviar_analisis:'Enviar a análisis', dictaminar:'Dictamen', completar_solicitud:'Completar con el cliente',
   guardar_item:'Verificación', finalizar_verificacion:'Cerrar verificación', marcar_desembolsada:'Marcar desembolsada', desistir:'Cerrar (desistió)',
   poner_en_espera:'Poner en espera', reanudar:'Reanudar', guardar_ubicacion:'Ubicación', asignar_verificador:'Asignar verificador',
   actualizar_datos_refi:'Datos del préstamo', actualizar_datos_analisis:'Datos de análisis', registrar_reconocimiento:'Contrato de línea de crédito',
@@ -1283,6 +1305,11 @@ function aplicarOp(op, nuevo){
       Object.assign(s, { [k + '_lat']:a.p_lat, [k + '_lng']:a.p_lng, [k + '_sector']:a.p_sector || null, [k + '_ciudad']:a.p_ciudad || null, [k + '_ref']:a.p_ref || null, _pend:true }); return; }
     case 'asignar_verificador': if (s) Object.assign(s, { verificador_id:a.p_verificador, _pend:true }); return;
     case 'actualizar_datos_refi': if (s) Object.assign(s, a.p_datos || {}, { _pend:true }); return;
+    case 'guardar_hoja': if (s){ const d = s.datos_cliente = s.datos_cliente || {}; d.hoja = { ...(d.hoja || {}), ...(a.p_hoja || {}) }; if (a.p_hoja?.nac) d.fecha_nacimiento = a.p_hoja.nac;
+      if (a.p_plazo) s.plazo_meses = a.p_plazo; if (a.p_telefono) s.telefono = a.p_telefono; if (a.p_nombre) s.nombre_cliente = a.p_nombre;
+      const dm = a.p_hoja?.dom, tb = a.p_hoja?.trab; if (dm){ s.dom_sector = dm.colonia || dm.sector || s.dom_sector; s.dom_ciudad = dm.ciudad || s.dom_ciudad; s.dom_ref = dm.ref || s.dom_ref; }
+      if (tb){ s.trab_sector = tb.colonia || tb.sector || s.trab_sector; s.trab_ciudad = tb.ciudad || s.trab_ciudad; s.trab_ref = tb.ref || s.trab_ref; } s._pend = true; } return;
+    case 'agregar_lugar': return;
     case 'fijar_tasa': if (s) Object.assign(s, { tasa_nivelado:a.p_nivelado, tasa_solo_interes:a.p_solo_interes, _pend:true }); return;
     case 'actualizar_datos_analisis': if (s) Object.assign(s, { tipo_pago:a.p_tipo_pago, rubro_especial:a.p_rubro_especial }, a.p_nombre ? { nombre_cliente:a.p_nombre } : {}, a.p_telefono != null ? { telefono:a.p_telefono } : {}, { _pend:true }); return;
     default: return;
@@ -2594,6 +2621,254 @@ function cambiarCartera(s, despues){
   });
 }
 
+// ================== Hoja de solicitud (la del Excel) + banco de lugares + datos para el sistema ==================
+// La hoja se guarda en datos_cliente.hoja (RPC guardar_hoja). Domicilio y trabajo también llenan dom_*/trab_* para el verificador.
+const DEPTO = { 'el progreso':'Yoro', 'tela':'Atlántida', 'la ceiba':'Atlántida', 'tegucigalpa':'Francisco Morazán', 'comayagua':'Comayagua' };
+const deptoDe = c => c ? (DEPTO[String(c).toLowerCase()] || 'Cortés') : '';
+const HJ_VIV = [['propia','Propia'],['familiar','Familiar'],['alquila','Alquila']];
+const HJ_PAGO = [['transferencia','Transferencia'],['efectivo','Efectivo'],['cheque','Cheque']];
+async function cargarLugares(forzar){
+  if (S.lugares && !forzar) return S.lugares;
+  try { S.lugares = JSON.parse(localStorage.getItem('vc_lugares') || 'null') || S.lugares || []; } catch(e){ S.lugares = S.lugares || []; }
+  try { const { data, error } = await sb.from('lugares').select('id,ciudad,departamento,sector,colonia,usos').order('usos', { ascending:false }).limit(5000);
+    if (error) throw error; S.lugares = data || []; try { localStorage.setItem('vc_lugares', JSON.stringify(S.lugares)); } catch(e){} } catch(e){}
+  return S.lugares;
+}
+// "13", "13 años", "6 meses", "2013", "04/05/2013" o "2013-05-04" → { t: texto para el Excel, f: fecha desde (AAAA-MM-DD) }
+function parseDesde(txt){
+  const t = String(txt || '').trim().toLowerCase(); if (!t) return null;
+  const hoy = new Date(hoyHN() + 'T12:00:00'), iso = d => d.toLocaleDateString('en-CA');
+  let m;
+  if ((m = t.match(/^(\d{1,2})\s*(a(ñ|n)os?)?$/))){ const d = new Date(hoy); d.setFullYear(d.getFullYear() - +m[1]); return { t:`${+m[1]} año${+m[1] === 1 ? '' : 's'}`, f:iso(d) }; }
+  if ((m = t.match(/^(\d{1,2})\s*mes(es)?$/))){ const d = new Date(hoy); d.setMonth(d.getMonth() - +m[1]); return { t:`${+m[1]} mes${+m[1] === 1 ? '' : 'es'}`, f:iso(d) }; }
+  if ((m = t.match(/^(?:desde\s*)?((19|20)\d{2})$/)) && +m[1] <= hoy.getFullYear()) return { t:'desde ' + m[1], f:m[1] + '-01-01' };
+  if ((m = t.match(/^(\d{1,2})[\/\-.](\d{1,2})[\/\-.]((19|20)\d{2})$/))){ const f = `${m[3]}-${m[2].padStart(2, '0')}-${m[1].padStart(2, '0')}`; return { t:'desde ' + `${+m[1]}/${+m[2]}/${m[3]}`, f }; }
+  if ((m = t.match(/^((19|20)\d{2})-(\d{2})-(\d{2})$/))) return { t:`desde ${+m[4]}/${+m[3]}/${m[1]}`, f:t };
+  return null;
+}
+const fDMY = iso => { if (!iso) return ''; const [y, mo, d] = String(iso).slice(0, 10).split('-'); return `${d}/${mo}/${y}`; };
+const fDMYc = iso => { if (!iso) return ''; const [y, mo, d] = String(iso).slice(0, 10).split('-'); return `${+d}/${+mo}/${y}`; };
+function tiempoDesde(iso){ if (!iso) return ''; const a = new Date(iso + 'T12:00:00'), h = new Date(hoyHN() + 'T12:00:00');
+  let m = (h.getFullYear() - a.getFullYear()) * 12 + h.getMonth() - a.getMonth(); if (h.getDate() < a.getDate()) m--;
+  return m < 12 ? `${Math.max(0, m)} mes${m === 1 ? '' : 'es'}` : `${Math.floor(m / 12)} año${Math.floor(m / 12) === 1 ? '' : 's'}`; }
+
+// ---------- Campo de lugar: ciudad + buscador de colonia/sector del banco ----------
+function lugarCampo(k, v = {}, tit){
+  const ciu = v.ciudad || '';
+  return `<div class="lg" data-lg="${k}">
+    <div class="grid2"><div><label class="f">Ciudad</label><select data-lgc><option value="">—</option>${CIUDADES.filter(c => c !== 'Otra').map(c => `<option ${c === ciu ? 'selected' : ''}>${c}</option>`).join('')}${ciu && !CIUDADES.includes(ciu) ? `<option selected>${esc(ciu)}</option>` : ''}</select></div>
+      <div class="lg-b"><label class="f">Barrio o colonia</label><input data-lgq autocomplete="off" placeholder="Buscar colonia o sector" value="${esc(v.colonia || '')}"><div class="lg-s hidden" data-lgs></div></div></div>
+    <div class="grid2"><div><label class="f">Sector <span class="muted">(opcional)</span></label><input data-lgsec autocomplete="off" value="${esc(v.sector || '')}" placeholder="Ej. Rivera Hernández"></div>
+      <div><label class="f">Departamento</label><input data-lgd value="${esc(v.depto || deptoDe(ciu))}" disabled></div></div>
+    <label class="f">${tit || 'Punto de referencia'}</label><input data-lgr autocomplete="off" value="${esc(v.ref || '')}" placeholder="Ej. 27 calle, frente al taller, casa color zapote, portón café">
+  </div>`;
+}
+function lugarEnlazar(box){
+  const q = x => box.querySelector(x), sug = q('[data-lgs]'), inp = q('[data-lgq]'), sel = q('[data-lgc]');
+  let idx = -1;
+  sel.onchange = () => { q('[data-lgd]').value = deptoDe(sel.value); };
+  const pintar = () => {
+    const t = norm(inp.value), ciu = sel.value;
+    if (!t){ sug.classList.add('hidden'); return; }
+    const l = (S.lugares || []).filter(x => (!ciu || x.ciudad === ciu) && (norm(x.colonia).includes(t) || norm(x.sector || '').includes(t)))
+      .sort((a, b) => (norm(b.colonia).startsWith(t) - norm(a.colonia).startsWith(t)) || (b.usos - a.usos)).slice(0, 8);
+    const existe = l.some(x => norm(x.colonia) === t);
+    sug.innerHTML = l.map((x, i) => `<button type="button" data-i="${x.id}" class="${i === idx ? 'on' : ''}"><b>${esc(x.colonia)}</b><span>${esc([x.sector, x.ciudad].filter(Boolean).join(' · '))}</span></button>`).join('')
+      + (existe ? '' : `<button type="button" data-nuevo class="nv">${ico('plus', 'sm')}Usar «${esc(inp.value.trim())}»${ciu ? ' en ' + esc(ciu) : ''} <span>se agrega al banco al guardar</span></button>`);
+    sug.classList.remove('hidden');
+    sug.querySelectorAll('[data-i]').forEach(b => b.onmousedown = e => { e.preventDefault(); const x = S.lugares.find(y => y.id === +b.dataset.i); if (!x) return;
+      inp.value = x.colonia; q('[data-lgsec]').value = x.sector || ''; if (![...sel.options].some(o => o.value === x.ciudad)) sel.insertAdjacentHTML('beforeend', `<option>${esc(x.ciudad)}</option>`);
+      sel.value = x.ciudad; sel.onchange(); box.dataset.nuevo = ''; sug.classList.add('hidden'); q('[data-lgr]').focus(); });
+    const nv = sug.querySelector('[data-nuevo]'); if (nv) nv.onmousedown = e => { e.preventDefault(); box.dataset.nuevo = '1'; sug.classList.add('hidden'); (sel.value ? q('[data-lgsec]') : sel).focus(); };
+  };
+  inp.oninput = () => { idx = -1; box.dataset.nuevo = '1'; pintar(); };
+  inp.onfocus = () => { if (inp.value.trim()) pintar(); };
+  inp.onblur = () => setTimeout(() => sug.classList.add('hidden'), 150);
+  inp.onkeydown = e => { const bs = [...sug.querySelectorAll('button')]; if (!bs.length || sug.classList.contains('hidden')) return;
+    if (e.key === 'ArrowDown' || e.key === 'ArrowUp'){ e.preventDefault(); idx = (idx + (e.key === 'ArrowDown' ? 1 : -1) + bs.length) % bs.length; bs.forEach((b, i) => b.classList.toggle('on', i === idx)); }
+    if (e.key === 'Enter' && idx >= 0){ e.preventDefault(); bs[idx].onmousedown(e); } };
+}
+function lugarLeer(box){
+  const q = x => box.querySelector(x).value.trim();
+  const v = { ciudad:q('[data-lgc]'), sector:q('[data-lgsec]'), colonia:q('[data-lgq]'), ref:q('[data-lgr]') };
+  v.depto = deptoDe(v.ciudad);
+  const conocido = (S.lugares || []).some(x => x.ciudad === v.ciudad && norm(x.colonia) === norm(v.colonia) && norm(x.sector || '') === norm(v.sector));
+  return { v, nuevo: !!(v.ciudad && v.colonia && !conocido) };
+}
+
+// ---------- Formulario de la hoja (en el orden del Excel) ----------
+function hojaCampos(h = {}, opt = {}){
+  const seg = (id, ops, val) => `<div class="seg" id="${id}">${ops.map(([k, t]) => `<button type="button" data-v="${k}" class="${val === k ? 'on' : ''}">${t}</button>`).join('')}</div>`;
+  const r = h.refs || [];
+  const rubros = [...new Set(S.sols.map(x => x.datos_cliente?.hoja?.rubro).filter(Boolean))].sort();
+  const plazoOps = [3, 4, 5, 6, 7, 8, 9, 10, 12, 15, 18, 24];
+  return `<div class="hj-f">
+    ${opt.nombre ? `<label class="f">Nombre</label><input id="hNombre" value="${esc(opt.nombre)}" autocomplete="off">` : ''}
+    <div class="grid2"><div><label class="f">Cantidad solicitada</label><input id="hMonto" inputmode="decimal" value="${h.monto ?? ''}" placeholder="L"></div>
+      <div><label class="f">Plazo que eligió el cliente</label><select id="hPlazo"><option value="">—</option>${plazoOps.map(n => `<option value="${n}" ${+opt.plazo === n ? 'selected' : ''}>${n} meses</option>`).join('')}${opt.plazo && !plazoOps.includes(+opt.plazo) ? `<option selected value="${+opt.plazo}">${+opt.plazo} meses</option>` : ''}</select></div></div>
+    <div class="grid2"><div><label class="f">Fecha de nacimiento</label><input id="hNac" type="date" max="${hoyHN()}" value="${esc(h.nac || '')}"></div>
+      <div><label class="f">Sexo <span class="muted">(para el sistema)</span></label>${seg('hSexo', [['h','Hombre'],['m','Mujer']], h.sexo)}</div></div>
+    <div class="small" id="hEdad"></div>
+    <h4 class="hj-sub">${ico('building', 'sm')}Trabajo</h4>
+    <label class="f">Empresa</label><input id="hEmp" autocomplete="off" value="${esc(h.empresa || '')}">
+    <label class="f">Rubro de la empresa</label><input id="hRubro" list="dlRubros" autocomplete="off" value="${esc(h.rubro || '')}" placeholder="Ej. Compañía de seguros, maquila, comercio"><datalist id="dlRubros">${rubros.map(x => `<option value="${esc(x)}">`).join('')}</datalist>
+    <label class="f">Dirección de la empresa</label>${lugarCampo('trab', h.trab || {}, 'Punto de referencia de la empresa')}
+    <div class="grid2"><div><label class="f">Puesto</label><input id="hPuesto" autocomplete="off" value="${esc(h.puesto || '')}"></div>
+      <div><label class="f">Antigüedad en la empresa</label><input id="hEmpDesde" autocomplete="off" value="${esc(h.emp_desde?.t || '')}" placeholder="Ej. 2013, 5 años o 04/05/2013"><div class="small muted" data-desde="hEmpDesde"></div></div></div>
+    <div class="grid2"><div><label class="f">Cuánto gana</label><input id="hSal" inputmode="decimal" value="${h.salario ?? ''}" placeholder="L"></div>
+      <div><label class="f">Derecho a prestaciones laborales</label>${seg('hPrest', [['si','Sí'],['no','No']], h.prest)}</div></div>
+    <label class="f">Otros ingresos</label><input id="hOtros" autocomplete="off" value="${esc(h.otros || '')}" placeholder="Ej. remesas de su madre y hermanas, o No">
+    <div class="grid2"><div><label class="f">Forma de pago del salario</label>${seg('hFPago', HJ_PAGO, h.fpago)}</div>
+      <div><label class="f">Día de cobro</label><input id="hDia" autocomplete="off" value="${esc(h.dia || '')}" placeholder="Ej. 15 y 30"></div></div>
+    ${opt.referente ? `<label class="f">Referente</label><input id="hRef" autocomplete="off" value="${esc(h.referente || '')}" placeholder="Quién lo refirió (si aplica)">` : ''}
+    ${opt.tel != null ? `<label class="f">Teléfono</label><input id="hTel" inputmode="tel" autocomplete="off" value="${esc(opt.tel || '')}">` : ''}
+    <h4 class="hj-sub">${ico('home', 'sm')}Domicilio</h4>
+    ${lugarCampo('dom', h.dom || {})}
+    <div class="grid2"><div><label class="f">Antigüedad en el domicilio</label><input id="hDomDesde" autocomplete="off" value="${esc(h.dom_desde?.t || '')}" placeholder="Ej. 13 años o 2013"><div class="small muted" data-desde="hDomDesde"></div></div>
+      <div><label class="f">Vive en casa</label>${seg('hViv', HJ_VIV, h.vivienda)}</div></div>
+    <h4 class="hj-sub">${ico('users', 'sm')}Referencias familiares</h4>
+    ${[0, 1].map(i => `<div class="hj-rf"><input data-rfn="${i}" placeholder="Nombre" value="${esc(r[i]?.nombre || '')}" autocomplete="off"><input data-rfp="${i}" placeholder="Parentesco" value="${esc(r[i]?.par || '')}" autocomplete="off"><input data-rft="${i}" placeholder="Teléfono" inputmode="tel" value="${esc(r[i]?.tel || '')}" autocomplete="off"></div>`).join('')}
+  </div>`;
+}
+function hojaEnlazar(w){
+  const q = x => w.querySelector(x);
+  w.querySelectorAll('.hj-f .seg').forEach(sg => sg.querySelectorAll('button').forEach(b => b.onclick = () => { const on = !b.classList.contains('on'); sg.querySelectorAll('button').forEach(x => x.classList.remove('on')); if (on) b.classList.add('on'); }));
+  w.querySelectorAll('.hj-f .lg').forEach(lugarEnlazar);
+  w.querySelectorAll('[data-desde]').forEach(el => { const inp = q('#' + el.dataset.desde); const ver = () => { const p = parseDesde(inp.value);
+    el.innerHTML = !inp.value.trim() ? '' : p ? `Desde ${fDMYc(p.f)} · ${tiempoDesde(p.f)}` : '<span style="color:var(--red)">Escriba años (13), un año (2013) o una fecha (04/05/2013)</span>'; }; inp.oninput = ver; ver(); });
+  const nac = q('#hNac'), ed = q('#hEdad'); const vEd = () => { const e = edad(nac.value); ed.innerHTML = e == null ? '' : e < (S.params.edad_minima ?? 21) ? `<span style="color:var(--red)">${e} años: menor que el mínimo (${S.params.edad_minima ?? 21})</span>` : `<span class="muted">${e} años</span>`; };
+  nac.oninput = vEd; vEd();
+  cargarLugares();
+}
+function hojaLeer(w){
+  const q = x => w.querySelector(x), v = x => (q(x)?.value || '').trim(), sg = id => q(`#${id} button.on`)?.dataset.v || null;
+  const dom = lugarLeer(q('.lg[data-lg="dom"]')), trab = lugarLeer(q('.lg[data-lg="trab"]'));
+  const desde = id => { const t = v('#' + id); if (!t) return null; const p = parseDesde(t); if (!p) throw new Error('Revise la antigüedad: escriba años (13), un año (2013) o una fecha (04/05/2013)'); return p; };
+  const refs = [0, 1].map(i => ({ nombre:v(`[data-rfn="${i}"]`), par:v(`[data-rfp="${i}"]`), tel:v(`[data-rft="${i}"]`) })).filter(x => x.nombre || x.tel);
+  const hoja = { monto:num(v('#hMonto')) || null, nac:v('#hNac') || null, sexo:sg('hSexo'), empresa:v('#hEmp') || null, rubro:v('#hRubro') || null, trab:trab.v,
+    puesto:v('#hPuesto') || null, emp_desde:desde('hEmpDesde'), salario:num(v('#hSal')) || null, prest:sg('hPrest'), otros:v('#hOtros') || null,
+    fpago:sg('hFPago'), dia:v('#hDia') || null, dom:dom.v, dom_desde:desde('hDomDesde'), vivienda:sg('hViv'), refs };
+  if (q('#hRef')) hoja.referente = v('#hRef') || null;
+  const nuevos = [dom, trab].filter(x => x.nuevo).map(x => x.v);
+  const lleno = Object.entries(hoja).some(([k, x]) => k === 'refs' ? x.length : (k === 'dom' || k === 'trab') ? Object.entries(x).some(([kk, y]) => kk !== 'depto' && y) : x != null && x !== '');
+  return { hoja, plazo:+v('#hPlazo') || null, nuevos, lleno, tel:q('#hTel') ? v('#hTel') : null, nombre:q('#hNombre') ? v('#hNombre') : null };
+}
+async function hojaGuardar(id, r){
+  if (!r.lleno && !r.plazo) return;
+  await rpc('guardar_hoja', { p_id:id, p_hoja:r.hoja, p_plazo:r.plazo, p_telefono:r.tel || null, p_nombre:r.nombre || null });
+  for (const l of r.nuevos){ try { await rpc('agregar_lugar', { p_ciudad:l.ciudad, p_sector:l.sector || null, p_colonia:l.colonia }); } catch(e){} }
+  if (r.nuevos.length) cargarLugares(true);
+}
+
+// ---------- Textos para copiar ----------
+const hjSi = v => v === 'si' ? 'Si' : v === 'no' ? 'No' : '';
+const hjRef = s => { const h = s.datos_cliente?.hoja || {}; if (h.referente) return h.referente;
+  if (s.origen_canal === 'referido_cliente' || s.origen_canal === 'otro') return s.referido_nombre || '';
+  if (s.origen_canal === 'referido_empleado') return (S.empleados || []).find(e => e.id === s.referido_empleado_id)?.nombre || ''; return ''; };
+const hjDir = (l, conCiudad) => l ? [l.colonia, l.ref, l.sector && !norm(l.colonia || '').includes(norm(l.sector)) ? 'sector ' + l.sector : '', conCiudad ? l.ciudad : ''].filter(Boolean).join(', ') : '';
+function hojaFilas(s){
+  const h = s.datos_cliente?.hoja || {};
+  return [
+    ['Nombre :', s.nombre_cliente || ''],
+    ['Cedula de Identidad :', s.dni || ''],
+    ['Cantidad solicitada :', h.monto ? String(h.monto) : '', s.plazo_meses ? `${s.plazo_meses} meses` : ''],
+    ['Fecha De Nacimiento :', fDMYc(h.nac || s.datos_cliente?.fecha_nacimiento)],
+    ['Empresa :', h.empresa || ''],
+    ['rubros de empresas:', h.rubro || ''],
+    ['Dirección empresa :', hjDir(h.trab, true)],
+    ['Puesto :', h.puesto || ''],
+    ['Antigüedad :', h.emp_desde?.t || ''],
+    ['Cuanto gana :', h.salario ? String(h.salario) : ''],
+    ['Tiene derecho a prestaciones laborales :', hjSi(h.prest)],
+    ['Tiene otros ingresos :', h.otros || ''],
+    ['Formas de pago :', ({ transferencia:'Transferencias', efectivo:'Efectivo', cheque:'Cheque' })[h.fpago] || ''],
+    ['Día de cobros :', h.dia || ''],
+    ['Referente :', hjRef(s)],
+    ['Teléfono :', s.telefono || ''],
+    ['Domicilio :', hjDir(h.dom, true)],
+    ['Antigüedad', h.dom_desde?.t || ''],
+    ['Vive en casa propia, familiar o alquila :', ({ propia:'Propia', familiar:'Familiar', alquila:'Alquila' })[h.vivienda] || ''],
+    ['Referencias Familiares :', (h.refs || []).map(r => [r.nombre, r.par, r.tel].filter(Boolean).join(' ')).join(' // ')]
+  ];
+}
+const tsvLimpio = x => String(x ?? '').replace(/[\t\r\n]+/g, ' ').trim();
+const hojaTSV = (s, soloDatos) => hojaFilas(s).map(f => (soloDatos ? f.slice(1) : f).map(tsvLimpio).join('\t').replace(/\t+$/, '')).join('\n');
+async function copiarLargo(t, msg){
+  try { await navigator.clipboard.writeText(t); }
+  catch(e){ const a = document.createElement('textarea'); a.value = t; a.style.cssText = 'position:fixed;opacity:0'; document.body.appendChild(a); a.select(); document.execCommand('copy'); a.remove(); }
+  toast(msg);
+}
+// Nombre y apellidos para el sistema: los dos últimos nombres son los apellidos
+function partirNombre(n){ const p = String(n || '').trim().split(/\s+/).filter(Boolean); if (p.length < 2) return [p.join(' '), ''];
+  const k = p.length >= 4 ? p.length - 2 : p.length === 3 ? 1 : 1; return [p.slice(0, k).join(' '), p.slice(k).join(' ')]; }
+function yitSecciones(s){
+  const h = s.datos_cliente?.hoja || {}, [nom, ape] = partirNombre(s.nombre_cliente), d = h.dom || {}, t = h.trab || {};
+  const sect = l => l.sector || l.colonia || '';
+  const prop = ({ propia:'Propio', familiar:'Familiar', alquila:'Alquilado' })[h.vivienda] || '';
+  const nota = hjRef(s) ? 'Referido por ' + hjRef(s) : s.origen_canal ? 'Llegó por ' + (CANAL[s.origen_canal] || s.origen_canal) : '';
+  return [
+    ['Info personal', [['Nombre', nom], ['Apellido', ape], ['DNI (sin espacios)', String(s.dni || '').replace(/\D/g, '')], ['Cumpleaños', fDMY(h.nac || s.datos_cliente?.fecha_nacimiento)],
+      ['Sexo', ({ h:'Hombre', m:'Mujer' })[h.sexo] || ''], ['Nota de contacto', nota]]],
+    ['Dirección del domicilio', [['Tipo de dirección', 'Dirección personal'], ['País', 'Honduras'], ['Departamento', d.ciudad ? deptoDe(d.ciudad) : ''], ['Ciudad', d.ciudad || ''],
+      ['Sector', sect(d)], ['Barrio o colonia', d.colonia || ''], ['Nombre de la casa', ape ? 'Familia ' + ape : ''], ['Tipo de propiedad', prop],
+      ['Punto de referencia', d.ref || ''], ['Antigüedad (fecha desde)', fDMY(h.dom_desde?.f)], ['Otras notas', '']]],
+    ['Dirección de trabajo', [['Tipo de dirección', 'Dirección de trabajo'], ['País', 'Honduras'], ['Departamento', t.ciudad ? deptoDe(t.ciudad) : ''], ['Ciudad', t.ciudad || ''],
+      ['Sector', sect(t)], ['Barrio o colonia', t.colonia || ''], ['Nombre de la empresa', h.empresa || ''], ['Punto de referencia', t.ref || ''],
+      ['Antigüedad (fecha desde)', fDMY(h.emp_desde?.f)], ['Puesto', h.puesto || ''], ['Prestaciones', hjSi(h.prest)], ['Salario', h.salario ? String(h.salario) : '']]]
+  ];
+}
+function hojaVacia(s){ const h = s.datos_cliente?.hoja; return !h || !Object.keys(h).length; }
+function hojaCardHTML(s){
+  if (!es('asesor', 'analista') || s.id < 0) return '';
+  const vacia = hojaVacia(s), edit = !CERRADAS.includes(s.estado) || rol() === 'admin';
+  if (vacia && !edit) return '';
+  const vista = S.hojaVista?.[s.id] || (s.estado === 'aprobada' && es('asesor') ? 'yit' : 'hoja');
+  const filas = hojaFilas(s);
+  const VER = { 'Cedula de Identidad :':'Identidad', 'Fecha De Nacimiento :':'Fecha de nacimiento', 'rubros de empresas:':'Rubro de la empresa', 'Dirección empresa :':'Dirección de la empresa',
+    'Antigüedad :':'Antigüedad laboral', 'Cuanto gana :':'Cuánto gana', 'Tiene derecho a prestaciones laborales :':'Prestaciones laborales', 'Formas de pago :':'Forma de pago',
+    'Día de cobros :':'Día de cobro', 'Antigüedad':'Antigüedad en el domicilio', 'Vive en casa propia, familiar o alquila :':'Vive en casa', 'Referencias Familiares :':'Referencias familiares' };
+  const tabla = `<table class="hj-t">${filas.map(f => `<tr class="${f[1] ? '' : 'vac'}"><th>${esc(VER[f[0]] || f[0].replace(/\s*:\s*$/, ''))}</th><td>${esc(f[1]) || '<span class="muted">—</span>'}${f[2] ? ` <b>${esc(f[2])}</b>` : ''}</td></tr>`).join('')}</table>`;
+  const yit = yitSecciones(s).map(([t, rows]) => `<div class="yit-s"><div class="yit-h">${esc(t)}</div>${rows.map(([k, v]) => `<div class="yit-r${v ? '' : ' vac'}"><span>${esc(k)}</span><b>${v ? esc(v) : '<span class="muted">—</span>'}</b>${v ? `<button type="button" class="cpy yit-c" data-cpy="${esc(v)}" title="Copiar">${ICO_COPIAR}</button>` : '<i></i>'}</div>`).join('')}</div>`).join('');
+  const faltan = filas.filter(f => !f[1]).length;
+  return `<div class="card" id="hojaCard"><div class="row" style="align-items:center;gap:8px;flex-wrap:wrap"><h4 class="sec" style="margin:0">Hoja de solicitud</h4><span class="spacer"></span>
+      ${edit ? `<button class="btn sm ghost" id="hjEdit">${ico('edit', 'sm')}${vacia ? 'Llenar' : 'Editar'}</button>` : ''}</div>
+    ${vacia ? `<div class="small muted" style="margin-top:6px">Todavía no se llenó. Son los mismos datos del Excel: al llenarla aquí puede copiarlos completos al Excel y al sistema.</div>` : `
+    <div class="seg hj-tabs" id="hjTabs" style="margin-top:10px"><button type="button" data-v="hoja" class="${vista === 'hoja' ? 'on' : ''}">Hoja (Excel)</button><button type="button" data-v="yit" class="${vista === 'yit' ? 'on' : ''}">Para el sistema</button></div>
+    <div id="hjVHoja" class="${vista === 'hoja' ? '' : 'hidden'}">
+      ${faltan ? `<div class="small muted" style="margin:8px 0 0">${faltan} dato${faltan === 1 ? '' : 's'} sin llenar.</div>` : ''}
+      ${tabla}
+      <div class="btns"><button class="btn pri" id="hjCopiar">${ICO_COPIAR}Copiar todo para el Excel</button><button class="btn ghost" id="hjCopiarD">Copiar solo los datos</button></div>
+      <div class="small muted">"Copiar todo" pega títulos y datos en dos columnas (péguelo en la primera celda de la hoja). "Solo los datos" pega la columna de respuestas.</div>
+    </div>
+    <div id="hjVYit" class="${vista === 'yit' ? '' : 'hidden'}">
+      <div class="small muted" style="margin:8px 0">En el mismo orden del sistema: toque el botón de copiar de cada dato y péguelo en su campo.</div>${yit}
+    </div>`}
+  </div>`;
+}
+function hojaCardEnlazar(s){
+  const card = $('#hojaCard'); if (!card) return;
+  const tabs = card.querySelectorAll('#hjTabs button');
+  tabs.forEach(b => b.onclick = () => { S.hojaVista = { ...(S.hojaVista || {}), [s.id]:b.dataset.v }; tabs.forEach(x => x.classList.toggle('on', x === b));
+    card.querySelector('#hjVHoja').classList.toggle('hidden', b.dataset.v !== 'hoja'); card.querySelector('#hjVYit').classList.toggle('hidden', b.dataset.v !== 'yit'); });
+  if ($('#hjCopiar')) $('#hjCopiar').onclick = () => copiarLargo(hojaTSV(s), 'Hoja copiada: péguela en el Excel');
+  if ($('#hjCopiarD')) $('#hjCopiarD').onclick = () => copiarLargo(hojaTSV(s, true), 'Datos copiados: péguelos en la columna de respuestas');
+  card.querySelectorAll('.yit-c').forEach(b => b.addEventListener('click', () => b.closest('.yit-r').classList.add('hecho')));
+  if ($('#hjEdit')) $('#hjEdit').onclick = () => hojaDialogo(s);
+}
+function hojaDialogo(s){
+  const h = s.datos_cliente?.hoja || {};
+  const w = dialogo(`<h3>Hoja de solicitud</h3><div class="small muted">${esc(s.nombre_cliente)} · ${esc(s.dni || '')}</div>
+    ${hojaCampos(h, { nombre:s.nombre_cliente, plazo:s.plazo_meses, referente:true, tel:s.telefono || '' })}
+    <div class="btns"><button class="btn ghost" data-close>Cancelar</button><button class="btn pri" id="hjOk">Guardar hoja</button></div>`);
+  if (!h.referente) { const r = hjRef(s); if (r) w.querySelector('#hRef').value = r; }
+  hojaEnlazar(w);
+  w.querySelector('#hjOk').onclick = e => run(e.target, async () => {
+    const r = hojaLeer(w); r.lleno = true;
+    await hojaGuardar(s.id, r);
+    await cerrarDialogo(w); toast('Hoja guardada'); await cargarSolicitudes(); S.dirty = false; abrirDetalle(s.id, true);
+  });
+}
+
 // ---------- Nueva solicitud: primero la identidad ----------
 // Busca al cliente por identidad (en la base; sin señal, en lo guardado en el teléfono) y llena lo que ya se sabe
 async function buscarClienteDNI(dni){
@@ -2632,6 +2907,7 @@ function nuevaSolicitudDlg(pre = {}){
       <label class="f">Teléfono${gestor ? '' : ' (opcional)'}</label><input id="nTel" inputmode="tel" autocomplete="off">
       <div id="nIngF" class="hidden"><label class="f">Fecha de ingreso del cliente (antigüedad)</label><input id="nIng" type="date" max="${hoyHN()}"></div>
       ${gestor ? '' : `<div id="nOrigen">${origenCampos()}</div>`}
+      ${gestor ? '' : `<details id="nHoja" class="hj-d" open><summary>Hoja de solicitud <span class="muted">(los datos del Excel; puede completarla después)</span></summary>${hojaCampos({})}</details>`}
       ${gestor ? `<label class="f">Nota para el asesor (opcional)</label><textarea id="nNota" rows="2" placeholder="Ej. el cliente pide L 15,000, prefiere que lo llamen en la tarde"></textarea>` : ''}
       <div id="nHelp" class="alert info small"></div>
       <div id="nCoin"></div>
@@ -2644,6 +2920,7 @@ function nuevaSolicitudDlg(pre = {}){
     w.querySelectorAll('#nTipo button').forEach(x => x.classList.toggle('on', x.dataset.v === tipo));
     q('#nIngF').classList.toggle('hidden', nuevo);
     q('#nOrigen')?.classList.toggle('hidden', !nuevo);
+    q('#nHoja')?.classList.toggle('hidden', !nuevo);
     q('#nCartF').classList.toggle('hidden', nuevo);
     q('#nCartNueva').innerHTML = !nuevo ? '' : carteraNuevas() ? `${ico('briefcase', 'sm')} Cartera: <b>${esc(carteraNombre(carteraNuevas()))}</b> (predeterminada para nuevas en Parámetros)` : '';
     q('#nHelp').textContent = gestor ? 'La solicitud le llega al asesor para que la revise y la envíe a análisis. Usted verá aquí en qué paso va.'
@@ -2694,6 +2971,7 @@ function nuevaSolicitudDlg(pre = {}){
   q('#nBuscar').onclick = () => { buscado = ''; buscar(); };
   q('#nDni').focus();
   if (q('#nOrigen')) origenEnlazar(w);
+  if (q('#nHoja')) hojaEnlazar(w);
   if (pre.nombre) q('#nNombre').value = pre.nombre;
   if (pre.tel) q('#nTel').value = pre.tel;
   if (pre.tipo && tipos.some(t => t[0] === pre.tipo)) tipo = pre.tipo;
@@ -2711,8 +2989,10 @@ function nuevaSolicitudDlg(pre = {}){
       toast(`Solicitud ${r?.codigo || ''} registrada. El asesor ya la tiene.`); return;
     }
     const origen = tipo === 'nuevo' ? origenLeer(w, true) : null;
+    const hj = tipo === 'nuevo' && q('#nHoja') ? hojaLeer(w) : null;
     const id = await rpc('crear_solicitud', { p_dni: q('#nDni').value, p_nombre: q('#nNombre').value, p_tipo: tipo, p_telefono: q('#nTel').value || null, p_enviar: false, p_fecha_ingreso: tipo !== 'nuevo' ? (q('#nIng').value || null) : null, p_asesor: q('#nAsesor')?.value || null });
     if (origen) await rpc('guardar_origen_cliente', { p_id:id, ...origen });
+    if (hj) try { await hojaGuardar(id, hj); } catch(x){ console.error(x); toast('La solicitud se creó, pero no se pudo guardar la hoja. Llénela en el detalle.', true); }
     if (id > 0){
       try { if (tipo !== 'nuevo') await rpc('asignar_cartera', { p_id:id, p_cartera:cart }); } catch(x){ console.error(x); toast('La solicitud se creó, pero no se pudo guardar la cartera. Cámbiela en el detalle.', true); }
       try { if (enc?.encontrado) await rpc('copiar_datos_cliente', { p_id:id }); } catch(x){ console.error(x); }
@@ -4265,6 +4545,7 @@ function renderDetalle(){
     ${coincidencias(s, true)}
     ${ed != null && ed < S.params.edad_minima ? `<div class="alert err small">⚠ Cliente de ${ed} años (mínimo ${S.params.edad_minima}).</div>` : ''}
   </div>`;
+  h += hojaCardHTML(s);
 
   h += mk('m');
   const verArriba = rol() === 'verificador' && items.some(i => itemAplica(s, i.item));
@@ -4636,8 +4917,9 @@ function completarHTML(s){
     `}
     <h4 class="sec">Monto que toma el cliente</h4>
     <div class="grid2"><div><label class="f">Monto del préstamo (máx. ${L(s.monto_aprobado)})</label>
-      <input id="cMonto" inputmode="decimal" value="${+(s.monto_solicitado || s.monto_aprobado || 0) || ''}"></div>
+      <input id="cMonto" inputmode="decimal" value="${+(s.monto_solicitado || (s.datos_cliente?.hoja?.monto ? Math.min(+s.datos_cliente.hoja.monto, +s.monto_aprobado || Infinity) : 0) || s.monto_aprobado || 0) || ''}"></div>
       <div><label class="f">${s.tipo === 'nuevo' ? 'Monto a entregar' : 'Monto libre a entregar'}</label><div id="cLibre" class="v" style="font:700 20px/1.2 Poppins,Inter,sans-serif;padding:8px 0"></div></div></div>
+    <label class="f">Plazo que eligió el cliente</label><select id="cPlazo"><option value="">—</option>${[3,4,5,6,7,8,9,10,12,15,18,24].concat(s.plazo_meses && ![3,4,5,6,7,8,9,10,12,15,18,24].includes(+s.plazo_meses) ? [+s.plazo_meses] : []).map(n => `<option value="${n}" ${+s.plazo_meses === n ? 'selected' : ''}>${n} meses</option>`).join('')}</select>
     ${s.tipo !== 'nuevo' && (+s.saldo_capital || +s.saldo_intereses) ? `<div class="small muted">Se descuenta saldo capital ${L(+s.saldo_capital || 0)} + intereses ${L(+s.saldo_intereses || 0)}.</div>` : ''}
     <h4 class="sec">Forma de desembolso</h4>
     <div class="seg" id="cForma"><button type="button" data-v="efectivo" class="${s.forma_desembolso==='efectivo'?'on':''}">💵 Efectivo</button><button type="button" data-v="transferencia" class="${s.forma_desembolso==='transferencia'?'on':''}">🏦 Transferencia</button></div>
@@ -4749,6 +5031,7 @@ async function pintarMapaVerif(s, items){
 
 function enlazarDetalle(s, c){
   const B = $('#sheetBody');
+  hojaCardEnlazar(s);
   if ($('#vgMap')) pintarMapaVerif(s, (S.detData?.items || []).filter(i => itemAplica(s, i.item)));
   const refrescar = async () => { await cargarSolicitudes(); const n = S.sols.find(x => x.id === s.id); if (n) { S.dirty=false; await abrirDetalle(s.id, true); } pintarTabs(); };
   enlazarUbicacion(s, refrescar);
@@ -5033,7 +5316,7 @@ function enlazarCompletar(s, refrescar){
     const pCuenta = cuenta();
     const r = await rpc('completar_solicitud', { p_id: s.id, p_datos: {}, p_forma: forma,
       p_act_domicilio: !nuevo && $('#cDom').checked, p_act_trabajo: nuevo ? verTrab : $('#cTrab').checked, p_act_foto: false,
-      p_verificador: s.verificador_id || null, p_monto_solicitado: (() => { const m = num($('#cMonto').value); if (!m || m <= 0) throw new Error('Indique el monto que toma el cliente'); if (m > +s.monto_aprobado) throw new Error(`El monto excede el aprobado (${L(s.monto_aprobado)})`); return m; })(), p_plazo: null, p_cuenta: pCuenta });
+      p_verificador: s.verificador_id || null, p_plazo: +$('#cPlazo')?.value || null, p_monto_solicitado: (() => { const m = num($('#cMonto').value); if (!m || m <= 0) throw new Error('Indique el monto que toma el cliente'); if (m > +s.monto_aprobado) throw new Error(`El monto excede el aprobado (${L(s.monto_aprobado)})`); return m; })(), p_plazo: null, p_cuenta: pCuenta });
     S.dirty = false;
     if (r === 'por_verificar'){
       // El verificador se asigna en la pantalla Por verificar
