@@ -605,6 +605,7 @@ body.marco-cel #sheet > *{max-width:430px;margin-left:auto;margin-right:auto}
 .sheet .card.plegada > h4.sec:first-child::after{transform:rotate(-90deg)}
 .sheet .card.plegada > :not(:first-child){display:none!important}
 .ct-pages{display:flex;flex-direction:column;gap:18px;align-items:center}
+.rd-scaler > .ct-pages{width:8.5in}   /* al escalar en celular la hoja no se corta a la izquierda */
 .ct-page{width:8.5in;height:11in;background:#fff;color:#000;box-shadow:0 4px 18px rgba(0,0,0,.18);position:relative;overflow:hidden;font-family:Arial,Helvetica,sans-serif;font-size:9.2pt;line-height:1.27}
 .ct-page .hd{position:absolute;top:.35in;left:.75in;right:.75in;display:flex;align-items:center;justify-content:space-between;border-bottom:1.2pt solid #1877F2;padding-bottom:6pt}
 .ct-page .hd img{height:.55in}
@@ -841,6 +842,9 @@ body.nav-min .sn-vt span{display:none}
 .nv-vs button b{font-weight:800;margin-left:3px}.nv-vs button.on{background:var(--brand);border-color:var(--brand);color:#fff}.nv-vs button.al:not(.on){border-color:var(--red);color:var(--red)}
 .nv-rb{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:7px}.nv-rb .btn{width:100%}
 .nv-hist .nv-h{border-top:1px solid var(--line);padding:8px 0}.nv-hist .nv-h:first-child{border-top:0}
+.nv-tot-c{display:grid;grid-template-columns:1fr 1fr;gap:6px 14px;margin-top:10px;padding:10px 12px}.nv-tot-c div{display:flex;flex-direction:column;font-size:12.5px;color:var(--muted)}.nv-tot-c b{color:var(--ink);font-size:15px}.nv-tot-c .t b{color:var(--brand);font-size:17px}
+.nv-proy tr[data-pl]{cursor:pointer}.nv-proy tr.on td{background:color-mix(in srgb,var(--brand) 12%,transparent)}.nv-rd{display:inline-block;width:14px;height:14px;border:2px solid var(--line);border-radius:50%;vertical-align:middle}.nv-proy tr.on .nv-rd{border-color:var(--brand);background:radial-gradient(var(--brand) 45%,transparent 50%)}
+.ct-page table.anx{width:100%;border-collapse:collapse;margin:6pt 0 10pt;font-size:9.6pt}.ct-page table.anx td{border:.6pt solid #999;padding:4pt 7pt}.ct-page table.anx td.r{text-align:right;width:40%}.ct-page table.anx tr.sb td{background:#EAF2FF;font-weight:700;color:#0A2A66}
 .nv-kpis .mt-kpi span.small{display:block;margin-top:2px;font-size:11.5px}
 .gs-f{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:6px 0 4px}.gs-f .seg{flex:1;min-width:260px}.gs-f select{width:auto}
 .mt-c.gy{border-left-color:var(--gray,#8A94A6)}
@@ -943,7 +947,7 @@ body.nav-min .sn-vt span{display:none}
 // App disponible sin señal (sw.js debe estar junto a index.html). Va primero para registrarse aunque falle otra cosa.
 if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) navigator.serviceWorker.register('sw.js').catch(() => {});
 // Versión de esta copia de la app: cambia en cada entrega. La app la compara con la publicada y se actualiza sola.
-const APP_VER = '2026-11-27.2015';
+const APP_VER = '2026-11-27.2115';
 // 'admin' = cambio solo para el administrador: los demás usuarios no ven el aviso de versión nueva (se actualiza en silencio)
 // y sus NOVEDADES deben llevar r:['admin']. 'todos' = cambio que ven los usuarios.
 const APP_AVISO = 'todos';
@@ -952,6 +956,9 @@ const APP_AVISO = 'todos';
 // r = roles que la ven (sin r = todos; el admin ve todo).
 // Regla: las novedades de control (GPS, horas de los verificadores, permisos, auditoría) van SOLO con r:['admin'].
 const NOVEDADES = [
+  { v:'2026-11-27.2115', f:'27 de noviembre de 2026', items:[
+    { i:'•', t:'Cámbiate a nivelado: total adeudado, cuotas y contrato', r:['gestor','asesor','analista'],
+      d:'Cada cliente de la campaña muestra su total adeudado: saldo de capital + intereses acumulados + mora. La solicitud de cambio se crea con ese total (se puede editar) y muestra la cuota para 3, 6, 8, 10 y 12 meses. Al tocar un plazo se puede ver el contrato con el anexo del plan de pago, imprimirlo o descargarlo en PDF. La solicitud llega al asesor con el monto y el plazo elegidos.' } ] },
   { v:'2026-11-27.2015', f:'27 de noviembre de 2026', items:[
     { i:'•', t:'Cámbiate a nivelado en Estadísticas', r:['asesor','analista'],
       d:'En Estadísticas, la sección "Cámbiate a nivelado · contactos por gestor" muestra por día y por gestor cuántos clientes contactaron, cuántos aceptaron, cuántos no, cuántos lo pensarán, las solicitudes que generaron y cuántas ya se completaron (desembolsadas). Usa el período que elija arriba.' } ] },
@@ -3297,13 +3304,13 @@ const nvBase = rows => rows.filter(r => r.aplica && (r.en_lista || r.sol));
 function nvStats(rows){
   const st = { n:0, saldo:0, gest:0, contact:0, acepta:0, sols:0, proc:0, camb:0, saldoCamb:0, noint:0, hoy:0, pend:0, enGest:0, sinSol:0 };
   for (const r of nvBase(rows)){
-    const e = nvEtapa(r); st.n++; st.saldo += +r.bal || 0;
+    const e = nvEtapa(r); st.n++; st.saldo += nvTotal(r);
     if (r.gestiones > 0 || r.resultado) st.gest++; else st.pend++;
     if (NV_CONTACTO.includes(r.resultado) || r.sol) st.contact++;
     if (r.resultado === 'acepta' || r.sol) st.acepta++;
     if (r.sol) st.sols++;
     if (e === 'solicitud') st.proc++;
-    if (e === 'cambiado'){ st.camb++; st.saldoCamb += +r.bal || 0; }
+    if (e === 'cambiado'){ st.camb++; st.saldoCamb += nvTotal(r); }
     if (e === 'nointeresa') st.noint++;
     if (e === 'gestion' || e === 'solfin') st.enGest++;
     if (e === 'acepta') st.sinSol++;
@@ -3312,6 +3319,9 @@ function nvStats(rows){
   return st;
 }
 const nvPct = (a, b) => b ? Math.round(a / b * 100) : 0;
+// Total adeudado del préstamo solo interés: saldo de capital + intereses acumulados (Balance cuotas) + mora
+const nvTotal = r => Math.round(((+r.bal || 0) + (+r.cuotas || 0) + (+r.mora || 0)) * 100) / 100;
+const nvFrec = r => /SEMANAL/i.test(r.tipo || '') ? 'Semanal' : /MENSUAL/i.test(r.tipo || '') ? 'Mensual' : 'Quincenal';
 function nvBarra(st, alto = 12){
   const segs = [['camb', st.camb, 'var(--green)', 'Cambiados'], ['proc', st.proc, 'var(--violet)', 'Solicitud en proceso'], ['acep', st.sinSol, 'var(--teal)', 'Aceptaron, falta solicitud'],
     ['gest', st.enGest, '#C98500', 'En gestión'], ['noint', st.noint, 'var(--red)', 'No les interesa']];
@@ -3355,7 +3365,7 @@ function nvCard(r){
   return `<div class="mt-c ${tono} nv-c" data-nv="${r.id}"><div class="mt-tx">
       <div class="mt-nm">${esc(r.nombre)}${res ? `<span class="chip ${res[1]}">${res[0]}</span>` : e === 'pendiente' ? '<span class="chip c-gray">Sin gestionar</span>' : ''}${e === 'cambiado' ? '<span class="chip c-green">Cambiado a nivelado</span>' : ''}${e === 'salio' ? '<span class="chip c-gray">Salió de la lista</span>' : ''}${NV.d?.todos && r.cartera_id ? `<span class="chip c-gray">${ico('briefcase', 'sm')}${esc(carteraNombre(r.cartera_id) || r.cartera_txt || '')}</span>` : ''}${+r.mora > 0 ? `<span class="chip c-red">Mora ${rfL0(r.mora)}</span>` : ''}</div>
       <div class="mt-meta">Solo interés ${esc(tp)} · desde ${rfFd(r.fecha)} (${nvMesesTxt(r.meses ?? nvMeses(r.fecha))})${r.dia ? ' · ' + esc(r.dia) : ''}</div>
-      <div class="mt-meta">Saldo de capital <b>${rfL0(r.bal)}</b> de ${rfL0(r.capital)}${r.aplica === 'sin_abono' ? ' · sin abono a capital' : ''}${r.gestiones ? ` · ${r.gestiones} gestión${r.gestiones > 1 ? 'es' : ''}` : ''}</div>
+      <div class="mt-meta">Capital ${rfL0(r.bal)}${r.aplica === 'sin_abono' ? ' (sin abono)' : ` de ${rfL0(r.capital)}`} · intereses ${rfL0(r.cuotas)}${+r.mora > 0 ? ` · mora ${rfL0(r.mora)}` : ''} · <b>total ${L(nvTotal(r))}</b>${r.gestiones ? ` · ${r.gestiones} gestión${r.gestiones > 1 ? 'es' : ''}` : ''}</div>
       ${r.seguimiento_en && ['gestion','pendiente'].includes(e) ? `<div class="mt-why" style="${nvVencido(r) ? 'color:var(--red);font-weight:600' : ''}">${ico('clock', 'sm')} Llamar ${fDT(r.seguimiento_en)}</div>` : ''}
       ${r.sol ? `<div class="mt-why">${ico('file', 'sm')} ${nvSolTxt(r.sol)}</div>` : r.resultado_en ? `<div class="mt-meta">Última gestión ${hace(r.resultado_en)}${r.resultado_por ? ' · ' + esc(r.resultado_por.split(' ')[0]) : ''}${r.nota ? ' · ' + esc(r.nota.length > 70 ? r.nota.slice(0, 70) + '…' : r.nota) : ''}</div>` : ''}</div>
     <div class="mt-acc">${r.telefono ? `<a class="mt-b gh ic" href="tel:${telLimpio(r.telefono)}" title="Llamar" data-stop>${ico('phone')}</a>${waUrl(r) ? `<a class="mt-b gh ic" href="${waUrl(r)}" target="_blank" rel="noopener" title="WhatsApp" data-stop>${ico('msg')}</a>` : ''}` : ''}<button class="mt-b" data-nvg="${r.id}" data-stop>Gestionar</button></div></div>`;
@@ -3368,7 +3378,7 @@ function nvTablaCarteras(rows){
   const tot = nvStats(rows.filter(r => !d.todos || ids.includes(r.cartera_id) || !r.cartera_id));
   const fila = (t, st, b) => `<tr${b ? ' class="nv-tot"' : ''}><td>${b ? '<b>' + t + '</b>' : esc(t)}</td><td class="num">${st.n}</td><td class="nv-av"><div class="row" style="gap:8px">${nvBarra(st, 8)}<b>${nvPct(st.gest, st.n)}%</b></div><span class="small muted">${st.gest} de ${st.n}</span></td><td class="num">${st.contact}</td><td class="num">${st.acepta}</td><td class="num">${st.sols}</td><td class="num"><b style="color:var(--green)">${st.camb}</b></td><td class="num">${st.noint}</td><td class="num">${rfL0(st.saldoCamb)}</td></tr>`;
   return `<div class="mt-sec">Avance por cartera</div>
-    <div class="card" style="overflow-x:auto;padding:4px 10px"><table class="t nv-t"><thead><tr><th>Cartera</th><th class="num">Aplican</th><th>Gestionados</th><th class="num">Contactados</th><th class="num">Aceptaron</th><th class="num">Solicitudes</th><th class="num">Cambiados</th><th class="num">No interesa</th><th class="num">Saldo cambiado</th></tr></thead>
+    <div class="card" style="overflow-x:auto;padding:4px 10px"><table class="t nv-t"><thead><tr><th>Cartera</th><th class="num">Aplican</th><th>Gestionados</th><th class="num">Contactados</th><th class="num">Aceptaron</th><th class="num">Solicitudes</th><th class="num">Cambiados</th><th class="num">No interesa</th><th class="num">Total cambiado</th></tr></thead>
     <tbody>${filas.map(f => fila(f.t, f.st)).join('')}${filas.length > 1 ? fila('Total', tot, true) : ''}</tbody></table></div>`;
 }
 function nvTablaGestores(){
@@ -3405,7 +3415,7 @@ async function pintarNivelado(){
     ${!todosR.length ? `<div class="alert info">${d.carga ? 'Aún no se ha cargado el listado de préstamos solo interés. Toque "Cargar listado" y elija el Excel de la lista de préstamos.' : 'Aún no hay clientes asignados en la campaña.'}</div>` : `
     <div class="small muted" style="margin:-4px 2px 10px">Aplican los préstamos solo interés con ${P.antig ?? 12} meses o más desde el desembolso, o con ${P.sin_abono ?? 6} meses o más que no han abonado a capital.</div>
     ${mias.length > 1 ? `<div class="gs-f"><select id="nvCart"><option value="">${d.todos ? 'Todas las carteras' : 'Todas mis carteras'}</option>${mias.map(c => `<option value="${c.id}" ${String(f.cart) === String(c.id) ? 'selected' : ''}>${esc(c.nombre)}</option>`).join('')}${d.todos && todosR.some(r => !r.cartera_id) ? `<option value="0" ${f.cart === '0' ? 'selected' : ''}>Sin cartera</option>` : ''}</select></div>` : ''}
-    <div class="mt-kpis nv-kpis">${k('Aplican', st.n, rfL0(st.saldo) + ' de saldo')}${k('Gestionados', nvPct(st.gest, st.n) + '%', `${st.gest} de ${st.n}`)}${k('Contactados', st.contact, st.gest ? nvPct(st.contact, st.gest) + '% de los gestionados' : '')}${k('Aceptaron', st.acepta, st.contact ? nvPct(st.acepta, st.contact) + '% de los contactados' : '')}${k('Solicitudes', st.sols, st.proc ? st.proc + ' en proceso' : '')}${k('Cambiados a nivelado', st.camb, rfL0(st.saldoCamb), 'g')}</div>
+    <div class="mt-kpis nv-kpis">${k('Aplican', st.n, rfL0(st.saldo) + ' adeudado (capital + intereses + mora)')}${k('Gestionados', nvPct(st.gest, st.n) + '%', `${st.gest} de ${st.n}`)}${k('Contactados', st.contact, st.gest ? nvPct(st.contact, st.gest) + '% de los gestionados' : '')}${k('Aceptaron', st.acepta, st.contact ? nvPct(st.acepta, st.contact) + '% de los contactados' : '')}${k('Solicitudes', st.sols, st.proc ? st.proc + ' en proceso' : '')}${k('Cambiados a nivelado', st.camb, rfL0(st.saldoCamb), 'g')}</div>
     <div class="card nv-av-g"><div class="row" style="justify-content:space-between;margin-bottom:6px"><b>Avance ${f.cart ? 'de la cartera' : d.todos ? 'general' : 'de su cartera'}</b><span class="small muted">${nvPct(st.camb, st.n)}% ya cambiados</span></div>${nvBarra(st, 14)}${nvLeyenda(st)}</div>
     ${!f.cart ? nvTablaCarteras(todosR) : ''}
     ${d.todos ? nvTablaGestores() : ''}
@@ -3443,13 +3453,12 @@ function nvDetalle(id){
       <dt>Desembolso</dt><dd>${rfFd(r.fecha)} · ${nvMesesTxt(r.meses ?? nvMeses(r.fecha))}</dd>
       <dt>Capital</dt><dd>${rfL0(r.capital)}</dd>
       <dt>Saldo de capital</dt><dd><b>${L(r.bal)}</b>${ab > 0.5 ? ` <span class="small muted">· abonó ${rfL0(ab)}</span>` : ' <span class="small muted">· sin abono a capital</span>'}</dd>
-      ${r.cuotas != null ? `<dt>Cuotas pendientes</dt><dd>${L(r.cuotas)}</dd>` : ''}
-      ${+r.mora > 0 ? `<dt>Mora</dt><dd style="color:var(--red)">${L(r.mora)}</dd>` : ''}
-      ${r.total != null ? `<dt>Saldo total</dt><dd>${L(r.total)}</dd>` : ''}
+      <dt>Intereses acumulados</dt><dd>${L(r.cuotas || 0)}</dd>
+      <dt>Mora</dt><dd style="${+r.mora > 0 ? 'color:var(--red)' : ''}">${L(r.mora || 0)}</dd>
+      <dt>Total adeudado</dt><dd><b>${L(nvTotal(r))}</b> <span class="small muted">· capital + intereses + mora</span></dd>
       <dt>Teléfono</dt><dd id="nvTelV">${r.telefono ? `<a href="tel:${telLimpio(r.telefono)}">${esc(r.telefono)}</a>${waUrl(r) ? ` · <a href="${waUrl(r)}" target="_blank" rel="noopener">WhatsApp</a>` : ''}` : '<span class="muted">Sin teléfono</span>'} ${puede || NV.d.todos ? '<a href="#" id="nvTelE" class="small">Cambiar</a>' : ''}</dd>
       ${r.dni ? `<dt>Identidad</dt><dd>${esc(r.dni)}</dd>` : ''}
       ${r.seguimiento_en && ['gestion','pendiente'].includes(e) ? `<dt>Volver a llamar</dt><dd style="${nvVencido(r) ? 'color:var(--red)' : ''}">${fDT(r.seguimiento_en)}</dd>` : ''}
-      ${r.monto_extra > 0 ? `<dt>Monto adicional</dt><dd>${rfL0(r.monto_extra)}</dd>` : ''}
     </dl>
     ${r.sol ? `<div class="card" style="margin-top:12px"><div class="row" style="justify-content:space-between;gap:8px"><b>Solicitud ${esc(r.sol.codigo || '')}</b>${NV.d.todos && S.sols.some(s => s.id === r.sol.id) ? `<button class="btn sm ghost" id="nvVerSol">Abrir</button>` : ''}</div>
       <div class="small muted">${esc(gestorEstadoTxt(r.sol))}${r.sol.asesor ? ' · asesor ' + esc(r.sol.asesor) : ''}${r.sol.monto ? ' · ' + rfL0(r.sol.monto) : ''}</div>${gestorPasos(r.sol)}</div>` : ''}
@@ -3458,7 +3467,6 @@ function nvDetalle(id){
       <div id="nvForm" class="hidden">
         <label class="f" id="nvNotaL">Nota</label><textarea id="nvNota" rows="2"></textarea>
         <div id="nvSegW"><label class="f" id="nvSegL">Volver a llamar (opcional)</label><input type="datetime-local" id="nvSeg"></div>
-        <div id="nvMontoW" class="hidden"><label class="f">Monto adicional que pide (opcional)</label><input id="nvMonto" inputmode="decimal" placeholder="Ej. 5000" value="${r.monto_extra > 0 ? r.monto_extra : ''}"></div>
         <div id="nvTelW" class="hidden"><label class="f">Número correcto (si lo consiguió)</label><input id="nvTelN" inputmode="tel" placeholder="9999-9999"></div>
         <div class="btns"><button class="btn pri" id="nvGuardar">Guardar respuesta</button></div>
       </div>
@@ -3467,22 +3475,22 @@ function nvDetalle(id){
     <div class="btns"><button class="btn ghost" data-close>Cerrar</button></div>`);
   const q = s => w.querySelector(s);
   let sel = null;
-  const PH = { no_contesta:'Ej. timbró y no contestó', volver_llamar:'Ej. pidió que le llamen después de las 5', lo_pensara:'Ej. lo consulta con la esposa', acepta:'Ej. le interesa con cuota quincenal', no_interesa:'Motivo (obligatorio): ej. prefiere seguir pagando solo intereses', tel_equivocado:'Ej. el número es de otra persona' };
+  const PH = { no_contesta:'Ej. timbró y no contestó', volver_llamar:'Ej. pidió que le llamen después de las 5', lo_pensara:'Ej. lo consulta con la esposa', acepta:'Ej. le interesa a 10 meses', no_interesa:'Motivo (obligatorio): ej. prefiere seguir pagando solo intereses', tel_equivocado:'Ej. el número es de otra persona' };
   w.querySelectorAll('[data-nvr]').forEach(b => b.onclick = () => {
     sel = b.dataset.nvr; w.querySelectorAll('[data-nvr]').forEach(x => x.classList.toggle('pri', x === b)); w.querySelectorAll('[data-nvr]').forEach(x => x.classList.toggle('ghost', x !== b));
     q('#nvForm').classList.remove('hidden');
     q('#nvNotaL').textContent = sel === 'no_interesa' ? 'Motivo' : 'Nota (opcional)'; q('#nvNota').placeholder = PH[sel] || '';
     q('#nvSegW').classList.toggle('hidden', !NV_SEG.includes(sel)); q('#nvSegL').textContent = sel === 'volver_llamar' ? 'Cuándo volver a llamar' : 'Volver a llamar (opcional)';
-    q('#nvMontoW').classList.toggle('hidden', sel !== 'acepta'); q('#nvTelW').classList.toggle('hidden', sel !== 'tel_equivocado');
+    q('#nvTelW').classList.toggle('hidden', sel !== 'tel_equivocado');
     q('#nvGuardar').textContent = sel === 'acepta' ? 'Guardar y generar solicitud' : 'Guardar respuesta';
     q('#nvNota').focus();
   });
   if (q('#nvGuardar')) q('#nvGuardar').onclick = ev => run(ev.target, async () => {
     if (!sel) throw new Error('Elija la respuesta del cliente');
-    const seg = NV_SEG.includes(sel) ? nvISO(q('#nvSeg').value) : null, monto = sel === 'acepta' ? num(q('#nvMonto').value) : null;
+    const seg = NV_SEG.includes(sel) ? nvISO(q('#nvSeg').value) : null;
     if (sel === 'volver_llamar' && !seg) throw new Error('Indique cuándo volver a llamar');
     if (sel === 'no_interesa' && !q('#nvNota').value.trim()) throw new Error('Escriba el motivo por el que no le interesa');
-    await rpc('niv_gestionar', { p_id: r.id, p_resultado: sel, p_nota: q('#nvNota').value, p_seguimiento: seg, p_monto_extra: monto, p_telefono: sel === 'tel_equivocado' ? q('#nvTelN').value : null });
+    await rpc('niv_gestionar', { p_id: r.id, p_resultado: sel, p_nota: q('#nvNota').value, p_seguimiento: seg, p_monto_extra: null, p_telefono: sel === 'tel_equivocado' ? q('#nvTelN').value : null });
     await cerrarDialogo(w); await nvCargar(true); if (S.tab === 'nivelado') pintarNivelado();
     toast('Respuesta guardada');
     if (sel === 'acepta'){ const r2 = (NV.d?.rows || []).find(x => x.id === r.id); if (r2) nvSolicitudDlg(r2); }
@@ -3496,18 +3504,81 @@ function nvDetalle(id){
       await cerrarDialogo(w); await nvCargar(true); if (S.tab === 'nivelado') pintarNivelado(); nvDetalle(r.id); toast('Teléfono guardado'); });
   };
 }
+const NV_PLAZOS = [3, 6, 8, 10, 12];
+// Cuota nivelada: mensual = monto ÷ plazo + monto × tasa mensual; por pago = mensual ÷ frecuencia (igual que el análisis)
+function nvCuota(monto, plazo, tipoPago, tasa = tasasSol(null, false, null).n){
+  const f = FREC[tipoPago] || 1, mes = monto / plazo + monto * tasa, pagos = Math.round(plazo * f), cuota = mes / f;
+  return { mes, cuota, pagos, total: cuota * pagos, tasa, f };
+}
+const NV_FREC_TXT = { Semanal:'semanal', Quincenal:'quincenal', Mensual:'mensual' };
+function nvProyeccionHTML(monto, tp, sel){
+  if (!(monto > 0)) return '<div class="small muted">Escriba el monto para ver las cuotas.</div>';
+  const fx = NV_FREC_TXT[tp] || 'mensual', t = tasasSol(null, false, null).n;
+  return `<table class="t nv-proy"><thead><tr><th></th><th>Plazo</th><th class="num">Cuota ${fx}</th><th class="num"># pagos</th><th class="num">Total a pagar</th></tr></thead><tbody>
+    ${NV_PLAZOS.map(n => { const c = nvCuota(monto, n, tp, t); return `<tr data-pl="${n}" class="${sel === n ? 'on' : ''}"><td><span class="nv-rd"></span></td><td>${n} meses</td><td class="num"><b>${L(c.cuota.toFixed(2))}</b></td><td class="num">${c.pagos}</td><td class="num">${L(c.total.toFixed(2))}</td></tr>`; }).join('')}
+  </tbody></table><div class="small muted" style="margin-top:4px">Tasa nivelada ${pctT(t)} mensual (tasa normal; el analista la confirma). Pago ${fx}${tp !== 'Mensual' ? ` = cuota mensual ÷ ${FREC[tp]}` : ''}.</div>`;
+}
+// Anexo al contrato con el plan de pago nivelado del plazo elegido
+function nvAnexoHTML(st, a){
+  const c = nvCuota(+st.limite || 0, a.plazo, a.tp), fx = NV_FREC_TXT[a.tp] || 'mensual', fl = v => L((+v || 0).toFixed(2));
+  const fila = (t, v, b) => `<tr><td>${t}</td><td class="r">${b ? `<b>${v}</b>` : v}</td></tr>`;
+  return `<h1>ANEXO · PLAN DE PAGO NIVELADO</h1>
+    <p>Anexo al Contrato de Apertura de Línea de Crédito suscrito entre <b>MAS PISTO S DE RL</b> y <span class="f">${esc(st.nombre || '')}</span>, con documento nacional de identificación No. ${st.id ? `<span class="f">${esc(st.id)}</span>` : '_'.repeat(22)}.
+      El Deudor solicita trasladar el saldo de su préstamo en modalidad solo interés a la modalidad nivelada (cuota fija de capital e intereses), en las condiciones siguientes:</p>
+    <table class="anx"><tbody>
+      <tr class="sb"><td colspan="2">Préstamo actual (solo interés)</td></tr>
+      ${fila('Fecha de desembolso', a.fecha ? a.fecha.split('-').reverse().join('/') : '—')}
+      ${fila('Monto original', fl(a.capital))}
+      ${fila('Saldo de capital', fl(a.bal))}
+      ${fila('Intereses acumulados', fl(a.cuotas))}
+      ${fila('Mora', fl(a.mora))}
+      ${fila('Total adeudado', fl(a.totalDeuda), true)}
+      <tr class="sb"><td colspan="2">Nuevo préstamo (nivelado)</td></tr>
+      ${fila('Monto del préstamo', fl(st.limite), true)}
+      ${fila('Tasa de interés mensual', pctT(c.tasa))}
+      ${fila('Plazo', `${a.plazo} meses`)}
+      ${fila('Forma de pago', fx.charAt(0).toUpperCase() + fx.slice(1))}
+      ${fila('Número de pagos', c.pagos)}
+      ${fila(`Cuota ${fx}`, fl(c.cuota), true)}
+      ${fila('Total a pagar', fl(c.total))}
+    </tbody></table>
+    <p>Las fechas de pago se ajustan al calendario de pago del Deudor y se detallan en su estado de cuenta. Este plan queda sujeto a la aprobación del análisis de crédito.</p>
+    <div class="firmas" style="margin-top:40pt"><div class="fcol"><div class="fila"><div class="firma"><div class="ln">Deudor</div><div class="sm">${esc(st.nombre || '')}</div><div class="sm">DNI. ${st.id ? esc(st.id) : '______________________'}</div></div><div class="huella"><span>Huella</span></div></div></div>
+      <div><div class="firma acre" style="margin-top:50pt"><div class="ln">Acreedor</div><div class="sm">MAS PISTO S DE RL</div></div></div></div>`;
+}
 function nvSolicitudDlg(r){
+  const tot = nvTotal(r), tp = nvFrec(r);
+  let monto = tot, plazo = null;
   const w = dialogo(`<h3 style="margin-top:0">Solicitud de cambio a nivelado</h3>
-    <div class="small muted">${esc(r.nombre)} · saldo de capital ${L(r.bal)}</div>
+    <div class="small muted">${esc(r.nombre)} · préstamo solo interés ${esc(NV_FREC_TXT[tp])}</div>
+    <div class="card nv-tot-c"><div><span>Saldo de capital</span><b>${L(r.bal || 0)}</b></div><div><span>Intereses acumulados</span><b>${L(r.cuotas || 0)}</b></div><div><span>Mora</span><b>${L(r.mora || 0)}</b></div><div class="t"><span>Total adeudado</span><b>${L(tot)}</b></div></div>
+    <label class="f">Monto de la solicitud</label><input id="nsMonto" inputmode="decimal" value="${tot.toFixed(2)}">
+    <div id="nsMontoA" class="small" style="margin-top:3px"></div>
+    <label class="f">Cuota según el plazo (toque un plazo)</label><div id="nsProy" style="overflow-x:auto"></div>
+    <button class="btn ghost" style="width:100%;margin-top:8px" id="nsCt" disabled>${ico('file', 'sm')} Ver contrato</button>
     <label class="f">Identidad del cliente</label><input id="nsDni" inputmode="numeric" autocomplete="off" placeholder="0000-0000-00000" value="${esc(RD.fmtId(r.dni || ''))}">
     <div id="nsBus" class="small" style="margin-top:4px"></div>
     <label class="f">Teléfono</label><input id="nsTel" inputmode="tel" value="${esc(r.telefono || '')}">
-    <label class="f">Monto adicional que pide el cliente (opcional)</label><input id="nsMonto" inputmode="decimal" placeholder="Déjelo vacío si solo pasa su saldo a nivelado" value="${r.monto_extra > 0 ? r.monto_extra : ''}">
-    <label class="f">Nota para el asesor (opcional)</label><textarea id="nsNota" rows="2" placeholder="Ej. prefiere cuota quincenal, llamarle en la tarde"></textarea>
-    <div class="alert info small">Le llega al asesor como <b>Cambio de modalidad</b> (plan nivelado) para revisarla y enviarla a análisis. El saldo de capital ya va incluido; el analista define el monto final.</div>
+    <label class="f">Nota para el asesor (opcional)</label><textarea id="nsNota" rows="2" placeholder="Ej. prefiere pagar el 15 y el 30"></textarea>
+    <div class="alert info small">Le llega al asesor como <b>Cambio de modalidad</b> (plan nivelado) con el monto y el plazo elegidos, para revisarla y enviarla a análisis. El analista define el monto y la tasa finales.</div>
     <div class="btns"><button class="btn ghost" data-close>Cancelar</button><button class="btn pri" id="nsOk">Enviar al asesor</button></div>`);
   const q = s => w.querySelector(s);
   let bloqueo = false;
+  const pintarProy = () => {
+    q('#nsProy').innerHTML = nvProyeccionHTML(monto, tp, plazo);
+    q('#nsProy').querySelectorAll('[data-pl]').forEach(tr => tr.onclick = () => { plazo = +tr.dataset.pl; pintarProy(); });
+    q('#nsCt').disabled = !(plazo && monto > 0);
+    q('#nsCt').innerHTML = `${ico('file', 'sm')} ${plazo ? `Ver contrato · ${plazo} meses` : 'Elija un plazo para ver el contrato'}`;
+    const dif = Math.round((monto - tot) * 100) / 100;
+    q('#nsMontoA').innerHTML = !(monto > 0) ? '<span style="color:var(--red)">Monto no válido</span>' : dif < 0 ? `<span style="color:var(--red)">Es ${L(-dif)} menos que el total adeudado.</span>` : dif > 0 ? `<span class="muted">Incluye ${L(dif)} adicionales al total adeudado.</span>` : '<span class="muted">Igual al total adeudado.</span>';
+  };
+  q('#nsMonto').oninput = () => { monto = num(q('#nsMonto').value) || 0; pintarProy(); };
+  pintarProy();
+  q('#nsCt').onclick = () => {
+    if (!plazo) return;
+    abrirContrato({ nombre_cliente: r.nombre, dni: q('#nsDni').value, codigo: 'Cámbiate a nivelado', monto_solicitado: monto },
+      { encima: true, sinRegistro: true, sinMaximo: true, archivo: 'Contrato_Nivelado_', anexo: st => nvAnexoHTML(st, { plazo, tp, fecha: r.fecha, capital: r.capital, bal: r.bal, cuotas: r.cuotas, mora: r.mora, totalDeuda: tot }) });
+  };
   const buscar = async () => {
     const dni = q('#nsDni').value.replace(/\D/g, ''); q('#nsBus').innerHTML = ''; bloqueo = false; q('#nsOk').disabled = false;
     if (dni.length !== 13) return;
@@ -3523,9 +3594,11 @@ function nvSolicitudDlg(r){
   if (r.dni) buscar();
   q('#nsOk').onclick = ev => run(ev.target, async () => {
     if (bloqueo) throw new Error('El cliente ya tiene una solicitud en proceso');
+    if (!(monto > 0)) throw new Error('Escriba el monto de la solicitud');
+    if (!plazo) throw new Error('Elija el plazo');
     const dni = q('#nsDni').value.replace(/\D/g, ''); if (dni.length !== 13) throw new Error('Ingrese la identidad completa (13 dígitos)');
-    const monto = num(q('#nsMonto').value); if (q('#nsMonto').value.trim() && (monto == null || monto < 0)) throw new Error('Monto adicional no válido');
-    const res = await rpc('niv_crear_solicitud', { p_id: r.id, p_dni: dni, p_telefono: q('#nsTel').value, p_monto_extra: monto, p_nota: q('#nsNota').value });
+    const c = nvCuota(monto, plazo, tp), nota = [q('#nsNota').value.trim(), `Cuota ${NV_FREC_TXT[tp]} estimada ${L(c.cuota.toFixed(2))} (${c.pagos} pagos, tasa ${pctT(c.tasa)}).`].filter(Boolean).join(' ');
+    const res = await rpc('niv_crear_solicitud', { p_id: r.id, p_dni: dni, p_telefono: q('#nsTel').value, p_monto: monto, p_plazo: plazo, p_nota: nota });
     await cerrarDialogo(w); await nvCargar(true); if (S.tab === 'nivelado') pintarNivelado();
     toast(`Solicitud ${res?.codigo || ''} enviada al asesor`);
   });
@@ -6586,7 +6659,7 @@ const CT = (() => {
     pages.forEach((pg, i) => { pg.querySelector('.ft span:last-child').textContent = `Página ${i + 1} de ${pages.length}`; });
     return pages;
   }
-  return { paginar };
+  return { paginar, pagina };
 })();
 // ================== Formato de verificación de domicilio (lo llena a mano el verificador) ==================
 const FV = (() => {
@@ -6792,16 +6865,16 @@ function abrirFormatoVerif(s){
   const amb = w.querySelector('[data-a="ambos"]'); if (amb) amb.onclick = e => run(e.target, async () => imprimirAmbos(s, st));
   render(); addEventListener('resize', render, { once:true });
 }
-function abrirContrato(s){
+function abrirContrato(s, op = {}){
   const d0 = s.datos_cliente || {};
   const st = { nombre: s.nombre_cliente, id: RD.fmtId(s.dni || d0.dni || ''), codigo: s.codigo,
     minimo: +(S.params.linea_minimo || 3000), limite: +(s.monto_aprobado || s.monto_solicitado || 0), maximo: +(S.params.techo_refi || 30000), fecha: hoyHN() };
-  const w = document.createElement('div'); w.className = 'rd-wrap';
+  const w = document.createElement('div'); w.className = 'rd-wrap'; if (op.encima) w.style.zIndex = 70;   // abierto desde un diálogo: va encima
   w.innerHTML = `<div class="rd-bar">
       <div class="t"><button class="back" data-x>←</button><span>Contrato de línea de crédito · ${esc(s.codigo)}</span></div>
       <div class="fld" style="flex:2"><label>Nombre completo</label><input data-f="nombre" value="${esc(st.nombre)}"></div>
       <div class="fld"><label>Identidad</label><input data-f="id" inputmode="numeric" maxlength="15" value="${esc(st.id)}" placeholder="0501-1990-12345"></div>
-      <div class="fld"><label>Límite aprobado (L)</label><input data-f="limite" inputmode="decimal" value="${st.limite || ''}"></div>
+      <div class="fld"><label>${op.anexo ? 'Monto del préstamo (L)' : 'Límite aprobado (L)'}</label><input data-f="limite" inputmode="decimal" value="${st.limite || ''}"></div>
       <div class="fld"><label>Fecha</label><input data-f="fecha" type="date" value="${st.fecha}"></div>
       <div class="acc"><button class="btn pri" data-a="print">🖨 Imprimir</button><button class="btn" data-a="pdf">⬇ Descargar PDF</button></div>
       <div class="small muted" style="flex:1 1 100%">Línea desde ${L(st.minimo)} (mínimo) hasta el límite aprobado; puede aumentar hasta ${L(st.maximo)} (máximo).</div>
@@ -6813,7 +6886,10 @@ function abrirContrato(s){
   let pages = [];
   const ajustar = () => { scaler.style.transform = ''; scaler.style.width = ''; scaler.style.height = '';
     const sc = Math.min(1, (stage.clientWidth - 32) / cont.offsetWidth); if (sc < 1){ scaler.style.transform = `scale(${sc})`; scaler.style.transformOrigin = 'top left'; scaler.style.width = cont.offsetWidth * sc + 'px'; scaler.style.height = cont.offsetHeight * sc + 'px'; } };
-  const render = () => { scaler.style.transform = ''; pages = CT.paginar(cont, st); ajustar(); };
+  const render = () => { scaler.style.transform = ''; pages = CT.paginar(cont, st);
+    if (op.anexo){ const t = document.createElement('div'); t.innerHTML = CT.pagina(0, 0); const pg = t.firstChild; pg.querySelector('.bd').innerHTML = op.anexo(st); cont.appendChild(pg); pages.push(pg);
+      pages.forEach((x, i) => { x.querySelector('.ft span:last-child').textContent = `Página ${i + 1} de ${pages.length}`; }); }
+    ajustar(); };
   w.querySelectorAll('[data-f]').forEach(i => i.oninput = () => {
     if (i.dataset.f === 'id'){ i.value = RD.fmtId(i.value); st.id = i.value; }
     else if (i.dataset.f === 'limite') st.limite = num(i.value) || 0;
@@ -6821,10 +6897,10 @@ function abrirContrato(s){
     msg.textContent = ''; render(); });
   const listo = () => {
     const f = []; if (!st.nombre) f.push('nombre'); if (st.id.replace(/\D/g,'').length !== 13) f.push('identidad (13 dígitos)'); if (!(st.limite > 0)) f.push('límite aprobado');
-    if (st.limite && st.limite < st.minimo) f.push(`el límite no puede ser menor a ${L(st.minimo)}`); if (st.limite > st.maximo) f.push(`el límite no puede pasar de ${L(st.maximo)}`);
+    if (st.limite && st.limite < st.minimo) f.push(`el límite no puede ser menor a ${L(st.minimo)}`); if (st.limite > st.maximo && !op.sinMaximo) f.push(`el límite no puede pasar de ${L(st.maximo)}`);
     if (f.length){ msg.textContent = 'Revise: ' + f.join(', ') + '.'; return false; } return true; };
-  const archivo = () => 'Contrato_Linea_Credito_' + st.nombre.normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^\w]+/g,'_').replace(/^_|_$/g,'');
-  const registrar = accion => rpc('registrar_reconocimiento', { p_id: s.id, p_dni: st.id, p_monto: st.limite, p_accion: accion }).then(() => { if (!s.dni && st.id) s.dni = st.id; }).catch(e => console.warn(e));
+  const archivo = () => (op.archivo || 'Contrato_Linea_Credito_') + st.nombre.normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^\w]+/g,'_').replace(/^_|_$/g,'');
+  const registrar = accion => op.sinRegistro ? null : rpc('registrar_reconocimiento', { p_id: s.id, p_dni: st.id, p_monto: st.limite, p_accion: accion }).then(() => { if (!s.dni && st.id) s.dni = st.id; }).catch(e => console.warn(e));
   w.querySelector('[data-x]').onclick = () => cerrarDialogo(w);
   w.querySelector('[data-a="print"]').onclick = () => {
     if (!listo()) return;
