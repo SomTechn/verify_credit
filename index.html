@@ -843,7 +843,8 @@ body.nav-min .sn-vt span{display:none}
 .nv-rb{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:7px}.nv-rb .btn{width:100%}
 .nv-hist .nv-h{border-top:1px solid var(--line);padding:8px 0}.nv-hist .nv-h:first-child{border-top:0}
 .nv-vista .body{max-width:1180px}.nv-vg{display:grid;grid-template-columns:1fr;gap:0 16px;margin-top:12px}@media(min-width:900px){.nv-vg{grid-template-columns:1.15fr .85fr}}
-.nv-vc > .card{margin-bottom:12px}.nv-tot-c small{font-size:11px;color:var(--muted)}.nv-acc{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}
+.nv-vc > .card{margin-bottom:12px}.nv-tot-c small{font-size:11px;color:var(--muted)}.nv-mt{display:grid;grid-template-columns:1.4fr 1fr;gap:10px}.nv-mt select{width:100%}
+.nv-acc{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}
 .nv-res-s{display:grid;grid-template-columns:1fr 1fr;gap:8px 14px;background:var(--bg2,rgba(127,127,127,.08));border-radius:8px;padding:10px 12px;margin:6px 0 4px}.nv-res-s div{display:flex;flex-direction:column;font-size:12.5px;color:var(--muted)}.nv-res-s b{color:var(--ink);font-size:14.5px}
 .nv-tot-c{display:grid;grid-template-columns:1fr 1fr;gap:6px 14px;margin-top:10px;padding:10px 12px}.nv-tot-c div{display:flex;flex-direction:column;font-size:12.5px;color:var(--muted)}.nv-tot-c b{color:var(--ink);font-size:15px}.nv-tot-c .t b{color:var(--brand);font-size:17px}
 .nv-proy td.nv-cel{cursor:pointer;white-space:nowrap}.nv-proy td.nv-cel b{margin-left:6px}.nv-proy td.nv-cel small{display:block;font-size:11px;color:var(--muted)}.nv-proy td.nv-cel:hover{background:color-mix(in srgb,var(--brand) 6%,transparent)}.nv-proy td.nv-cel.on{background:color-mix(in srgb,var(--brand) 14%,transparent);box-shadow:inset 0 0 0 1.5px var(--brand)}.nv-rd{display:inline-block;width:14px;height:14px;border:2px solid var(--line);border-radius:50%;vertical-align:middle}.nv-proy td.on .nv-rd{border-color:var(--brand);background:radial-gradient(var(--brand) 45%,transparent 50%)}
@@ -949,7 +950,7 @@ body.nav-min .sn-vt span{display:none}
 // App disponible sin señal (sw.js debe estar junto a index.html). Va primero para registrarse aunque falle otra cosa.
 if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) navigator.serviceWorker.register('sw.js').catch(() => {});
 // Versión de esta copia de la app: cambia en cada entrega. La app la compara con la publicada y se actualiza sola.
-const APP_VER = '2026-11-27.2230';
+const APP_VER = '2026-11-27.2245';
 // 'admin' = cambio solo para el administrador: los demás usuarios no ven el aviso de versión nueva (se actualiza en silencio)
 // y sus NOVEDADES deben llevar r:['admin']. 'todos' = cambio que ven los usuarios.
 const APP_AVISO = 'todos';
@@ -958,6 +959,9 @@ const APP_AVISO = 'todos';
 // r = roles que la ven (sin r = todos; el admin ve todo).
 // Regla: las novedades de control (GPS, horas de los verificadores, permisos, auditoría) van SOLO con r:['admin'].
 const NOVEDADES = [
+  { v:'2026-11-27.2245', f:'27 de noviembre de 2026', items:[
+    { i:'•', t:'Cámbiate a nivelado: tasa ajustable', r:['gestor','asesor','analista'],
+      d:'En "Nuevo préstamo nivelado" ahora se puede cambiar la tasa mensual (por defecto la normal, 14%) y las cuotas se recalculan. Si se elige otra tasa, la solicitud llega con esa tasa fijada; el analista la puede cambiar.' } ] },
   { v:'2026-11-27.2230', f:'27 de noviembre de 2026', items:[
     { i:'•', t:'Cámbiate a nivelado: identidad, cuota quincenal o mensual y contrato', r:['gestor','asesor','analista'],
       d:'En la vista del cliente, "Nuevo préstamo nivelado" pide primero la identidad del cliente; con ella se puede ver el contrato. La tabla muestra para cada plazo la cuota quincenal y la mensual: toque la que elija el cliente y la solicitud llega al asesor con el plazo y la forma de pago ya definidos. El contrato ya no lleva el anexo del plan de pago.' } ] },
@@ -3470,7 +3474,7 @@ function nvVistaPintar(w, id){
   const e = nvEtapa(r), abierta = r.sol && !CERRADAS.includes(r.sol.estado), hist = (NV.d.gestiones || []).filter(g => g.p === r.id);
   const puede = !abierta && e !== 'cambiado' && (r.aplica || NV.d.todos);
   const res = r.resultado && NV_RES[r.resultado], ab = (+r.capital || 0) - (+r.bal || 0), tot = nvTotal(r), tp = nvFrec(r);
-  const sel = NV.sel[id] = NV.sel[id] || { monto: tot, plazo: null, frec: null, dni: r.dni || '', tel: '' };
+  const sel = NV.sel[id] = NV.sel[id] || { monto: tot, plazo: null, frec: null, dni: r.dni || '', tel: '', tasa: 0.14 };
   w.querySelector('[data-t]').textContent = r.nombre;
   w.querySelector('[data-c]').innerHTML = res ? `<span class="chip ${res[1]}">${res[0]}</span>` : '<span class="chip c-gray">Sin gestionar</span>';
   const b = w.querySelector('[data-b]');
@@ -3495,7 +3499,8 @@ function nvVistaPintar(w, id){
         ${puede ? `<div class="card" id="nvNuevo"><h4 class="sec" style="margin-top:0">Nuevo préstamo nivelado</h4>
           <label class="f" style="margin-top:0">Identidad del cliente</label><input id="nvDniN" inputmode="numeric" autocomplete="off" placeholder="0000-0000-00000" value="${esc(RD.fmtId(sel.dni || r.dni || ''))}">
           <div id="nvDniA" class="small" style="margin-top:3px"></div>
-          <label class="f">Monto</label><input id="nvMontoN" inputmode="decimal" value="${(+sel.monto || 0).toFixed(2)}">
+          <div class="nv-mt"><div><label class="f">Monto</label><input id="nvMontoN" inputmode="decimal" value="${(+sel.monto || 0).toFixed(2)}"></div>
+            <div><label class="f">Tasa mensual</label><select id="nvTasaN">${TASAS_NIV.map(t => `<option value="${t}" ${Math.abs(t - sel.tasa) < 1e-9 ? 'selected' : ''}>${pctT(t)}</option>`).join('')}</select></div></div>
           <div id="nvMontoA" class="small" style="margin-top:3px"></div>
           <label class="f">Cuota según plazo y forma de pago · toque la cuota que elija el cliente</label><div id="nvProy" style="overflow-x:auto"></div>
           <div id="nvSelTxt" class="small" style="margin-top:6px"></div>
@@ -3525,12 +3530,12 @@ function nvVistaPintar(w, id){
       const okC = dniOk() && sel.monto > 0 && !bloqueo, okS = okC && sel.plazo && sel.frec;
       q('#nvCtB').disabled = !okC; q('#nvGenB').disabled = !okS;
       const falta = [!dniOk() ? 'la identidad' : '', !(sel.monto > 0) ? 'el monto' : '', !(sel.plazo && sel.frec) ? 'la cuota (plazo y forma de pago)' : ''].filter(Boolean);
-      const c = sel.plazo && sel.frec && sel.monto > 0 ? nvCuota(sel.monto, sel.plazo, sel.frec) : null;
-      q('#nvSelTxt').innerHTML = (c ? `<b>Elegido: ${sel.plazo} meses, pago ${NV_FREC_TXT[sel.frec]} de ${L(c.cuota.toFixed(2))}</b> (${c.pagos} pagos).` : '')
+      const c = sel.plazo && sel.frec && sel.monto > 0 ? nvCuota(sel.monto, sel.plazo, sel.frec, sel.tasa) : null;
+      q('#nvSelTxt').innerHTML = (c ? `<b>Elegido: ${sel.plazo} meses, pago ${NV_FREC_TXT[sel.frec]} de ${L(c.cuota.toFixed(2))}</b> (${c.pagos} pagos, tasa ${pctT(sel.tasa)}).` : '')
         + (bloqueo ? '' : falta.length ? `<div class="muted">Falta ${falta.join(', ')}${!dniOk() ? ' (para ver el contrato y generar la solicitud)' : ''}.</div>` : '');
     };
     const pintarProy = () => {
-      q('#nvProy').innerHTML = nvProyeccionHTML(sel.monto, sel.plazo, sel.frec);
+      q('#nvProy').innerHTML = nvProyeccionHTML(sel.monto, sel.plazo, sel.frec, sel.tasa);
       q('#nvProy').querySelectorAll('[data-pl]').forEach(td => td.onclick = () => { sel.plazo = +td.dataset.pl; sel.frec = td.dataset.fr; pintarProy(); });
       const dif = Math.round((sel.monto - tot) * 100) / 100;
       q('#nvMontoA').innerHTML = !(sel.monto > 0) ? '<span style="color:var(--red)">Monto no válido</span>' : dif < 0 ? `<span style="color:var(--red)">Es ${L(-dif)} menos que el total adeudado.</span>` : dif > 0 ? `<span class="muted">Incluye ${L(dif)} adicionales al total adeudado.</span>` : '<span class="muted">Igual al total adeudado. Puede cambiarlo.</span>';
@@ -3549,6 +3554,7 @@ function nvVistaPintar(w, id){
     if (!sel.dni && r.dni) sel.dni = r.dni;
     q('#nvDniN').oninput = () => { q('#nvDniN').value = RD.fmtId(q('#nvDniN').value); sel.dni = q('#nvDniN').value; buscar(); };
     q('#nvMontoN').oninput = () => { sel.monto = num(q('#nvMontoN').value) || 0; pintarProy(); };
+    q('#nvTasaN').onchange = () => { sel.tasa = +q('#nvTasaN').value; pintarProy(); };
     pintarProy(); if (dniOk()) buscar();
     q('#nvCtB').onclick = () => { if (q('#nvCtB').disabled) return;
       abrirContrato({ nombre_cliente: r.nombre, dni: sel.dni, codigo: 'Cámbiate a nivelado', monto_solicitado: sel.monto },
@@ -3591,30 +3597,30 @@ function nvCuota(monto, plazo, tipoPago, tasa = tasasSol(null, false, null).n){
 }
 const NV_FREC_TXT = { Semanal:'semanal', Quincenal:'quincenal', Mensual:'mensual' };
 // Cuotas por plazo en las dos formas de pago (quincenal y mensual); se elige tocando la cuota
-function nvProyeccionHTML(monto, plazo, frec){
+function nvProyeccionHTML(monto, plazo, frec, tasa){
   if (!(monto > 0)) return '<div class="small muted">Escriba el monto para ver las cuotas.</div>';
-  const t = tasasSol(null, false, null).n;
+  const t = tasa || tasasSol(null, false, null).n;
   const celda = (n, fr) => { const c = nvCuota(monto, n, fr, t), on = plazo === n && frec === fr;
     return `<td class="num nv-cel${on ? ' on' : ''}" data-pl="${n}" data-fr="${fr}"><span class="nv-rd"></span><b>${L(c.cuota.toFixed(2))}</b><small>${c.pagos} pagos</small></td>`; };
   return `<table class="t nv-proy"><thead><tr><th>Plazo</th><th class="num">Quincenal</th><th class="num">Mensual</th><th class="num">Total a pagar</th></tr></thead><tbody>
     ${NV_PLAZOS.map(n => `<tr><td>${n} meses</td>${celda(n, 'Quincenal')}${celda(n, 'Mensual')}<td class="num">${L(nvCuota(monto, n, 'Mensual', t).total.toFixed(2))}</td></tr>`).join('')}
-  </tbody></table><div class="small muted" style="margin-top:4px">Tasa nivelada ${pctT(t)} mensual (tasa normal; el analista la confirma). Cuota quincenal = cuota mensual ÷ 2.</div>`;
+  </tbody></table><div class="small muted" style="margin-top:4px">Tasa nivelada ${pctT(t)} mensual${Math.abs(t - 0.14) < 1e-9 ? ' (normal)' : ''}; el analista la confirma. Cuota quincenal = cuota mensual ÷ 2.</div>`;
 }
 // Generar la solicitud con lo definido en la vista (identidad, monto, plazo y forma de pago): solo pide teléfono y nota
 function nvSolicitudDlg(r, sel, vista){
-  const c = nvCuota(sel.monto, sel.plazo, sel.frec), fx = NV_FREC_TXT[sel.frec];
+  const c = nvCuota(sel.monto, sel.plazo, sel.frec, sel.tasa), fx = NV_FREC_TXT[sel.frec];
   const w = dialogo(`<h3 style="margin-top:0">Generar solicitud de cambio a nivelado</h3>
-    <div class="nv-res-s"><div><span>Cliente</span><b>${esc(r.nombre)}</b></div><div><span>Identidad</span><b>${esc(RD.fmtId(sel.dni))}</b></div><div><span>Monto</span><b>${L(sel.monto)}</b></div><div><span>Plazo</span><b>${sel.plazo} meses</b></div><div><span>Forma de pago</span><b>${fx.charAt(0).toUpperCase() + fx.slice(1)}</b></div><div><span>Cuota ${fx}</span><b>${L(c.cuota.toFixed(2))}</b></div></div>
+    <div class="nv-res-s"><div><span>Cliente</span><b>${esc(r.nombre)}</b></div><div><span>Identidad</span><b>${esc(RD.fmtId(sel.dni))}</b></div><div><span>Monto</span><b>${L(sel.monto)}</b></div><div><span>Plazo</span><b>${sel.plazo} meses</b></div><div><span>Forma de pago</span><b>${fx.charAt(0).toUpperCase() + fx.slice(1)}</b></div><div><span>Cuota ${fx}</span><b>${L(c.cuota.toFixed(2))}</b></div><div><span>Tasa mensual</span><b>${pctT(sel.tasa)}</b></div></div>
     <label class="f">Teléfono</label><input id="nsTel" inputmode="tel" value="${esc(sel.tel || r.telefono || '')}">
     <label class="f">Nota para el asesor (opcional)</label><textarea id="nsNota" rows="2" placeholder="Ej. prefiere pagar el 15 y el 30"></textarea>
-    <div class="alert info small">Le llega al asesor como <b>Cambio de modalidad</b> (plan nivelado) con este monto, plazo y forma de pago, para revisarla y enviarla a análisis. El analista define el monto y la tasa finales.</div>
+    <div class="alert info small">Le llega al asesor como <b>Cambio de modalidad</b> (plan nivelado) con este monto, plazo, forma de pago y tasa, para revisarla y enviarla a análisis. El analista define el monto y la tasa finales.</div>
     <div class="btns"><button class="btn ghost" data-close>Cancelar</button><button class="btn pri" id="nsOk">Enviar al asesor</button></div>`);
   const q = x => w.querySelector(x);
   q('#nsTel').focus();
   q('#nsOk').onclick = ev => run(ev.target, async () => {
     const dni = String(sel.dni || '').replace(/\D/g, ''); if (dni.length !== 13) throw new Error('Falta la identidad del cliente');
     const nota = [q('#nsNota').value.trim(), `Cuota ${fx} estimada ${L(c.cuota.toFixed(2))} (${c.pagos} pagos, tasa ${pctT(c.tasa)}).`].filter(Boolean).join(' ');
-    const res = await rpc('niv_crear_solicitud', { p_id: r.id, p_dni: dni, p_telefono: q('#nsTel').value, p_monto: sel.monto, p_plazo: sel.plazo, p_tipo_pago: sel.frec, p_nota: nota });
+    const res = await rpc('niv_crear_solicitud', { p_id: r.id, p_dni: dni, p_telefono: q('#nsTel').value, p_monto: sel.monto, p_plazo: sel.plazo, p_tipo_pago: sel.frec, p_tasa: sel.tasa, p_nota: nota });
     await cerrarDialogo(w);
     if (vista && vista.isConnected) await nvRefrescarVista(vista, r.id); else { await nvCargar(true); if (S.tab === 'nivelado') pintarNivelado(); }
     toast(`Solicitud ${res?.codigo || ''} enviada al asesor`);
