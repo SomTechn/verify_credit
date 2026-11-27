@@ -161,11 +161,13 @@ label.f{display:block;font-size:12px;color:var(--ink2);margin:10px 0 4px;font-we
 .hj-d{margin-top:14px;border:1px solid var(--line);border-radius:10px;padding:10px 12px;background:var(--card)}.hj-d>summary{cursor:pointer;font-weight:700}
 .hj-sub{display:flex;align-items:center;gap:6px;margin:16px 0 2px;font:700 13px Inter,sans-serif;text-transform:uppercase;letter-spacing:.4px;color:var(--ink2)}
 .hj-f .seg{flex-wrap:wrap}.hj-rf{display:grid;grid-template-columns:2fr 1fr 1.2fr;gap:6px;margin-top:6px}
-.lg{border-left:3px solid var(--line);padding-left:10px}.lg-b{position:relative}
-.lg-s{position:absolute;left:0;right:0;top:100%;z-index:30;background:var(--card);border:1px solid var(--line);border-radius:10px;box-shadow:var(--shadow);max-height:260px;overflow:auto;margin-top:2px}
-.lg-s button{display:flex;flex-direction:column;align-items:flex-start;width:100%;text-align:left;background:none;border:0;border-top:1px solid var(--line);padding:8px 10px;font:inherit;color:var(--ink);cursor:pointer}
-.lg-s button:first-child{border-top:0}.lg-s button span{font-size:12px;color:var(--ink2)}.lg-s button.on,.lg-s button:hover{background:var(--brand2)}
-.lg-s button.nv{flex-direction:row;flex-wrap:wrap;gap:4px;align-items:center;color:var(--brand);font-weight:600}.lg-s button.nv span{width:100%;font-weight:400}
+.lg{border-left:3px solid var(--line);padding-left:10px}
+.bl-r{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:9px 0;border-top:1px solid var(--line)}.bl-a{display:flex;align-items:center;gap:4px;flex-shrink:0}
+.cb-w{position:relative}.cb-w input{padding-right:40px}.cb-t{position:absolute;right:4px;top:50%;transform:translateY(-50%);border:0;background:none;color:var(--ink2);padding:6px;cursor:pointer;display:flex}
+.cb-s{position:absolute;left:0;right:0;top:100%;z-index:30;background:var(--card);border:1px solid var(--line);border-radius:10px;box-shadow:var(--shadow);max-height:280px;overflow:auto;margin-top:2px}
+.cb-s button{display:flex;flex-direction:column;align-items:flex-start;width:100%;text-align:left;background:none;border:0;border-top:1px solid var(--line);padding:8px 10px;font:inherit;color:var(--ink);cursor:pointer}
+.cb-s button:first-child{border-top:0}.cb-s button span{font-size:12px;color:var(--ink2)}.cb-s button.on,.cb-s button:hover{background:var(--brand2)}.cb-s button.sel b{color:var(--brand)}
+.cb-n{padding:8px 10px;font-size:12.5px;color:var(--ink2);border-top:1px solid var(--line)}
 .hj-t{width:100%;border-collapse:collapse;margin-top:8px;font-size:13.5px}.hj-t th{text-align:left;font-weight:600;color:var(--ink2);padding:5px 8px 5px 0;width:42%;vertical-align:top}
 .hj-t td{padding:5px 0;border-bottom:1px solid var(--line);overflow-wrap:anywhere}.hj-t th{border-bottom:1px solid var(--line)}.hj-t tr.vac th{color:var(--muted)}
 .yit-s{border:1px solid var(--line);border-radius:10px;margin-top:10px;overflow:hidden}.yit-h{background:var(--gray-bg);padding:7px 10px;font-weight:700;font-size:13px}
@@ -925,7 +927,7 @@ body.nav-min .sn-vt span{display:none}
 // App disponible sin señal (sw.js debe estar junto a index.html). Va primero para registrarse aunque falle otra cosa.
 if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) navigator.serviceWorker.register('sw.js').catch(() => {});
 // Versión de esta copia de la app: cambia en cada entrega. La app la compara con la publicada y se actualiza sola.
-const APP_VER = '2026-11-27.1210';
+const APP_VER = '2026-11-27.1400';
 // 'admin' = cambio solo para el administrador: los demás usuarios no ven el aviso de versión nueva (se actualiza en silencio)
 // y sus NOVEDADES deben llevar r:['admin']. 'todos' = cambio que ven los usuarios.
 const APP_AVISO = 'todos';
@@ -934,13 +936,15 @@ const APP_AVISO = 'todos';
 // r = roles que la ven (sin r = todos; el admin ve todo).
 // Regla: las novedades de control (GPS, horas de los verificadores, permisos, auditoría) van SOLO con r:['admin'].
 const NOVEDADES = [
-  { v:'2026-11-27.1210', f:'27 de noviembre de 2026', items:[
+  { v:'2026-11-27.1400', f:'27 de noviembre de 2026', items:[
     { i:'•', t:'Hoja de solicitud dentro de VerifyCredit', r:['asesor','analista'],
-      d:'Al crear una solicitud nueva aparece la "Hoja de solicitud" con los mismos datos del Excel y en el mismo orden: cantidad y plazo, fecha de nacimiento, empresa, rubro, dirección de la empresa, puesto, antigüedad, salario, prestaciones, otros ingresos, forma y día de pago, domicilio, antigüedad, tipo de vivienda y referencias familiares. Se puede llenar después con el botón "Llenar" en el detalle. Con "Copiar todo para el Excel" se pega completa en la hoja de Excel.' },
-    { i:'•', t:'Banco de ciudades, sectores y colonias', r:['asesor','analista'],
-      d:'En domicilio y dirección de la empresa escriba parte del nombre de la colonia o del sector y elija de la lista. Si no aparece, toque "Usar…" y queda guardada para la próxima vez. El domicilio y el trabajo también le aparecen al verificador.' },
+      d:'La solicitud se crea igual que siempre. Ya creada, abra el detalle y toque "Llenar" en la tarjeta "Hoja de solicitud": se abre en toda la pantalla con los mismos datos del Excel y en el mismo orden (cantidad y plazo, fecha de nacimiento, empresa, rubro, dirección de la empresa, puesto, antigüedad, salario, prestaciones, otros ingresos, forma y día de pago, domicilio, tipo de vivienda y referencias familiares). Con "Copiar todo para el Excel" se pega completa en la hoja de Excel.' },
+    { i:'•', t:'Departamento, ciudad, sector y colonia con lista', r:['asesor','analista'],
+      d:'En domicilio y dirección de la empresa cada campo tiene su lista: toque la flecha para verla completa o escriba parte del nombre para buscar. El departamento ya viene en Cortés. Al elegir una colonia se llena sola su sector. Si la colonia no está en la lista, escríbala completa y se agrega al banco al guardar la hoja.' },
     { i:'•', t:'Datos para el sistema, listos para copiar', r:['asesor','analista'],
-      d:'En "Completar con el cliente", la hoja muestra la pestaña "Para el sistema" con los datos en el mismo orden del formulario del sistema (info personal, dirección del domicilio y dirección de trabajo). Toque el botón de copiar de cada dato y péguelo en su campo; los que ya copió se marcan en verde. El plazo que eligió el cliente se puede poner en la hoja o al completar.' } ] },
+      d:'En "Completar con el cliente", la hoja muestra la pestaña "Para el sistema" con los datos en el mismo orden del formulario del sistema (info personal, dirección del domicilio y dirección de trabajo). Toque el botón de copiar de cada dato y péguelo en su campo; los que ya copió se marcan en verde. El plazo que eligió el cliente se puede poner en la hoja o al completar.' },
+    { i:'•', t:'Banco de ciudades, sectores y colonias', r:['admin'],
+      d:'En Parámetros, al final, está el banco de colonias que ven los asesores: puede buscar, corregir, borrar, agregar una por una o importar muchas desde Excel (columnas Departamento, Ciudad, Sector y Colonia, copiar y pegar). Las colonias nuevas que escriben los asesores también llegan aquí.' } ] },
   { v:'2026-11-26.1100', f:'26 de noviembre de 2026', items:[
     { i:'•', t:'Mapa de cada verificación', r:['admin'],
       d:'En el detalle de la solicitud, al final de la verificación, hay un mapa con cada punto que marcó el verificador (en camino, llegó, completada, efectivo entregado), numerados en el orden en que los marcó y unidos por el recorrido, junto a la dirección registrada por el asesor. Debajo, la lista con la hora y la distancia de cada punto. Solo lo ve usted y quien usted autorice en Usuarios.' } ] },
@@ -2660,47 +2664,69 @@ function tiempoDesde(iso){ if (!iso) return ''; const a = new Date(iso + 'T12:00
   let m = (h.getFullYear() - a.getFullYear()) * 12 + h.getMonth() - a.getMonth(); if (h.getDate() < a.getDate()) m--;
   return m < 12 ? `${Math.max(0, m)} mes${m === 1 ? '' : 'es'}` : `${Math.floor(m / 12)} año${Math.floor(m / 12) === 1 ? '' : 's'}`; }
 
-// ---------- Campo de lugar: ciudad + buscador de colonia/sector del banco ----------
+// ---------- Campo de lugar: departamento, ciudad, sector y colonia con lista desplegable y búsqueda ----------
+const DEPTOS = ['Atlántida','Choluteca','Colón','Comayagua','Copán','Cortés','El Paraíso','Francisco Morazán','Gracias a Dios','Intibucá','Islas de la Bahía','La Paz','Lempira','Ocotepeque','Olancho','Santa Bárbara','Valle','Yoro'];
+const CIUDADES_BASE = { 'Cortés':['San Pedro Sula','Choloma','Villanueva','La Lima','Puerto Cortés','Omoa','Pimienta','Potrerillos','San Manuel','San Antonio de Cortés','San Francisco de Yojoa','Santa Cruz de Yojoa'],
+  'Yoro':['El Progreso','Santa Rita','Yoro','Olanchito','Morazán'], 'Atlántida':['La Ceiba','Tela'], 'Francisco Morazán':['Tegucigalpa'], 'Santa Bárbara':['Santa Bárbara','Quimistán'] };
+const CB_FLECHA = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>';
+const comboHTML = (key, label, val, ph) => `<div class="cb" data-cb="${key}"><label class="f">${label}</label><div class="cb-w"><input data-cbi autocomplete="off" value="${esc(val || '')}" placeholder="${esc(ph || 'Buscar o elegir')}"><button type="button" class="cb-t" tabindex="-1" aria-label="Ver la lista">${CB_FLECHA}</button><div class="cb-s hidden"></div></div></div>`;
+// opciones(): [{ v, sub, x }]; al elegir llama elegir(op)
+function comboEnlazar(el, opciones, elegir){
+  const inp = el.querySelector('[data-cbi]'), lista = el.querySelector('.cb-s'), btn = el.querySelector('.cb-t');
+  let idx = -1, todo = false;
+  const cerrar = () => { lista.classList.add('hidden'); todo = false; };
+  const pintar = () => {
+    const t = norm(inp.value), ops = opciones();
+    const l = (todo || !t ? ops : ops.filter(o => norm(o.v).includes(t) || norm(o.sub || '').includes(t)).sort((a, b) => norm(b.v).startsWith(t) - norm(a.v).startsWith(t))).slice(0, 80);
+    const nuevo = t && !ops.some(o => norm(o.v) === t);
+    lista.innerHTML = l.map((o, i) => `<button type="button" data-k="${i}" class="${i === idx ? 'on' : ''}${norm(o.v) === t ? ' sel' : ''}"><b>${esc(o.v)}</b>${o.sub ? `<span>${esc(o.sub)}</span>` : ''}</button>`).join('')
+      + (nuevo ? `<div class="cb-n">«${esc(inp.value.trim())}» no está en la lista: se agrega al banco al guardar.</div>` : '')
+      + (!l.length && !nuevo ? '<div class="cb-n">Sin opciones todavía: escriba el nombre.</div>' : '');
+    lista.classList.remove('hidden');
+    lista.querySelectorAll('[data-k]').forEach(b => b.onmousedown = e => { e.preventDefault(); const o = l[+b.dataset.k]; inp.value = o.v; cerrar(); elegir?.(o); });
+  };
+  inp.oninput = () => { idx = -1; todo = false; pintar(); elegir?.(null); };
+  inp.onfocus = () => { todo = true; pintar(); };
+  inp.onblur = () => setTimeout(cerrar, 150);
+  btn.onmousedown = e => { e.preventDefault(); if (!lista.classList.contains('hidden')) return cerrar(); todo = true; inp.focus(); pintar(); };
+  inp.onkeydown = e => { const bs = [...lista.querySelectorAll('[data-k]')]; if (lista.classList.contains('hidden') || !bs.length) return;
+    if (e.key === 'ArrowDown' || e.key === 'ArrowUp'){ e.preventDefault(); idx = (idx + (e.key === 'ArrowDown' ? 1 : -1) + bs.length) % bs.length; bs.forEach((b, i) => b.classList.toggle('on', i === idx)); bs[idx].scrollIntoView({ block:'nearest' }); }
+    if (e.key === 'Enter' && idx >= 0){ e.preventDefault(); bs[idx].onmousedown(e); }
+    if (e.key === 'Escape') cerrar(); };
+}
 function lugarCampo(k, v = {}, tit){
-  const ciu = v.ciudad || '';
   return `<div class="lg" data-lg="${k}">
-    <div class="grid2"><div><label class="f">Ciudad</label><select data-lgc><option value="">—</option>${CIUDADES.filter(c => c !== 'Otra').map(c => `<option ${c === ciu ? 'selected' : ''}>${c}</option>`).join('')}${ciu && !CIUDADES.includes(ciu) ? `<option selected>${esc(ciu)}</option>` : ''}</select></div>
-      <div class="lg-b"><label class="f">Barrio o colonia</label><input data-lgq autocomplete="off" placeholder="Buscar colonia o sector" value="${esc(v.colonia || '')}"><div class="lg-s hidden" data-lgs></div></div></div>
-    <div class="grid2"><div><label class="f">Sector <span class="muted">(opcional)</span></label><input data-lgsec autocomplete="off" value="${esc(v.sector || '')}" placeholder="Ej. Rivera Hernández"></div>
-      <div><label class="f">Departamento</label><input data-lgd value="${esc(v.depto || deptoDe(ciu))}" disabled></div></div>
+    <div class="grid2">${comboHTML('depto', 'Departamento', v.depto || 'Cortés')}${comboHTML('ciudad', 'Ciudad', v.ciudad)}</div>
+    <div class="grid2">${comboHTML('sector', 'Sector', v.sector)}${comboHTML('colonia', 'Barrio o colonia', v.colonia)}</div>
     <label class="f">${tit || 'Punto de referencia'}</label><input data-lgr autocomplete="off" value="${esc(v.ref || '')}" placeholder="Ej. 27 calle, frente al taller, casa color zapote, portón café">
   </div>`;
 }
 function lugarEnlazar(box){
-  const q = x => box.querySelector(x), sug = q('[data-lgs]'), inp = q('[data-lgq]'), sel = q('[data-lgc]');
-  let idx = -1;
-  sel.onchange = () => { q('[data-lgd]').value = deptoDe(sel.value); };
-  const pintar = () => {
-    const t = norm(inp.value), ciu = sel.value;
-    if (!t){ sug.classList.add('hidden'); return; }
-    const l = (S.lugares || []).filter(x => (!ciu || x.ciudad === ciu) && (norm(x.colonia).includes(t) || norm(x.sector || '').includes(t)))
-      .sort((a, b) => (norm(b.colonia).startsWith(t) - norm(a.colonia).startsWith(t)) || (b.usos - a.usos)).slice(0, 8);
-    const existe = l.some(x => norm(x.colonia) === t);
-    sug.innerHTML = l.map((x, i) => `<button type="button" data-i="${x.id}" class="${i === idx ? 'on' : ''}"><b>${esc(x.colonia)}</b><span>${esc([x.sector, x.ciudad].filter(Boolean).join(' · '))}</span></button>`).join('')
-      + (existe ? '' : `<button type="button" data-nuevo class="nv">${ico('plus', 'sm')}Usar «${esc(inp.value.trim())}»${ciu ? ' en ' + esc(ciu) : ''} <span>se agrega al banco al guardar</span></button>`);
-    sug.classList.remove('hidden');
-    sug.querySelectorAll('[data-i]').forEach(b => b.onmousedown = e => { e.preventDefault(); const x = S.lugares.find(y => y.id === +b.dataset.i); if (!x) return;
-      inp.value = x.colonia; q('[data-lgsec]').value = x.sector || ''; if (![...sel.options].some(o => o.value === x.ciudad)) sel.insertAdjacentHTML('beforeend', `<option>${esc(x.ciudad)}</option>`);
-      sel.value = x.ciudad; sel.onchange(); box.dataset.nuevo = ''; sug.classList.add('hidden'); q('[data-lgr]').focus(); });
-    const nv = sug.querySelector('[data-nuevo]'); if (nv) nv.onmousedown = e => { e.preventDefault(); box.dataset.nuevo = '1'; sug.classList.add('hidden'); (sel.value ? q('[data-lgsec]') : sel).focus(); };
-  };
-  inp.oninput = () => { idx = -1; box.dataset.nuevo = '1'; pintar(); };
-  inp.onfocus = () => { if (inp.value.trim()) pintar(); };
-  inp.onblur = () => setTimeout(() => sug.classList.add('hidden'), 150);
-  inp.onkeydown = e => { const bs = [...sug.querySelectorAll('button')]; if (!bs.length || sug.classList.contains('hidden')) return;
-    if (e.key === 'ArrowDown' || e.key === 'ArrowUp'){ e.preventDefault(); idx = (idx + (e.key === 'ArrowDown' ? 1 : -1) + bs.length) % bs.length; bs.forEach((b, i) => b.classList.toggle('on', i === idx)); }
-    if (e.key === 'Enter' && idx >= 0){ e.preventDefault(); bs[idx].onmousedown(e); } };
+  const cb = k => box.querySelector(`[data-cb="${k}"] [data-cbi]`), val = k => cb(k).value.trim();
+  const igual = (a, b) => norm(a || '') === norm(b || '');
+  const L = () => S.lugares || [];
+  comboEnlazar(box.querySelector('[data-cb="depto"]'), () => DEPTOS.map(d => ({ v:d })));
+  comboEnlazar(box.querySelector('[data-cb="ciudad"]'), () => {
+    const d = val('depto'), set = new Map();
+    (CIUDADES_BASE[d] || (d ? [] : Object.values(CIUDADES_BASE).flat())).forEach(c => set.set(norm(c), { v:c, sub:d || '' }));
+    L().filter(x => !d || igual(x.departamento, d)).forEach(x => { if (!set.has(norm(x.ciudad))) set.set(norm(x.ciudad), { v:x.ciudad, sub:x.departamento || '' }); });
+    return [...set.values()];
+  }, o => { if (!o) return; const x = L().find(y => igual(y.ciudad, o.v)); if (x?.departamento && !val('depto')) cb('depto').value = x.departamento; });
+  comboEnlazar(box.querySelector('[data-cb="sector"]'), () => {
+    const c = val('ciudad'), n = new Map();
+    L().filter(x => x.sector && (!c || igual(x.ciudad, c))).forEach(x => { const k = norm(x.sector); const o = n.get(k) || { v:x.sector, cnt:0 }; o.cnt++; n.set(k, o); });
+    return [...n.values()].sort((a, b) => a.v.localeCompare(b.v, 'es')).map(o => ({ v:o.v, sub:`${o.cnt} colonia${o.cnt === 1 ? '' : 's'}${c ? '' : ''}` }));
+  });
+  comboEnlazar(box.querySelector('[data-cb="colonia"]'), () => {
+    const c = val('ciudad'), se = val('sector');
+    return L().filter(x => (!c || igual(x.ciudad, c)) && (!se || igual(x.sector, se) || !x.sector))
+      .sort((a, b) => (b.usos - a.usos) || a.colonia.localeCompare(b.colonia, 'es')).map(x => ({ v:x.colonia, sub:[x.sector, c ? '' : x.ciudad].filter(Boolean).join(' · '), x }));
+  }, o => { if (!o?.x) return; if (o.x.sector) cb('sector').value = o.x.sector; if (!val('ciudad')) cb('ciudad').value = o.x.ciudad; if (o.x.departamento) cb('depto').value = o.x.departamento; });
 }
 function lugarLeer(box){
-  const q = x => box.querySelector(x).value.trim();
-  const v = { ciudad:q('[data-lgc]'), sector:q('[data-lgsec]'), colonia:q('[data-lgq]'), ref:q('[data-lgr]') };
-  v.depto = deptoDe(v.ciudad);
-  const conocido = (S.lugares || []).some(x => x.ciudad === v.ciudad && norm(x.colonia) === norm(v.colonia) && norm(x.sector || '') === norm(v.sector));
+  const val = k => box.querySelector(`[data-cb="${k}"] [data-cbi]`).value.trim();
+  const v = { depto:val('depto') || deptoDe(val('ciudad')), ciudad:val('ciudad'), sector:val('sector'), colonia:val('colonia'), ref:box.querySelector('[data-lgr]').value.trim() };
+  const conocido = (S.lugares || []).some(x => norm(x.ciudad) === norm(v.ciudad) && norm(x.colonia) === norm(v.colonia) && norm(x.sector || '') === norm(v.sector));
   return { v, nuevo: !!(v.ciudad && v.colonia && !conocido) };
 }
 
@@ -2764,7 +2790,7 @@ function hojaLeer(w){
 async function hojaGuardar(id, r){
   if (!r.lleno && !r.plazo) return;
   await rpc('guardar_hoja', { p_id:id, p_hoja:r.hoja, p_plazo:r.plazo, p_telefono:r.tel || null, p_nombre:r.nombre || null });
-  for (const l of r.nuevos){ try { await rpc('agregar_lugar', { p_ciudad:l.ciudad, p_sector:l.sector || null, p_colonia:l.colonia }); } catch(e){} }
+  for (const l of r.nuevos){ try { await rpc('agregar_lugar', { p_ciudad:l.ciudad, p_sector:l.sector || null, p_colonia:l.colonia, p_depto:l.depto || null }); } catch(e){} }
   if (r.nuevos.length) cargarLugares(true);
 }
 
@@ -2817,10 +2843,10 @@ function yitSecciones(s){
   return [
     ['Info personal', [['Nombre', nom], ['Apellido', ape], ['DNI (sin espacios)', String(s.dni || '').replace(/\D/g, '')], ['Cumpleaños', fDMY(h.nac || s.datos_cliente?.fecha_nacimiento)],
       ['Sexo', ({ h:'Hombre', m:'Mujer' })[h.sexo] || ''], ['Nota de contacto', nota]]],
-    ['Dirección del domicilio', [['Tipo de dirección', 'Dirección personal'], ['País', 'Honduras'], ['Departamento', d.ciudad ? deptoDe(d.ciudad) : ''], ['Ciudad', d.ciudad || ''],
+    ['Dirección del domicilio', [['Tipo de dirección', 'Dirección personal'], ['País', 'Honduras'], ['Departamento', d.depto || (d.ciudad ? deptoDe(d.ciudad) : '')], ['Ciudad', d.ciudad || ''],
       ['Sector', sect(d)], ['Barrio o colonia', d.colonia || ''], ['Nombre de la casa', ape ? 'Familia ' + ape : ''], ['Tipo de propiedad', prop],
       ['Punto de referencia', d.ref || ''], ['Antigüedad (fecha desde)', fDMY(h.dom_desde?.f)], ['Otras notas', '']]],
-    ['Dirección de trabajo', [['Tipo de dirección', 'Dirección de trabajo'], ['País', 'Honduras'], ['Departamento', t.ciudad ? deptoDe(t.ciudad) : ''], ['Ciudad', t.ciudad || ''],
+    ['Dirección de trabajo', [['Tipo de dirección', 'Dirección de trabajo'], ['País', 'Honduras'], ['Departamento', t.depto || (t.ciudad ? deptoDe(t.ciudad) : '')], ['Ciudad', t.ciudad || ''],
       ['Sector', sect(t)], ['Barrio o colonia', t.colonia || ''], ['Nombre de la empresa', h.empresa || ''], ['Punto de referencia', t.ref || ''],
       ['Antigüedad (fecha desde)', fDMY(h.emp_desde?.f)], ['Puesto', h.puesto || ''], ['Prestaciones', hjSi(h.prest)], ['Salario', h.salario ? String(h.salario) : '']]]
   ];
@@ -2915,12 +2941,11 @@ function nuevaSolicitudDlg(pre = {}){
       <label class="f">Teléfono${gestor ? '' : ' (opcional)'}</label><input id="nTel" inputmode="tel" autocomplete="off">
       <div id="nIngF" class="hidden"><label class="f">Fecha de ingreso del cliente (antigüedad)</label><input id="nIng" type="date" max="${hoyHN()}"></div>
       ${gestor ? '' : `<div id="nOrigen">${origenCampos()}</div>`}
-      ${gestor ? '' : `<details id="nHoja" class="hj-d" open><summary>Hoja de solicitud <span class="muted">(los datos del Excel; puede completarla después)</span></summary>${hojaCampos({})}</details>`}
       ${gestor ? `<label class="f">Nota para el asesor (opcional)</label><textarea id="nNota" rows="2" placeholder="Ej. el cliente pide L 15,000, prefiere que lo llamen en la tarde"></textarea>` : ''}
       <div id="nHelp" class="alert info small"></div>
       <div id="nCoin"></div>
     </div>
-    <div class="btns"><button class="btn ghost" data-close>Cancelar</button><button class="btn pri" id="nOk" disabled>Crear</button></div>`, { pantalla:'Nueva solicitud' + (pre.lead ? ' · prospecto del bot' : '') });
+    <div class="btns"><button class="btn ghost" data-close>Cancelar</button><button class="btn pri" id="nOk" disabled>Crear</button></div>`);
   const q = s => w.querySelector(s);
   let tipo = tipos[0][0], cart = null, enc = null, buscado = '';
   const pintarTipo = () => {
@@ -2928,7 +2953,6 @@ function nuevaSolicitudDlg(pre = {}){
     w.querySelectorAll('#nTipo button').forEach(x => x.classList.toggle('on', x.dataset.v === tipo));
     q('#nIngF').classList.toggle('hidden', nuevo);
     q('#nOrigen')?.classList.toggle('hidden', !nuevo);
-    q('#nHoja')?.classList.toggle('hidden', !nuevo);
     q('#nCartF').classList.toggle('hidden', nuevo);
     q('#nCartNueva').innerHTML = !nuevo ? '' : carteraNuevas() ? `${ico('briefcase', 'sm')} Cartera: <b>${esc(carteraNombre(carteraNuevas()))}</b> (predeterminada para nuevas en Parámetros)` : '';
     q('#nHelp').textContent = gestor ? 'La solicitud le llega al asesor para que la revise y la envíe a análisis. Usted verá aquí en qué paso va.'
@@ -2979,7 +3003,6 @@ function nuevaSolicitudDlg(pre = {}){
   q('#nBuscar').onclick = () => { buscado = ''; buscar(); };
   q('#nDni').focus();
   if (q('#nOrigen')) origenEnlazar(w);
-  if (q('#nHoja')) hojaEnlazar(w);
   if (pre.nombre) q('#nNombre').value = pre.nombre;
   if (pre.tel) q('#nTel').value = pre.tel;
   if (pre.tipo && tipos.some(t => t[0] === pre.tipo)) tipo = pre.tipo;
@@ -2997,10 +3020,8 @@ function nuevaSolicitudDlg(pre = {}){
       toast(`Solicitud ${r?.codigo || ''} registrada. El asesor ya la tiene.`); return;
     }
     const origen = tipo === 'nuevo' ? origenLeer(w, true) : null;
-    const hj = tipo === 'nuevo' && q('#nHoja') ? hojaLeer(w) : null;
     const id = await rpc('crear_solicitud', { p_dni: q('#nDni').value, p_nombre: q('#nNombre').value, p_tipo: tipo, p_telefono: q('#nTel').value || null, p_enviar: false, p_fecha_ingreso: tipo !== 'nuevo' ? (q('#nIng').value || null) : null, p_asesor: q('#nAsesor')?.value || null });
     if (origen) await rpc('guardar_origen_cliente', { p_id:id, ...origen });
-    if (hj) try { await hojaGuardar(id, hj); } catch(x){ console.error(x); toast('La solicitud se creó, pero no se pudo guardar la hoja. Llénela en el detalle.', true); }
     if (id > 0){
       try { if (tipo !== 'nuevo') await rpc('asignar_cartera', { p_id:id, p_cartera:cart }); } catch(x){ console.error(x); toast('La solicitud se creó, pero no se pudo guardar la cartera. Cámbiela en el detalle.', true); }
       try { if (enc?.encontrado) await rpc('copiar_datos_cliente', { p_id:id }); } catch(x){ console.error(x); }
@@ -8094,8 +8115,9 @@ function pintarParams(){
   $('#main').insertAdjacentHTML('beforeend', `<h4 class="sec">Feriados (no cuentan como tiempo hábil)</h4>
     <div class="card"><table class="t"><tbody>${S.feriadosRows.map(f => `<tr><td>${fDate(f.fecha+'T12:00')}</td><td>${esc(f.descripcion)}</td><td style="width:30px"><button class="x" data-fd="${f.fecha}">×</button></td></tr>`).join('') || '<tr><td class="muted">Sin feriados</td></tr>'}</tbody></table>
     <div class="addrow" style="grid-template-columns:1fr 1.4fr auto"><input type="date" id="fFecha"><input id="fDesc" placeholder="Descripción"><button class="btn pri" id="fAdd">Agregar</button></div></div>
-    <h4 class="sec">💬 Plantillas de WhatsApp (Por verificar)</h4><div class="card" id="plAdmin"><div class="muted small">Cargando…</div></div>`);
-  pintarPlantillasAdmin();
+    <h4 class="sec">💬 Plantillas de WhatsApp (Por verificar)</h4><div class="card" id="plAdmin"><div class="muted small">Cargando…</div></div>
+    <h4 class="sec" id="blSec">Banco de ciudades, sectores y colonias</h4><div class="card" id="blAdmin"><div class="muted small">Cargando…</div></div>`);
+  pintarPlantillasAdmin(); pintarBancoLugares();
   $('#main').querySelectorAll('[data-ps]').forEach(b => b.onclick = () => run(b, async () => {
     const v = num(document.querySelector(`[data-p="${b.dataset.ps}"]`).value); if (v == null) throw new Error('Valor inválido');
     await rpc('actualizar_parametro', { p_clave: b.dataset.ps, p_valor: v }); await cargarParams(); toast('Parámetro actualizado');
@@ -8108,6 +8130,69 @@ function pintarParams(){
     if (!confirm('¿Quitar este feriado?')) return;
     await rpc('guardar_feriado', { p_fecha: b.dataset.fd, p_descripcion: null, p_borrar: true }); await cargarParams(); pintarParams();
   }));
+}
+
+// ---------- Banco de ciudades, sectores y colonias (admin, en Parámetros) ----------
+const BL = { q:'', ciudad:'', pag:60 };
+async function pintarBancoLugares(){
+  const box = $('#blAdmin'); if (!box) return;
+  const L = await cargarLugares(true); if (!$('#blAdmin')) return;
+  const ciudades = [...new Set(L.map(x => x.ciudad))].sort((a, b) => a.localeCompare(b, 'es'));
+  const t = norm(BL.q);
+  const f = L.filter(x => (!BL.ciudad || x.ciudad === BL.ciudad) && (!t || norm([x.colonia, x.sector, x.ciudad, x.departamento].join(' ')).includes(t)))
+    .sort((a, b) => a.ciudad.localeCompare(b.ciudad, 'es') || (a.sector || '').localeCompare(b.sector || '', 'es') || a.colonia.localeCompare(b.colonia, 'es'));
+  box.innerHTML = `<div class="small muted" style="margin-bottom:8px">Es la lista que ve el asesor al llenar la hoja de solicitud. Cuando un asesor escribe una colonia que no está, se agrega sola. Aquí puede corregir, borrar, agregar o importar desde Excel.</div>
+    <div class="row" style="gap:6px;flex-wrap:wrap"><input id="blQ" placeholder="Buscar colonia, sector o ciudad" value="${esc(BL.q)}" style="flex:2;min-width:160px">
+      <select id="blC" style="flex:1;min-width:130px"><option value="">Todas las ciudades (${L.length})</option>${ciudades.map(c => `<option ${c === BL.ciudad ? 'selected' : ''}>${esc(c)}</option>`).join('')}</select></div>
+    <div class="row" style="gap:6px;margin-top:8px"><button class="btn sm pri" id="blNuevo">${ico('plus')} Agregar colonia</button><button class="btn sm" id="blImp">${ico('file')} Importar desde Excel</button></div>
+    <div class="small muted" style="margin:8px 0 4px">${f.length} resultado${f.length === 1 ? '' : 's'}</div>
+    <div class="bl-l">${f.slice(0, BL.pag).map(x => `<div class="bl-r"><div><b>${esc(x.colonia)}</b><div class="small muted">${esc(x.sector || 'Sin sector')} · ${esc(x.ciudad)} · ${esc(x.departamento || '')}${x.usos ? ` · usada ${x.usos} ${x.usos === 1 ? 'vez' : 'veces'}` : ''}</div></div>
+      <div class="bl-a"><button class="btn sm ghost" data-ble="${x.id}">Editar</button><button class="x" data-bld="${x.id}" title="Borrar" aria-label="Borrar">×</button></div></div>`).join('') || '<div class="muted small">Sin resultados</div>'}
+    </div>${f.length > BL.pag ? `<button class="btn sm ghost" id="blMas" style="margin-top:6px">Ver ${Math.min(60, f.length - BL.pag)} más</button>` : ''}`;
+  let tq; $('#blQ').oninput = e => { clearTimeout(tq); tq = setTimeout(() => { BL.q = e.target.value; BL.pag = 60; pintarBancoLugares().then(() => { const i = $('#blQ'); if (i){ i.focus(); i.setSelectionRange(i.value.length, i.value.length); } }); }, 250); };
+  $('#blC').onchange = e => { BL.ciudad = e.target.value; BL.pag = 60; pintarBancoLugares(); };
+  if ($('#blMas')) $('#blMas').onclick = () => { BL.pag += 60; pintarBancoLugares(); };
+  $('#blNuevo').onclick = () => blEditar(null);
+  $('#blImp').onclick = blImportar;
+  box.querySelectorAll('[data-ble]').forEach(b => b.onclick = () => blEditar(L.find(x => x.id === +b.dataset.ble)));
+  box.querySelectorAll('[data-bld]').forEach(b => b.onclick = () => run(b, async () => {
+    const x = L.find(y => y.id === +b.dataset.bld); if (!x || !confirm(`¿Borrar «${x.colonia}» (${x.ciudad}) del banco? Las solicitudes que ya la usan no cambian.`)) return;
+    await rpc('editar_lugar', { p_id:x.id, p_ciudad:x.ciudad, p_sector:x.sector, p_colonia:x.colonia, p_borrar:true }); toast('Colonia borrada'); pintarBancoLugares(); }));
+}
+function blEditar(x){
+  const w = dialogo(`<h3>${x ? 'Editar colonia' : 'Agregar colonia'}</h3>
+    ${lugarCampo('bl', x ? { depto:x.departamento, ciudad:x.ciudad, sector:x.sector, colonia:x.colonia } : { ciudad: BL.ciudad })}
+    <div class="btns"><button class="btn ghost" data-close>Cancelar</button><button class="btn pri" id="blOk">Guardar</button></div>`);
+  const box = w.querySelector('.lg'); box.querySelector('[data-lgr]').previousElementSibling.remove(); box.querySelector('[data-lgr]').remove();
+  lugarEnlazar(box);
+  w.querySelector('#blOk').onclick = e => run(e.target, async () => {
+    const val = k => box.querySelector(`[data-cb="${k}"] [data-cbi]`).value.trim();
+    if (!val('ciudad') || !val('colonia')) throw new Error('Indique la ciudad y la colonia');
+    await rpc('guardar_lugar', { p_id: x?.id || null, p_depto: val('depto') || null, p_ciudad: val('ciudad'), p_sector: val('sector') || null, p_colonia: val('colonia') });
+    cerrarDialogo(w); toast(x ? 'Colonia actualizada' : 'Colonia agregada'); pintarBancoLugares();
+  });
+}
+function blImportar(){
+  const w = dialogo(`<h3>Importar colonias desde Excel</h3>
+    <div class="small muted">En Excel ponga 4 columnas en este orden: <b>Departamento · Ciudad · Sector · Colonia</b>. Seleccione las filas, cópielas y péguelas aquí. El sector puede ir vacío; si el departamento va vacío se pone Cortés (El Progreso queda en Yoro). Las colonias que ya existen se saltan.</div>
+    <textarea id="blTxt" rows="9" placeholder="Cortés&#9;San Pedro Sula&#9;Rivera Hernández&#9;Col. Sinaí" style="width:100%;margin-top:8px;font-family:monospace;font-size:12.5px"></textarea>
+    <div class="small" id="blPrev" style="margin-top:6px"></div>
+    <div class="btns"><button class="btn ghost" data-close>Cancelar</button><button class="btn pri" id="blIOk" disabled>Importar</button></div>`);
+  let filas = [];
+  const leer = () => {
+    filas = w.querySelector('#blTxt').value.split(/\r?\n/).map(l => l.split('\t').map(c => c.trim())).filter(c => c.some(Boolean))
+      .map(c => c.length >= 4 ? { depto:c[0], ciudad:c[1], sector:c[2], colonia:c[3] } : c.length === 3 ? { depto:'', ciudad:c[0], sector:c[1], colonia:c[2] } : { depto:'', ciudad:c[0], sector:'', colonia:c[1] || '' })
+      .filter(r => !/^departamento$/i.test(r.depto) && !/^ciudad$/i.test(r.ciudad));
+    const malas = filas.filter(r => !r.ciudad || !r.colonia).length;
+    filas = filas.filter(r => r.ciudad && r.colonia);
+    w.querySelector('#blPrev').innerHTML = filas.length ? `${filas.length} fila${filas.length === 1 ? '' : 's'} lista${filas.length === 1 ? '' : 's'}. Ejemplo: <b>${esc(filas[0].colonia)}</b> · ${esc(filas[0].sector || 'sin sector')} · ${esc(filas[0].ciudad)} · ${esc(filas[0].depto || 'Cortés')}${malas ? ` <span class="muted">(${malas} sin ciudad o colonia se omiten)</span>` : ''}` : (malas ? `<span class="muted">Faltan la ciudad o la colonia en las filas pegadas.</span>` : '');
+    w.querySelector('#blIOk').disabled = !filas.length;
+  };
+  w.querySelector('#blTxt').oninput = leer;
+  w.querySelector('#blIOk').onclick = e => run(e.target, async () => {
+    const n = await rpc('importar_lugares', { p_filas: filas.map(r => ({ depto: r.depto || null, ciudad: r.ciudad, sector: r.sector || null, colonia: r.colonia })) });
+    cerrarDialogo(w); toast(`${n || 0} colonia${n === 1 ? '' : 's'} nueva${n === 1 ? '' : 's'} en el banco${filas.length - (n || 0) ? ` · ${filas.length - (n || 0)} ya existían` : ''}`); pintarBancoLugares();
+  });
 }
 
 // ================== Prospectos del bot de WhatsApp (tabla bot_leads) ==================
