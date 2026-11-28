@@ -166,6 +166,12 @@ label.f{display:block;font-size:12px;color:var(--ink2);margin:10px 0 4px;font-we
 .hj-pasos b{font-size:11.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}.hj-pasos small{font-size:11px;color:var(--ink2)}
 .hj-pasos button.on{border-color:var(--brand);color:var(--brand);background:var(--brand2)}.hj-pasos button.on .n{background:var(--brand);color:#fff}
 .hj-pasos button.ok .n{background:var(--green,#16a34a);color:#fff}.hj-pasos button.ok small{color:var(--green,#16a34a)}
+.hj-g{margin-top:14px;padding:12px 14px 14px;border:1px solid var(--line);border-radius:14px;background:var(--card);scroll-margin-top:130px}
+.hj-gt{display:flex;align-items:center;gap:8px;margin:0 0 2px;font:700 15px Inter,sans-serif;color:var(--ink)}
+.hj-gt .n{width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font:700 12px Inter,sans-serif;background:var(--brand);color:#fff}
+.hj-gt small{margin-left:auto;font:600 12px Inter,sans-serif;color:var(--ink2)}.hj-g.ok .hj-gt small{color:var(--green,#16a34a)}
+.hj-f .hj-pasos{position:sticky;top:56px;z-index:6;background:var(--bg,var(--card));padding:8px 0 6px;margin:0}
+.hj-pasos small{display:block}.cb-mal{border-color:var(--red,#dc2626)!important}
 .hj-ro{padding:9px 12px;border:1px dashed var(--line);border-radius:10px;background:var(--gray-bg)}
 .hj-f .seg{flex-wrap:wrap}.hj-rf{margin-top:10px;padding:2px 0 10px;border-bottom:1px solid var(--line)}.hj-rf:last-child{border-bottom:0}.hj-rft{font:700 13px Inter,sans-serif;color:var(--ink2);text-transform:uppercase;letter-spacing:.4px;margin-top:6px}
 .lg{border-left:3px solid var(--line);padding-left:10px}
@@ -994,7 +1000,7 @@ body.nav-min .sn-vt span{display:none}
 // App disponible sin señal (sw.js debe estar junto a index.html). Va primero para registrarse aunque falle otra cosa.
 if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) navigator.serviceWorker.register('sw.js').catch(() => {});
 // Versión de esta copia de la app: cambia en cada entrega. La app la compara con la publicada y se actualiza sola.
-const APP_VER = '2026-11-28.1010';
+const APP_VER = '2026-11-28.1100';
 // 'admin' = cambio solo para el administrador: los demás usuarios no ven el aviso de versión nueva (se actualiza en silencio)
 // y sus NOVEDADES deben llevar r:['admin']. 'todos' = cambio que ven los usuarios.
 const APP_AVISO = 'todos';
@@ -1003,6 +1009,9 @@ const APP_AVISO = 'todos';
 // r = roles que la ven (sin r = todos; el admin ve todo).
 // Regla: las novedades de control (GPS, horas de los verificadores, permisos, auditoría) van SOLO con r:['admin'].
 const NOVEDADES = [
+  { v:'2026-11-28.1100', f:'28 de noviembre de 2026', items:[
+    { i:'•', t:'Hoja de solicitud más rápida: una sola vista y Enter para avanzar', r:['asesor','analista'],
+      d:'La hoja ahora es una sola página dividida en grupos (Cliente, Empresa, Ingresos, Domicilio, Referencias). Escriba y presione Enter para pasar al siguiente dato; en los campos con opciones aparecen las coincidencias mientras escribe. La fecha de nacimiento y el sexo se piden al crear la solicitud; la cantidad solicitada va después de cuánto gana; el plazo se elige en Completar datos. Nuevo listado de empresas: al elegir una se llenan el rubro y la dirección. El día de cobro se elige por modalidad (diario, semanal, bisemanal, quincenal o mensual) y en quincenal se calcula la segunda fecha.' } ] },
   { v:'2026-11-28.1010', f:'28 de noviembre de 2026', items:[
     { i:'•', t:'Tutoriales en video', r:['gestor','asesor','analista'],
       d:'Nueva pestaña "Tutoriales" (en Más) con tres videos cortos: cómo ingresar e instalar la app, cómo registrar una solicitud de refinanciamiento y el proceso completo de Cámbiate a nivelado. Cada uno muestra la computadora y el celular.' } ] },
@@ -1316,9 +1325,9 @@ const lsGet = (k, d) => { try { return JSON.parse(localStorage.getItem(k)) ?? d;
 const lsSet = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch(e){} };
 const outbox = () => lsGet(OB_KEY(), []), fallidos = () => lsGet(OBF_KEY(), []);
 // Acciones que se pueden hacer sin señal (las de administración requieren conexión)
-const COLA = new Set(['guardar_hoja','agregar_lugar','crear_solicitud','enviar_analisis','dictaminar','completar_solicitud','guardar_item','finalizar_verificacion','marcar_desembolsada','desistir',
+const COLA = new Set(['guardar_hoja','agregar_lugar','agregar_empresa','crear_solicitud','enviar_analisis','dictaminar','completar_solicitud','guardar_item','finalizar_verificacion','marcar_desembolsada','desistir',
   'poner_en_espera','reanudar','guardar_ubicacion','asignar_verificador','actualizar_datos_refi','actualizar_datos_analisis','registrar_reconocimiento','regresar_a_revisadas','guardar_origen','guardar_origen_cliente','fijar_tasa','marcar_paso_verificacion']);
-const OB_DESC = { guardar_hoja:'Hoja de solicitud', agregar_lugar:'Agregar colonia al banco', marcar_paso_verificacion:'Paso de la visita', fijar_tasa:'Fijar tasa de interés', crear_solicitud:'Crear solicitud', enviar_analisis:'Enviar a análisis', dictaminar:'Dictamen', completar_solicitud:'Completar con el cliente',
+const OB_DESC = { guardar_hoja:'Hoja de solicitud', agregar_lugar:'Agregar colonia al banco', agregar_empresa:'Agregar empresa al listado', marcar_paso_verificacion:'Paso de la visita', fijar_tasa:'Fijar tasa de interés', crear_solicitud:'Crear solicitud', enviar_analisis:'Enviar a análisis', dictaminar:'Dictamen', completar_solicitud:'Completar con el cliente',
   guardar_item:'Verificación', finalizar_verificacion:'Cerrar verificación', marcar_desembolsada:'Marcar desembolsada', desistir:'Cerrar (desistió)',
   poner_en_espera:'Poner en espera', reanudar:'Reanudar', guardar_ubicacion:'Ubicación', asignar_verificador:'Asignar verificador',
   actualizar_datos_refi:'Datos del préstamo', actualizar_datos_analisis:'Datos de análisis', registrar_reconocimiento:'Contrato de línea de crédito',
@@ -1423,7 +1432,7 @@ function aplicarOp(op, nuevo){
       if (a.p_plazo) s.plazo_meses = a.p_plazo; if (a.p_telefono) s.telefono = a.p_telefono; if (a.p_nombre) s.nombre_cliente = a.p_nombre;
       const dm = a.p_hoja?.dom, tb = a.p_hoja?.trab; if (dm){ s.dom_sector = dm.colonia || dm.sector || s.dom_sector; s.dom_ciudad = dm.ciudad || s.dom_ciudad; s.dom_ref = dm.ref || s.dom_ref; }
       if (tb){ s.trab_sector = tb.colonia || tb.sector || s.trab_sector; s.trab_ciudad = tb.ciudad || s.trab_ciudad; s.trab_ref = tb.ref || s.trab_ref; } s._pend = true; } return;
-    case 'agregar_lugar': return;
+    case 'agregar_lugar': case 'agregar_empresa': return;
     case 'fijar_tasa': if (s) Object.assign(s, { tasa_nivelado:a.p_nivelado, tasa_solo_interes:a.p_solo_interes, _pend:true }); return;
     case 'actualizar_datos_analisis': if (s) Object.assign(s, { tipo_pago:a.p_tipo_pago, rubro_especial:a.p_rubro_especial }, a.p_nombre ? { nombre_cliente:a.p_nombre } : {}, a.p_telefono != null ? { telefono:a.p_telefono } : {}, { _pend:true }); return;
     default: return;
@@ -2768,6 +2777,13 @@ async function cargarLugares(forzar){
     if (error) throw error; S.lugares = data || []; try { localStorage.setItem('vc_lugares', JSON.stringify(S.lugares)); } catch(e){} } catch(e){}
   return S.lugares;
 }
+async function cargarEmpresas(forzar){
+  if (S.empresas && !forzar) return S.empresas;
+  try { S.empresas = JSON.parse(localStorage.getItem('vc_empresas') || 'null') || S.empresas || []; } catch(e){ S.empresas = S.empresas || []; }
+  try { const { data, error } = await sb.from('empresas').select('id,nombre,rubro,departamento,ciudad,sector,colonia,ref,usos').order('usos', { ascending:false }).limit(5000);
+    if (error) throw error; S.empresas = data || []; try { localStorage.setItem('vc_empresas', JSON.stringify(S.empresas)); } catch(e){} } catch(e){}
+  return S.empresas;
+}
 // "13", "13 años", "6 meses", "2013", "04/05/2013" o "2013-05-04" → { t: texto para el Excel, f: fecha desde (AAAA-MM-DD) }
 function parseDesde(txt){
   const t = String(txt || '').trim().toLowerCase(); if (!t) return null;
@@ -2792,29 +2808,39 @@ const CIUDADES_BASE = { 'Cortés':['San Pedro Sula','Choloma','Villanueva','La L
   'Yoro':['El Progreso','Santa Rita','Yoro','Olanchito','Morazán'], 'Atlántida':['La Ceiba','Tela'], 'Francisco Morazán':['Tegucigalpa'], 'Santa Bárbara':['Santa Bárbara','Quimistán'] };
 const CB_FLECHA = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>';
 const comboHTML = (key, label, val, ph) => `<div class="cb" data-cb="${key}"><label class="f">${label}</label><div class="cb-w"><input data-cbi autocomplete="off" value="${esc(val || '')}" placeholder="${esc(ph || 'Buscar o elegir')}"><button type="button" class="cb-t" tabindex="-1" aria-label="Ver la lista">${CB_FLECHA}</button><div class="cb-s hidden"></div></div></div>`;
-// opciones(): [{ v, sub, x }]; al elegir llama elegir(op)
-function comboEnlazar(el, opciones, elegir){
+// opciones(): [{ v, sub, x }]; al elegir llama elegir(op). opt.cerrado: solo vale una opción de la lista (Enter elige la resaltada; al salir completa con la primera coincidencia)
+function comboEnlazar(el, opciones, elegir, opt = {}){
   const inp = el.querySelector('[data-cbi]'), lista = el.querySelector('.cb-s'), btn = el.querySelector('.cb-t');
   let idx = -1, todo = false;
   const cerrar = () => { lista.classList.add('hidden'); todo = false; };
-  const pintar = () => {
-    const t = norm(inp.value), ops = opciones();
+  const filtrar = () => { const t = norm(inp.value), ops = opciones();
     const l = (todo || !t ? ops : ops.filter(o => norm(o.v).includes(t) || norm(o.sub || '').includes(t)).sort((a, b) => norm(b.v).startsWith(t) - norm(a.v).startsWith(t))).slice(0, 80);
-    const nuevo = t && !ops.some(o => norm(o.v) === t);
+    return { t, ops, l }; };
+  const pintar = () => {
+    const { t, ops, l } = filtrar();
+    if (t && !todo && idx < 0 && l.length) idx = 0;
+    const nuevo = !opt.cerrado && t && !ops.some(o => norm(o.v) === t);
     lista.innerHTML = l.map((o, i) => `<button type="button" data-k="${i}" class="${i === idx ? 'on' : ''}${norm(o.v) === t ? ' sel' : ''}"><b>${esc(o.v)}</b>${o.sub ? `<span>${esc(o.sub)}</span>` : ''}</button>`).join('')
-      + (nuevo ? `<div class="cb-n">«${esc(inp.value.trim())}» no está en la lista: se agrega al banco al guardar.</div>` : '')
-      + (!l.length && !nuevo ? '<div class="cb-n">Sin opciones todavía: escriba el nombre.</div>' : '');
+      + (nuevo ? `<div class="cb-n">${l.length ? `Enter elige la resaltada · Tab deja «${esc(inp.value.trim())}» como nuevo: ${esc(opt.nuevoMsg || 'se agrega al banco al guardar.')}` : `«${esc(inp.value.trim())}» no está en la lista: ${esc(opt.nuevoMsg || 'se agrega al banco al guardar.')}`}</div>` : '')
+      + (!l.length && !nuevo ? `<div class="cb-n">${opt.cerrado ? 'Sin coincidencias.' : 'Sin opciones todavía: escriba el nombre.'}</div>` : '');
     lista.classList.remove('hidden');
-    lista.querySelectorAll('[data-k]').forEach(b => b.onmousedown = e => { e.preventDefault(); const o = l[+b.dataset.k]; inp.value = o.v; cerrar(); elegir?.(o); });
+    lista.querySelectorAll('[data-k]').forEach(b => b.onmousedown = e => { e.preventDefault(); const o = l[+b.dataset.k]; inp.value = o.v; inp.classList.remove('cb-mal'); cerrar(); elegir?.(o); });
   };
-  inp.oninput = () => { idx = -1; todo = false; pintar(); elegir?.(null); };
-  inp.onfocus = () => { todo = true; pintar(); };
-  inp.onblur = () => setTimeout(cerrar, 150);
-  btn.onmousedown = e => { e.preventDefault(); if (!lista.classList.contains('hidden')) return cerrar(); todo = true; inp.focus(); pintar(); };
-  inp.onkeydown = e => { const bs = [...lista.querySelectorAll('[data-k]')]; if (lista.classList.contains('hidden') || !bs.length) return;
-    if (e.key === 'ArrowDown' || e.key === 'ArrowUp'){ e.preventDefault(); idx = (idx + (e.key === 'ArrowDown' ? 1 : -1) + bs.length) % bs.length; bs.forEach((b, i) => b.classList.toggle('on', i === idx)); bs[idx].scrollIntoView({ block:'nearest' }); }
-    if (e.key === 'Enter' && idx >= 0){ e.preventDefault(); bs[idx].onmousedown(e); }
-    if (e.key === 'Escape') cerrar(); };
+  inp.oninput = () => { idx = -1; todo = false; inp.classList.remove('cb-mal'); pintar(); elegir?.(null); };
+  inp.onfocus = () => { todo = true; idx = -1; pintar(); };
+  inp.onblur = () => {
+    if (opt.cerrado && inp.value.trim()){ todo = false; const { l } = filtrar();
+      if (l.length){ if (norm(l[0].v) !== norm(inp.value) || l[0].v !== inp.value){ inp.value = l[0].v; elegir?.(l[0]); } inp.classList.remove('cb-mal'); } else inp.classList.add('cb-mal'); }
+    setTimeout(cerrar, 150); };
+  btn.onmousedown = e => { e.preventDefault(); if (!lista.classList.contains('hidden')) return cerrar(); todo = true; idx = -1; inp.focus(); pintar(); };
+  inp.onkeydown = e => {
+    const bs = [...lista.querySelectorAll('[data-k]')], abierta = !lista.classList.contains('hidden') && bs.length > 0;
+    if (e.key === 'ArrowDown' || e.key === 'ArrowUp'){ e.preventDefault(); if (!abierta){ todo = true; pintar(); return; }
+      idx = (idx + (e.key === 'ArrowDown' ? 1 : -1) + bs.length) % bs.length; bs.forEach((b, i) => b.classList.toggle('on', i === idx)); bs[idx].scrollIntoView({ block:'nearest' }); }
+    else if (e.key === 'Enter'){
+      if (abierta && idx >= 0) bs[idx].onmousedown(e);
+      else if (opt.cerrado && inp.value.trim()){ todo = false; const { l } = filtrar(); if (l.length){ inp.value = l[0].v; elegir?.(l[0]); cerrar(); } else { e.cbBloquea = true; inp.classList.add('cb-mal'); } } }
+    else if (e.key === 'Escape') cerrar(); };
 }
 function lugarCampo(k, v = {}, tit){
   return `<div class="lg" data-lg="${k}">
@@ -2852,99 +2878,161 @@ function lugarLeer(box){
   return { v, nuevo: !!(v.ciudad && v.colonia && !conocido) };
 }
 
-// ---------- Formulario de la hoja (en el orden del Excel) ----------
+// ---------- Formulario de la hoja: una sola vista en grupos; Enter pasa al siguiente dato ----------
 const HJ_PAR = [['Familiares', ['Madre','Padre','Hermano','Hermana','Hijo','Hija','Esposo','Esposa','Compañero de hogar','Compañera de hogar','Abuelo','Abuela','Tío','Tía','Primo','Prima','Sobrino','Sobrina','Nieto','Nieta','Cuñado','Cuñada','Suegro','Suegra','Yerno','Nuera','Padrastro','Madrastra','Padrino','Madrina']],
   ['Otros', ['Amigo','Amiga','Conocido','Conocida']]];
-const hjParSel = (i, v) => { const t = String(v || '').trim(), todos = HJ_PAR.flatMap(g => g[1]), hay = todos.find(x => norm(x) === norm(t));
-  return `<select data-rfp="${i}"><option value="">Elegir</option>${HJ_PAR.map(([g, l]) => `<optgroup label="${g}">${l.map(x => `<option value="${x.toLowerCase()}" ${hay === x ? 'selected' : ''}>${x}</option>`).join('')}</optgroup>`).join('')}${t && !hay ? `<option value="${esc(t)}" selected>${esc(t)}</option>` : ''}</select>`; };
-const HJ_PASOS = [['Cliente'], ['Empresa'], ['Ingresos'], ['Domicilio'], ['Familiares']];
+const HJ_PAR_L = HJ_PAR.flatMap(([g, l]) => l.map(x => [x.toLowerCase(), x, g]));
+const HJ_SEXO = [['h','Hombre'],['m','Mujer']], HJ_SINO = [['si','Sí'],['no','No']];
+const HJ_COBRO = [['diario','Diario'],['semanal','Semanal'],['bisemanal','Bisemanal'],['quincenal','Quincenal'],['mensual','Mensual']];
+const HJ_SEMANA = [['lunes','Lunes'],['martes','Martes'],['miercoles','Miércoles'],['jueves','Jueves'],['viernes','Viernes'],['sabado','Sábado'],['domingo','Domingo']];
+// Campos con opciones: se escribe y aparecen las coincidencias
+const opcHTML = (key, label, list, val, ph) => comboHTML(key, label, (list.find(([k, t]) => k === val || t === val) || [])[1] || (val || ''), ph || 'Escriba para buscar');
+const opcEnlazar = (root, key, list, libre) => comboEnlazar(root.querySelector(`[data-cb="${key}"]`), () => list.map(([k, t, s]) => ({ v:t, sub:s })), null, { cerrado:!libre });
+function opcLeer(root, key, list, label, libre){
+  const txt = (root.querySelector(`[data-cb="${key}"] [data-cbi]`)?.value || '').trim(); if (!txt) return null;
+  const f = list.find(([k, t]) => norm(t) === norm(txt) || norm(k) === norm(txt));
+  if (f) return f[0]; if (libre) return txt.toLowerCase();
+  throw new Error(`Revise «${label}»: elija una de las opciones de la lista`);
+}
+// Fecha escrita como dd/mm/aaaa (se pone sola la diagonal)
+function fechaMascara(inp, cambio){
+  inp.addEventListener('input', () => { const d = inp.value.replace(/\D/g, '').slice(0, 8); let o = d.slice(0, 2); if (d.length > 2) o += '/' + d.slice(2, 4); if (d.length > 4) o += '/' + d.slice(4); inp.value = o; cambio?.(); });
+}
+function fechaISOde(txt){
+  const m = String(txt || '').trim().match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/); if (!m) return null;
+  const d = +m[1], mo = +m[2], y = +m[3], dt = new Date(y, mo - 1, d);
+  if (dt.getFullYear() !== y || dt.getMonth() !== mo - 1 || dt.getDate() !== d || y < 1900 || dt > new Date()) return null;
+  return `${y}-${String(mo).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+}
+const edadTxt = (iso, sel) => { const e = iso ? edad(iso) : null; return e == null ? '' : e < (S.params.edad_minima ?? 21) ? `<span style="color:var(--red)">${e} años: menor que el mínimo (${S.params.edad_minima ?? 21})</span>` : `<span class="muted">${e} años</span>`; };
+// Enter pasa al siguiente campo visible; en el último deja el botón de terminar listo
+function enterAvanza(root, fin){
+  root.addEventListener('keydown', e => {
+    if (e.key !== 'Enter' || e.cbBloquea || e.isComposing) return;
+    const t = e.target; if (!t.matches?.('input, select') || t.closest('[data-enter-skip]')) return;
+    e.preventDefault();
+    const campos = [...root.querySelectorAll('input:not([type=hidden]):not([readonly]):not([disabled]), select')].filter(x => x.offsetParent !== null && !x.closest('[data-enter-skip]'));
+    const sig = campos[campos.indexOf(t) + 1];
+    if (sig){ sig.focus(); sig.select?.(); sig.scrollIntoView({ block:'center', behavior:'smooth' }); }
+    else { t.blur(); const b = fin && root.querySelector(fin); if (b){ b.focus(); b.scrollIntoView({ block:'center', behavior:'smooth' }); } }
+  });
+}
+// Día de cobro: modalidad + día. Quincenal: se pone el primero y se calcula el otro.
+const cobroQuin = d => { const a = Math.min(30, Math.max(1, d)), b = a + 15 <= 30 ? a + 15 : a - 15; return [Math.min(a, b), Math.max(a, b)]; };
+function cobroTxt(c){
+  if (!c?.mod) return ''; const M = HJ_COBRO.find(x => x[0] === c.mod)?.[1] || '';
+  if (c.mod === 'diario') return 'Diario';
+  if (c.mod === 'semanal' || c.mod === 'bisemanal') return c.sem ? `${M}: ${c.sem}` : M;
+  if (c.mod === 'quincenal') return c.d1 ? `${M}: ${c.d1} y ${c.d2}` : M;
+  return c.d1 ? `${M}: ${c.d1}` : M;
+}
+const HJ_GRUPOS = ['Cliente', 'Empresa', 'Ingresos', 'Domicilio', 'Referencias'];
+const hjEmpresas = () => { const m = new Map();
+  (S.empresas || []).forEach(x => m.set(norm(x.nombre), { v:x.nombre, sub:[x.rubro, x.ciudad].filter(Boolean).join(' · '), x }));
+  S.sols.forEach(s => { const e = s.datos_cliente?.hoja?.empresa; if (e && !m.has(norm(e))) m.set(norm(e), { v:e, sub:s.datos_cliente.hoja.rubro || '' }); });
+  return [...m.values()].sort((a, b) => a.v.localeCompare(b.v, 'es')); };
+const hjRubros = () => [...new Set([...(S.empresas || []).map(x => x.rubro), ...S.sols.map(x => x.datos_cliente?.hoja?.rubro)].filter(Boolean))].sort((a, b) => a.localeCompare(b, 'es'));
 function hojaCampos(h = {}, opt = {}){
-  const seg = (id, ops, val) => `<div class="seg" id="${id}">${ops.map(([k, t]) => `<button type="button" data-v="${k}" class="${val === k ? 'on' : ''}">${t}</button>`).join('')}</div>`;
-  const r = h.refs || [];
-  const rubros = [...new Set(S.sols.map(x => x.datos_cliente?.hoja?.rubro).filter(Boolean))].sort();
-  const plazoOps = [3, 4, 5, 6, 7, 8, 9, 10, 12, 15, 18, 24];
+  const r = h.refs || [], c = h.cobro || {};
+  const grupo = (i, cuerpo) => `<section class="hj-g" data-g="${i}"><h4 class="hj-gt"><span class="n">${i + 1}</span>${HJ_GRUPOS[i]}<small data-cnt="${i}"></small></h4>${cuerpo}</section>`;
+  const pideNac = !h.nac || !h.sexo;
   return `<div class="hj-f">
-    <div class="hj-pasos" id="hjPasos">${HJ_PASOS.map((p, i) => `<button type="button" data-paso="${i}" class="${i ? '' : 'on'}"><span class="n">${i + 1}</span><b>${p[0]}</b><small data-cnt="${i}"></small></button>`).join('')}</div>
-    <section class="hj-p" data-p="0">
-    ${opt.nombre ? `<label class="f">Nombre</label><input id="hNombre" value="${esc(opt.nombre)}" autocomplete="off">` : ''}
-    <div class="grid2"><div><label class="f">Cantidad solicitada</label><input id="hMonto" inputmode="decimal" value="${h.monto ?? ''}" placeholder="L"></div>
-      <div><label class="f">Plazo que eligió el cliente</label><select id="hPlazo"><option value="">—</option>${plazoOps.map(n => `<option value="${n}" ${+opt.plazo === n ? 'selected' : ''}>${n} meses</option>`).join('')}${opt.plazo && !plazoOps.includes(+opt.plazo) ? `<option selected value="${+opt.plazo}">${+opt.plazo} meses</option>` : ''}</select></div></div>
-    <div class="grid2"><div><label class="f">Fecha de nacimiento</label><input id="hNac" type="date" max="${hoyHN()}" value="${esc(h.nac || '')}"></div>
-      <div><label class="f">Sexo <span class="muted">(para el sistema)</span></label>${seg('hSexo', [['h','Hombre'],['m','Mujer']], h.sexo)}</div></div>
-    <div class="small" id="hEdad"></div>
-    ${opt.tel != null ? `<label class="f">Teléfono del cliente</label><input id="hTel" inputmode="tel" autocomplete="off" value="${esc(opt.tel || '')}">` : ''}
-    ${opt.referente != null ? `<label class="f">Referente</label><div class="hj-ro">${opt.referente ? `<b>${esc(opt.referente)}</b>` : '<span class="muted">Sin referente</span>'}<div class="small muted">Se toma de "Cómo llegó", lo que se puso al crear la solicitud.</div></div>` : ''}
-    </section>
-    <section class="hj-p hidden" data-p="1">
-    <label class="f">Empresa</label><input id="hEmp" autocomplete="off" value="${esc(h.empresa || '')}">
-    <label class="f">Rubro de la empresa</label><input id="hRubro" list="dlRubros" autocomplete="off" value="${esc(h.rubro || '')}" placeholder="Ej. Compañía de seguros, maquila, comercio"><datalist id="dlRubros">${rubros.map(x => `<option value="${esc(x)}">`).join('')}</datalist>
-    <label class="f">Dirección de la empresa</label>${lugarCampo('trab', h.trab || {}, 'Punto de referencia de la empresa')}
-    <div class="grid2"><div><label class="f">Puesto</label><input id="hPuesto" autocomplete="off" value="${esc(h.puesto || '')}"></div>
-      <div><label class="f">Antigüedad en la empresa</label><input id="hEmpDesde" autocomplete="off" value="${esc(h.emp_desde?.t || '')}" placeholder="Ej. 2013, 5 años o 04/05/2013"><div class="small muted" data-desde="hEmpDesde"></div></div></div>
-    </section>
-    <section class="hj-p hidden" data-p="2">
-    <div class="grid2"><div><label class="f">Cuánto gana</label><input id="hSal" inputmode="decimal" value="${h.salario ?? ''}" placeholder="L"></div>
-      <div><label class="f">Derecho a prestaciones laborales</label>${seg('hPrest', [['si','Sí'],['no','No']], h.prest)}</div></div>
-    <label class="f">Otros ingresos</label><input id="hOtros" autocomplete="off" value="${esc(h.otros || '')}" placeholder="Ej. remesas de su madre y hermanas, o No">
-    <div class="grid2"><div><label class="f">Forma de pago del salario</label>${seg('hFPago', HJ_PAGO, h.fpago)}</div>
-      <div><label class="f">Día de cobro</label><input id="hDia" autocomplete="off" value="${esc(h.dia || '')}" placeholder="Ej. 15 y 30"></div></div>
-    </section>
-    <section class="hj-p hidden" data-p="3">
-    ${lugarCampo('dom', h.dom || {})}
-    <div class="grid2"><div><label class="f">Antigüedad en el domicilio</label><input id="hDomDesde" autocomplete="off" value="${esc(h.dom_desde?.t || '')}" placeholder="Ej. 13 años o 2013"><div class="small muted" data-desde="hDomDesde"></div></div>
-      <div><label class="f">Vive en casa</label>${seg('hViv', HJ_VIV, h.vivienda)}</div></div>
-    </section>
-    <section class="hj-p hidden" data-p="4">
-    ${[0, 1].map(i => `<div class="hj-rf"><div class="hj-rft">Referencia ${i + 1}</div><label class="f">Nombre</label><input data-rfn="${i}" value="${esc(r[i]?.nombre || '')}" autocomplete="off">
-      <div class="grid2"><div><label class="f">Parentesco</label>${hjParSel(i, r[i]?.par)}</div><div><label class="f">Teléfono</label><input data-rft="${i}" inputmode="tel" value="${esc(r[i]?.tel || '')}" autocomplete="off"></div></div></div>`).join('')}
-    </section>
+    <div class="hj-pasos" id="hjPasos">${HJ_GRUPOS.map((p, i) => `<button type="button" data-paso="${i}" class="${i ? '' : 'on'}"><span class="n">${i + 1}</span><b>${p}</b><small data-cnt="${i}"></small></button>`).join('')}</div>
+    <div class="small muted" style="margin:6px 2px 0">Escriba y presione <b>Enter</b> para pasar al siguiente dato. En las listas aparecen las coincidencias mientras escribe: Enter elige la resaltada (para dejar lo escrito tal cual, use Tab).</div>
+    ${grupo(0, `${opt.nombre ? `<label class="f">Nombre</label><input id="hNombre" value="${esc(opt.nombre)}" autocomplete="off">` : ''}
+      ${pideNac ? `<div class="grid2"><div><label class="f">Fecha de nacimiento</label><input id="hNac" inputmode="numeric" maxlength="10" placeholder="dd/mm/aaaa" autocomplete="off" value="${esc(fDMY(h.nac))}"></div>${opcHTML('sexo', 'Sexo', HJ_SEXO, h.sexo, 'H o M')}</div><div class="small" id="hEdad"></div>` : ''}
+      ${opt.tel != null ? `<label class="f">Teléfono del cliente</label><input id="hTel" inputmode="tel" autocomplete="off" value="${esc(opt.tel || '')}">` : ''}
+      ${opt.referente != null ? `<label class="f">Referente</label><div class="hj-ro">${opt.referente ? `<b>${esc(opt.referente)}</b>` : '<span class="muted">Sin referente</span>'}<div class="small muted">Se toma de "Cómo llegó", lo que se puso al crear la solicitud.</div></div>` : ''}`)}
+    ${grupo(1, `${comboHTML('emp', 'Empresa', h.empresa, 'Escriba el nombre o elija de la lista')}
+      ${comboHTML('rubro', 'Rubro de la empresa', h.rubro, 'Ej. Compañía de seguros, maquila, comercio')}
+      <label class="f">Dirección de la empresa</label>${lugarCampo('trab', h.trab || {}, 'Punto de referencia de la empresa')}
+      <div class="grid2"><div><label class="f">Puesto</label><input id="hPuesto" autocomplete="off" value="${esc(h.puesto || '')}"></div>
+        <div><label class="f">Antigüedad en la empresa</label><input id="hEmpDesde" autocomplete="off" value="${esc(h.emp_desde?.t || '')}" placeholder="Ej. 2013, 5 años o 04/05/2013"><div class="small muted" data-desde="hEmpDesde"></div></div></div>`)}
+    ${grupo(2, `<div class="grid2"><div><label class="f">Cuánto gana</label><input id="hSal" inputmode="decimal" value="${h.salario ?? ''}" placeholder="L"></div>
+        <div><label class="f">Cantidad solicitada</label><input id="hMonto" inputmode="decimal" value="${h.monto ?? ''}" placeholder="L"></div></div>
+      <div class="grid2">${opcHTML('prest', 'Derecho a prestaciones laborales', HJ_SINO, h.prest)}${opcHTML('fpago', 'Forma de pago del salario', HJ_PAGO, h.fpago)}</div>
+      <label class="f">Otros ingresos</label><input id="hOtros" autocomplete="off" value="${esc(h.otros || '')}" placeholder="Ej. remesas de su madre y hermanas, o No">
+      <div class="grid2">${opcHTML('cmod', 'Día de cobro', HJ_COBRO, c.mod, 'Diario, semanal, quincenal…')}
+        <div><div id="cobSemF" class="hidden">${comboHTML('csem', 'Día de la semana', c.sem, 'Lunes a domingo')}</div>
+          <div id="cobDiaF" class="hidden"><label class="f" id="cobDiaL">Día del mes</label><input id="hCobDia" inputmode="numeric" maxlength="2" autocomplete="off" value="${c.d1 || ''}" placeholder="Ej. 15"><div class="small muted" id="cobTxt"></div></div></div></div>
+      ${h.dia && !h.cobro ? `<div class="small muted">Registrado antes: ${esc(h.dia)}. Elija la modalidad para cambiarlo.</div>` : ''}`)}
+    ${grupo(3, `${lugarCampo('dom', h.dom || {})}
+      <div class="grid2"><div><label class="f">Antigüedad en el domicilio</label><input id="hDomDesde" autocomplete="off" value="${esc(h.dom_desde?.t || '')}" placeholder="Ej. 13 años o 2013"><div class="small muted" data-desde="hDomDesde"></div></div>
+        ${opcHTML('viv', 'Vive en casa', HJ_VIV, h.vivienda)}</div>`)}
+    ${grupo(4, [0, 1].map(i => `<div class="hj-rf"><div class="hj-rft">Referencia ${i + 1}</div><label class="f">Nombre</label><input data-rfn="${i}" value="${esc(r[i]?.nombre || '')}" autocomplete="off">
+      <div class="grid2">${opcHTML('par' + i, 'Parentesco', HJ_PAR_L, r[i]?.par)}<div><label class="f">Teléfono</label><input data-rft="${i}" inputmode="tel" value="${esc(r[i]?.tel || '')}" autocomplete="off"></div></div></div>`).join(''))}
   </div>`;
 }
-function hojaEnlazar(w){
-  const q = x => w.querySelector(x);
-  w.querySelectorAll('.hj-f .seg').forEach(sg => sg.querySelectorAll('button').forEach(b => b.onclick = () => { const on = !b.classList.contains('on'); sg.querySelectorAll('button').forEach(x => x.classList.remove('on')); if (on) b.classList.add('on'); }));
+function hojaEnlazar(w, h = {}){
+  const q = x => w.querySelector(x), cbi = k => q(`[data-cb="${k}"] [data-cbi]`);
+  w.hjDiaViejo = h.dia || null; w.hjEmpOrig = h.empresa || '';
   w.querySelectorAll('.hj-f .lg').forEach(lugarEnlazar);
+  opcEnlazar(w, 'prest', HJ_SINO); opcEnlazar(w, 'fpago', HJ_PAGO); opcEnlazar(w, 'viv', HJ_VIV); opcEnlazar(w, 'cmod', HJ_COBRO); opcEnlazar(w, 'csem', HJ_SEMANA);
+  opcEnlazar(w, 'par0', HJ_PAR_L, true); opcEnlazar(w, 'par1', HJ_PAR_L, true);
+  if (q('[data-cb="sexo"]')) opcEnlazar(w, 'sexo', HJ_SEXO);
+  // Empresa: al elegir una de la lista se llenan el rubro y la dirección que no estén escritos
+  comboEnlazar(q('[data-cb="emp"]'), hjEmpresas, o => { const x = o?.x; if (!x) return;
+    if (!cbi('rubro').value.trim() && x.rubro) cbi('rubro').value = x.rubro;
+    const t = q('.lg[data-lg="trab"]'), g = k => t.querySelector(`[data-cb="${k}"] [data-cbi]`);
+    if (!g('ciudad').value.trim() && !g('colonia').value.trim() && x.ciudad){ g('depto').value = x.departamento || deptoDe(x.ciudad); g('ciudad').value = x.ciudad; g('sector').value = x.sector || ''; g('colonia').value = x.colonia || ''; t.querySelector('[data-lgr]').value = x.ref || ''; }
+  }, { nuevoMsg:'se agrega al listado de empresas al guardar.' });
+  comboEnlazar(q('[data-cb="rubro"]'), () => hjRubros().map(v => ({ v })), null, { nuevoMsg:'se agrega al guardar.' });
   w.querySelectorAll('[data-desde]').forEach(el => { const inp = q('#' + el.dataset.desde); const ver = () => { const p = parseDesde(inp.value);
     el.innerHTML = !inp.value.trim() ? '' : p ? `Desde ${fDMYc(p.f)} · ${tiempoDesde(p.f)}` : '<span style="color:var(--red)">Escriba años (13), un año (2013) o una fecha (04/05/2013)</span>'; }; inp.oninput = ver; ver(); });
-  const nac = q('#hNac'), ed = q('#hEdad'); const vEd = () => { const e = edad(nac.value); ed.innerHTML = e == null ? '' : e < (S.params.edad_minima ?? 21) ? `<span style="color:var(--red)">${e} años: menor que el mínimo (${S.params.edad_minima ?? 21})</span>` : `<span class="muted">${e} años</span>`; };
-  nac.oninput = vEd; vEd();
-  // Pasos: una parte a la vez
-  const secs = [...w.querySelectorAll('.hj-p')], tabs = [...w.querySelectorAll('[data-paso]')];
+  if (q('#hNac')){ const ver = () => { q('#hEdad').innerHTML = edadTxt(fechaISOde(q('#hNac').value)); }; fechaMascara(q('#hNac'), ver); ver(); }
+  // Día de cobro según la modalidad
+  const cobVer = () => { const m = opcLeerSuave(w, 'cmod', HJ_COBRO), sem = m === 'semanal' || m === 'bisemanal', dia = m === 'quincenal' || m === 'mensual';
+    q('#cobSemF').classList.toggle('hidden', !sem); q('#cobDiaF').classList.toggle('hidden', !dia);
+    q('#cobDiaL').textContent = m === 'quincenal' ? 'Primer día de cobro' : 'Día del mes';
+    const d = parseInt(q('#hCobDia').value, 10);
+    q('#cobTxt').textContent = !dia || !d ? '' : m === 'quincenal' ? `Cobra el ${cobroQuin(d).join(' y el ')}` : `Cobra el ${Math.min(31, d)} de cada mes`; };
+  cbi('cmod').addEventListener('input', cobVer); cbi('cmod').addEventListener('blur', () => setTimeout(cobVer, 0)); q('#hCobDia').addEventListener('input', cobVer);
+  q('#cobSemF')?.addEventListener('input', () => {}); cobVer();
+  // Grupos: contador, ir a un grupo y resaltar donde se escribe
+  const secs = [...w.querySelectorAll('.hj-g')], tabs = [...w.querySelectorAll('[data-paso]')];
   const cuenta = () => secs.forEach((sc, i) => {
-    const ins = [...sc.querySelectorAll('input:not([type=hidden]), select')].filter(x => !x.closest('.seg')), sgs = [...sc.querySelectorAll('.seg')];
-    const tot = ins.length + sgs.length, ok = ins.filter(x => x.value.trim()).length + sgs.filter(x => x.querySelector('.on')).length;
-    const c = w.querySelector(`[data-cnt="${i}"]`); if (c) c.textContent = `${ok} de ${tot}`;
-    tabs[i]?.classList.toggle('ok', tot > 0 && ok === tot); });
-  w.hjPaso = 0;
-  w.hjIr = i => { w.hjPaso = i; secs.forEach((sc, k) => sc.classList.toggle('hidden', k !== i)); tabs.forEach((t, k) => t.classList.toggle('on', k === i));
-    const ant = q('#hjAnt'), sig = q('#hjSig'), ok = q('#hjOk');
-    if (ant) ant.textContent = i ? 'Anterior' : 'Cancelar';
-    if (sig) sig.classList.toggle('hidden', i === secs.length - 1); if (ok) ok.classList.toggle('hidden', i !== secs.length - 1);
-    const sc = w.querySelector('.dlg') || w; sc.scrollTop = 0; w.querySelector('.dlg-in')?.scrollTo?.(0, 0); cuenta(); };
-  tabs.forEach(t => t.onclick = () => w.hjIr(+t.dataset.paso));
-  q('#hjSig')?.addEventListener('click', () => w.hjIr(Math.min(secs.length - 1, w.hjPaso + 1)));
-  q('#hjAnt')?.addEventListener('click', () => { if (w.hjPaso) w.hjIr(w.hjPaso - 1); else cerrarDialogo(w); });
-  w.querySelector('.hj-f').addEventListener('input', cuenta); w.querySelector('.hj-f').addEventListener('click', () => setTimeout(cuenta, 0)); w.querySelector('.hj-f').addEventListener('focusout', () => setTimeout(cuenta, 200));
-  w.hjIr(0);
-  cargarLugares();
+    const ins = [...sc.querySelectorAll('input:not([type=hidden]), select')].filter(x => x.offsetParent !== null), tot = ins.length, ok = ins.filter(x => x.value.trim()).length;
+    w.querySelectorAll(`[data-cnt="${i}"]`).forEach(c => c.textContent = `${ok} de ${tot}`);
+    tabs[i]?.classList.toggle('ok', tot > 0 && ok === tot); sc.classList.toggle('ok', tot > 0 && ok === tot); });
+  tabs.forEach(t => t.onclick = () => secs[+t.dataset.paso].scrollIntoView({ behavior:'smooth', block:'start' }));
+  w.addEventListener('focusin', e => { const g = e.target.closest?.('.hj-g'); if (g) tabs.forEach((t, k) => t.classList.toggle('on', k === +g.dataset.g)); });
+  const f = q('.hj-f'); f.addEventListener('input', cuenta); f.addEventListener('click', () => setTimeout(cuenta, 0)); f.addEventListener('focusout', () => setTimeout(cuenta, 200)); cuenta();
+  q('#hjAnt')?.addEventListener('click', () => cerrarDialogo(w));
+  enterAvanza(w, '#hjOk');
+  cargarLugares(); cargarEmpresas();
+  setTimeout(() => (q('#hNac') || q('#hTel') || q('[data-cb="emp"] [data-cbi]'))?.focus({ preventScroll:true }), 50);
 }
+// Lee una opción sin fallar (para mostrar u ocultar campos mientras se escribe)
+function opcLeerSuave(root, key, list){ const t = norm(root.querySelector(`[data-cb="${key}"] [data-cbi]`)?.value || ''); if (!t) return null;
+  const f = list.find(([k, x]) => norm(x) === t || k === t) || list.find(([k, x]) => norm(x).startsWith(t)); return f ? f[0] : null; }
 function hojaLeer(w){
-  const q = x => w.querySelector(x), v = x => (q(x)?.value || '').trim(), sg = id => q(`#${id} button.on`)?.dataset.v || null;
+  const q = x => w.querySelector(x), v = x => (q(x)?.value || '').trim(), cbv = k => (q(`[data-cb="${k}"] [data-cbi]`)?.value || '').trim();
   const dom = lugarLeer(q('.lg[data-lg="dom"]')), trab = lugarLeer(q('.lg[data-lg="trab"]'));
   const desde = id => { const t = v('#' + id); if (!t) return null; const p = parseDesde(t); if (!p) throw new Error('Revise la antigüedad: escriba años (13), un año (2013) o una fecha (04/05/2013)'); return p; };
-  const refs = [0, 1].map(i => ({ nombre:v(`[data-rfn="${i}"]`), par:v(`[data-rfp="${i}"]`), tel:v(`[data-rft="${i}"]`) })).filter(x => x.nombre || x.tel);
-  const hoja = { monto:num(v('#hMonto')) || null, nac:v('#hNac') || null, sexo:sg('hSexo'), empresa:v('#hEmp') || null, rubro:v('#hRubro') || null, trab:trab.v,
-    puesto:v('#hPuesto') || null, emp_desde:desde('hEmpDesde'), salario:num(v('#hSal')) || null, prest:sg('hPrest'), otros:v('#hOtros') || null,
-    fpago:sg('hFPago'), dia:v('#hDia') || null, dom:dom.v, dom_desde:desde('hDomDesde'), vivienda:sg('hViv'), refs };
+  const refs = [0, 1].map(i => ({ nombre:v(`[data-rfn="${i}"]`), par:opcLeer(w, 'par' + i, HJ_PAR_L, 'Parentesco', true) || '', tel:v(`[data-rft="${i}"]`) })).filter(x => x.nombre || x.tel);
+  const hoja = { monto:num(v('#hMonto')) || null, empresa:cbv('emp') || null, rubro:cbv('rubro') || null, trab:trab.v,
+    puesto:v('#hPuesto') || null, emp_desde:desde('hEmpDesde'), salario:num(v('#hSal')) || null, prest:opcLeer(w, 'prest', HJ_SINO, 'Prestaciones'), otros:v('#hOtros') || null,
+    fpago:opcLeer(w, 'fpago', HJ_PAGO, 'Forma de pago'), dom:dom.v, dom_desde:desde('hDomDesde'), vivienda:opcLeer(w, 'viv', HJ_VIV, 'Vive en casa'), refs };
+  if (q('#hNac')){ const t = v('#hNac'); hoja.nac = null; if (t){ hoja.nac = fechaISOde(t); if (!hoja.nac) throw new Error('Revise la fecha de nacimiento (día/mes/año)'); } hoja.sexo = opcLeer(w, 'sexo', HJ_SEXO, 'Sexo'); }
+  const mod = opcLeer(w, 'cmod', HJ_COBRO, 'Día de cobro');
+  if (mod){
+    const cobro = { mod };
+    if (mod === 'semanal' || mod === 'bisemanal'){ const s = opcLeer(w, 'csem', HJ_SEMANA, 'Día de la semana'); if (!s) throw new Error('Elija el día de la semana en que cobra'); cobro.sem = HJ_SEMANA.find(x => x[0] === s)[1]; }
+    if (mod === 'quincenal' || mod === 'mensual'){ const d = parseInt(v('#hCobDia'), 10); if (!(d >= 1 && d <= 31)) throw new Error('Escriba el día del mes en que cobra (1 a 31)');
+      if (mod === 'quincenal'){ [cobro.d1, cobro.d2] = cobroQuin(d); } else cobro.d1 = d; }
+    hoja.cobro = cobro; hoja.dia = cobroTxt(cobro);
+  } else hoja.dia = w.hjDiaViejo || null;
   const nuevos = [dom, trab].filter(x => x.nuevo).map(x => x.v);
   const lleno = Object.entries(hoja).some(([k, x]) => k === 'refs' ? x.length : (k === 'dom' || k === 'trab') ? Object.entries(x).some(([kk, y]) => kk !== 'depto' && y) : x != null && x !== '');
-  return { hoja, plazo:+v('#hPlazo') || null, nuevos, lleno, tel:q('#hTel') ? v('#hTel') : null, nombre:q('#hNombre') ? v('#hNombre') : null };
+  return { hoja, plazo:null, nuevos, lleno, tel:q('#hTel') ? v('#hTel') : null, nombre:q('#hNombre') ? v('#hNombre') : null,
+    empNueva: !!hoja.empresa && norm(hoja.empresa) !== norm(w.hjEmpOrig || ''), trabV:trab.v };
 }
 async function hojaGuardar(id, r){
   if (!r.lleno && !r.plazo) return;
   await rpc('guardar_hoja', { p_id:id, p_hoja:r.hoja, p_plazo:r.plazo, p_telefono:r.tel || null, p_nombre:r.nombre || null });
   for (const l of r.nuevos){ try { await rpc('agregar_lugar', { p_ciudad:l.ciudad, p_sector:l.sector || null, p_colonia:l.colonia, p_depto:l.depto || null }); } catch(e){} }
   if (r.nuevos.length) cargarLugares(true);
+  if (r.empNueva){ const t = r.trabV || {}; try { await rpc('agregar_empresa', { p_nombre:r.hoja.empresa, p_rubro:r.hoja.rubro || null, p_depto:t.depto || null, p_ciudad:t.ciudad || null, p_sector:t.sector || null, p_colonia:t.colonia || null, p_ref:t.ref || null }); cargarEmpresas(true); } catch(e){} }
 }
 
 // ---------- Textos para copiar ----------
@@ -3073,10 +3161,10 @@ function hojaCardEnlazar(s){
 function hojaDialogo(s){
   const h = s.datos_cliente?.hoja || {};
   const w = dialogo(`<h3>Hoja de solicitud</h3><div class="small muted">${esc(s.nombre_cliente)} · ${esc(s.dni || '')}</div>
-    ${hojaCampos(h, { nombre:s.nombre_cliente, plazo:s.plazo_meses, referente:hjRef(s), tel:s.telefono || '' })}
-    <div class="btns"><button class="btn ghost" id="hjAnt" type="button">Cancelar</button><button class="btn pri" id="hjSig" type="button">Siguiente</button><button class="btn pri hidden" id="hjOk">Guardar hoja</button></div>`, { pantalla:'Hoja de solicitud' });
+    ${hojaCampos(h, { nombre:s.nombre_cliente, referente:hjRef(s), tel:s.telefono || '' })}
+    <div class="btns"><button class="btn ghost" id="hjAnt" type="button">Cancelar</button><button class="btn pri" id="hjOk">Guardar hoja</button></div>`, { pantalla:'Hoja de solicitud' });
   w.querySelector('.dlg-top').insertAdjacentHTML('beforeend', '<button type="button" class="btn sm ghost" id="hjOk2" style="margin-left:auto">Guardar</button>');
-  hojaEnlazar(w);
+  hojaEnlazar(w, h);
   w.querySelector('#hjOk2').onclick = () => w.querySelector('#hjOk').click();
   w.querySelector('#hjOk').onclick = e => run(e.target, async () => {
     const r = hojaLeer(w); r.lleno = true;
@@ -3108,7 +3196,7 @@ function nuevaSolicitudDlg(pre = {}){
   const w = dialogo(`
     <h3>Nueva solicitud${pre.lead ? ' · prospecto del bot' : ''}</h3>
     <label class="f">Número de identidad del cliente</label>
-    <div class="ns-dni"><input id="nDni" inputmode="numeric" maxlength="15" placeholder="0501-1990-12345" autocomplete="off"><button type="button" class="btn" id="nBuscar">${ico('search', 'sm')}Buscar</button></div>
+    <div class="ns-dni"><input id="nDni" data-enter-skip inputmode="numeric" maxlength="15" placeholder="0501-1990-12345" autocomplete="off"><button type="button" class="btn" id="nBuscar">${ico('search', 'sm')}Buscar</button></div>
     <div class="small muted" id="nDniHelp">Escriba la identidad: si el cliente ya tuvo solicitudes, sus datos se llenan solos.</div>
     <div id="nEnc"></div>
     <div id="nResto" class="hidden">
@@ -3119,6 +3207,7 @@ function nuevaSolicitudDlg(pre = {}){
         <div class="small muted" id="nCartHelp"></div></div>
       <div id="nCartNueva" class="small muted" style="margin-top:8px"></div>
       <label class="f">Nombre completo del cliente</label><input id="nNombre" autocomplete="off">
+      ${gestor ? '' : `<div class="grid2"><div><label class="f">Fecha de nacimiento</label><input id="nNac" inputmode="numeric" maxlength="10" placeholder="dd/mm/aaaa" autocomplete="off"></div>${opcHTML('sexo', 'Sexo', HJ_SEXO, '', 'H o M')}</div><div class="small" id="nEdad"></div>`}
       ${rol() === 'admin' ? `<label class="f">Asesor responsable</label><select id="nAsesor">${Object.values(S.perfiles).filter(p => p.activo && ['asesor','admin'].includes(p.rol)).map(p => `<option value="${p.id}" ${p.id === S.me.id ? 'selected' : ''}>${esc(p.nombre)}${p.rol === 'admin' ? ' (admin)' : ''}</option>`).join('')}</select>` : ''}
       <label class="f">Teléfono${gestor ? '' : ' (opcional)'}</label><input id="nTel" inputmode="tel" autocomplete="off">
       <div id="nIngF" class="hidden"><label class="f">Fecha de ingreso del cliente (antigüedad)</label><input id="nIng" type="date" max="${hoyHN()}"></div>
@@ -3185,6 +3274,8 @@ function nuevaSolicitudDlg(pre = {}){
   q('#nBuscar').onclick = () => { buscado = ''; buscar(); };
   q('#nDni').focus();
   if (q('#nOrigen')) origenEnlazar(w);
+  if (q('#nNac')){ fechaMascara(q('#nNac'), () => { q('#nEdad').innerHTML = edadTxt(fechaISOde(q('#nNac').value)); }); opcEnlazar(w, 'sexo', HJ_SEXO); }
+  enterAvanza(w, '#nOk');
   if (pre.nombre) q('#nNombre').value = pre.nombre;
   if (pre.tel) q('#nTel').value = pre.tel;
   if (pre.tipo && tipos.some(t => t[0] === pre.tipo)) tipo = pre.tipo;
@@ -3202,8 +3293,11 @@ function nuevaSolicitudDlg(pre = {}){
       toast(`Solicitud ${r?.codigo || ''} registrada. El asesor ya la tiene.`); return;
     }
     const origen = tipo === 'nuevo' ? origenLeer(w, true) : null;
+    let nacISO = null; const sexo = opcLeer(w, 'sexo', HJ_SEXO, 'Sexo');
+    if (q('#nNac').value.trim()){ nacISO = fechaISOde(q('#nNac').value); if (!nacISO) throw new Error('Revise la fecha de nacimiento (día/mes/año)'); }
     const id = await rpc('crear_solicitud', { p_dni: q('#nDni').value, p_nombre: q('#nNombre').value, p_tipo: tipo, p_telefono: q('#nTel').value || null, p_enviar: false, p_fecha_ingreso: tipo !== 'nuevo' ? (q('#nIng').value || null) : null, p_asesor: q('#nAsesor')?.value || null });
     if (origen) await rpc('guardar_origen_cliente', { p_id:id, ...origen });
+    if (nacISO || sexo){ try { await rpc('guardar_hoja', { p_id:id, p_hoja:{ ...(nacISO ? { nac:nacISO } : {}), ...(sexo ? { sexo } : {}) } }); } catch(x){ console.error(x); toast('La solicitud se creó, pero no se pudo guardar la fecha de nacimiento o el sexo. Llénelos en la hoja.', true); } }
     if (id > 0){
       try { if (tipo !== 'nuevo') await rpc('asignar_cartera', { p_id:id, p_cartera:cart }); } catch(x){ console.error(x); toast('La solicitud se creó, pero no se pudo guardar la cartera. Cámbiela en el detalle.', true); }
       try { if (enc?.encontrado) await rpc('copiar_datos_cliente', { p_id:id }); } catch(x){ console.error(x); }
@@ -8890,8 +8984,9 @@ function pintarParams(){
     <div class="card"><table class="t"><tbody>${S.feriadosRows.map(f => `<tr><td>${fDate(f.fecha+'T12:00')}</td><td>${esc(f.descripcion)}</td><td style="width:30px"><button class="x" data-fd="${f.fecha}">×</button></td></tr>`).join('') || '<tr><td class="muted">Sin feriados</td></tr>'}</tbody></table>
     <div class="addrow" style="grid-template-columns:1fr 1.4fr auto"><input type="date" id="fFecha"><input id="fDesc" placeholder="Descripción"><button class="btn pri" id="fAdd">Agregar</button></div></div>
     <h4 class="sec">💬 Plantillas de WhatsApp (Por verificar)</h4><div class="card" id="plAdmin"><div class="muted small">Cargando…</div></div>
-    <h4 class="sec" id="blSec">Banco de ciudades, sectores y colonias</h4><div class="card" id="blAdmin"><div class="muted small">Cargando…</div></div>`);
-  pintarPlantillasAdmin(); pintarBancoLugares();
+    <h4 class="sec" id="blSec">Banco de ciudades, sectores y colonias</h4><div class="card" id="blAdmin"><div class="muted small">Cargando…</div></div>
+    <h4 class="sec" id="emSec">Listado de empresas</h4><div class="card" id="emAdmin"><div class="muted small">Cargando…</div></div>`);
+  pintarPlantillasAdmin(); pintarBancoLugares(); pintarEmpresasAdmin();
   $('#main').querySelectorAll('[data-ps]').forEach(b => b.onclick = () => run(b, async () => {
     const v = num(document.querySelector(`[data-p="${b.dataset.ps}"]`).value); if (v == null) throw new Error('Valor inválido');
     await rpc('actualizar_parametro', { p_clave: b.dataset.ps, p_valor: v }); await cargarParams(); toast('Parámetro actualizado');
@@ -8966,6 +9061,64 @@ function blImportar(){
   w.querySelector('#blIOk').onclick = e => run(e.target, async () => {
     const n = await rpc('importar_lugares', { p_filas: filas.map(r => ({ depto: r.depto || null, ciudad: r.ciudad, sector: r.sector || null, colonia: r.colonia })) });
     cerrarDialogo(w); toast(`${n || 0} colonia${n === 1 ? '' : 's'} nueva${n === 1 ? '' : 's'} en el banco${filas.length - (n || 0) ? ` · ${filas.length - (n || 0)} ya existían` : ''}`); pintarBancoLugares();
+  });
+}
+
+// ---------- Listado de empresas (admin, en Parámetros) ----------
+const EM = { q:'', pag:60 };
+async function pintarEmpresasAdmin(){
+  const box = $('#emAdmin'); if (!box) return;
+  const L = await cargarEmpresas(true); if (!$('#emAdmin')) return;
+  const t = norm(EM.q);
+  const f = L.filter(x => !t || norm([x.nombre, x.rubro, x.ciudad, x.colonia].join(' ')).includes(t)).sort((a, b) => a.nombre.localeCompare(b.nombre, 'es'));
+  box.innerHTML = `<div class="small muted" style="margin-bottom:8px">Es la lista que ve el asesor al escribir la empresa en la hoja de solicitud: al elegirla se llenan sola el rubro y la dirección. Cuando se escribe una empresa que no está, se agrega sola. Aquí puede corregir, borrar, agregar o importar desde Excel.</div>
+    <input id="emQ" placeholder="Buscar empresa, rubro o ciudad" value="${esc(EM.q)}">
+    <div class="row" style="gap:6px;margin-top:8px"><button class="btn sm pri" id="emNuevo">${ico('plus')} Agregar empresa</button><button class="btn sm" id="emImp">${ico('file')} Importar desde Excel</button></div>
+    <div class="small muted" style="margin:8px 0 4px">${f.length} empresa${f.length === 1 ? '' : 's'}</div>
+    <div class="bl-l">${f.slice(0, EM.pag).map(x => `<div class="bl-r"><div><b>${esc(x.nombre)}</b><div class="small muted">${esc(x.rubro || 'Sin rubro')}${x.ciudad ? ' · ' + esc(x.ciudad) : ''}${x.colonia ? ' · ' + esc(x.colonia) : ''}${x.usos ? ` · usada ${x.usos} ${x.usos === 1 ? 'vez' : 'veces'}` : ''}</div></div>
+      <div class="bl-a"><button class="btn sm ghost" data-eme="${x.id}">Editar</button><button class="x" data-emd="${x.id}" title="Borrar" aria-label="Borrar">×</button></div></div>`).join('') || '<div class="muted small">Sin resultados</div>'}
+    </div>${f.length > EM.pag ? `<button class="btn sm ghost" id="emMas" style="margin-top:6px">Ver ${Math.min(60, f.length - EM.pag)} más</button>` : ''}`;
+  let tq; $('#emQ').oninput = e => { clearTimeout(tq); tq = setTimeout(() => { EM.q = e.target.value; EM.pag = 60; pintarEmpresasAdmin().then(() => { const i = $('#emQ'); if (i){ i.focus(); i.setSelectionRange(i.value.length, i.value.length); } }); }, 250); };
+  if ($('#emMas')) $('#emMas').onclick = () => { EM.pag += 60; pintarEmpresasAdmin(); };
+  $('#emNuevo').onclick = () => emEditar(null);
+  $('#emImp').onclick = emImportar;
+  box.querySelectorAll('[data-eme]').forEach(b => b.onclick = () => emEditar(L.find(x => x.id === +b.dataset.eme)));
+  box.querySelectorAll('[data-emd]').forEach(b => b.onclick = () => run(b, async () => {
+    const x = L.find(y => y.id === +b.dataset.emd); if (!x || !confirm(`¿Borrar «${x.nombre}» del listado? Las solicitudes que ya la usan no cambian.`)) return;
+    await rpc('guardar_empresa', { p_id:x.id, p_nombre:x.nombre, p_rubro:null, p_depto:null, p_ciudad:null, p_sector:null, p_colonia:null, p_ref:null, p_borrar:true }); toast('Empresa borrada'); pintarEmpresasAdmin(); }));
+}
+function emEditar(x){
+  const w = dialogo(`<h3>${x ? 'Editar empresa' : 'Agregar empresa'}</h3>
+    <label class="f">Nombre de la empresa</label><input id="emN" autocomplete="off" value="${esc(x?.nombre || '')}">
+    ${comboHTML('rubro', 'Rubro', x?.rubro, 'Ej. Maquila, comercio')}
+    <label class="f">Dirección</label>${lugarCampo('em', x ? { depto:x.departamento, ciudad:x.ciudad, sector:x.sector, colonia:x.colonia, ref:x.ref } : {}, 'Punto de referencia')}
+    <div class="btns"><button class="btn ghost" data-close>Cancelar</button><button class="btn pri" id="emOk">Guardar</button></div>`);
+  const box = w.querySelector('.lg'); lugarEnlazar(box); cargarLugares();
+  comboEnlazar(w.querySelector('[data-cb="rubro"]'), () => hjRubros().map(v => ({ v })), null, { nuevoMsg:'se agrega al guardar.' });
+  enterAvanza(w, '#emOk');
+  w.querySelector('#emOk').onclick = e => run(e.target, async () => {
+    const val = k => box.querySelector(`[data-cb="${k}"] [data-cbi]`).value.trim();
+    if (!w.querySelector('#emN').value.trim()) throw new Error('Escriba el nombre de la empresa');
+    await rpc('guardar_empresa', { p_id:x?.id || null, p_nombre:w.querySelector('#emN').value, p_rubro:w.querySelector('[data-cb="rubro"] [data-cbi]').value || null, p_depto:val('depto') || null, p_ciudad:val('ciudad') || null,
+      p_sector:val('sector') || null, p_colonia:val('colonia') || null, p_ref:box.querySelector('[data-lgr]').value || null });
+    cerrarDialogo(w); toast(x ? 'Empresa actualizada' : 'Empresa agregada'); pintarEmpresasAdmin();
+  });
+}
+function emImportar(){
+  const w = dialogo(`<h3>Importar empresas desde Excel</h3>
+    <div class="small muted">En Excel ponga las columnas en este orden: <b>Empresa · Rubro · Ciudad · Sector · Colonia</b> (solo la empresa es obligatoria). Seleccione las filas, cópielas y péguelas aquí. Las empresas que ya existen se saltan.</div>
+    <textarea id="emTxt" rows="9" placeholder="Maquila Ejemplo&#9;Maquila&#9;San Pedro Sula&#9;&#9;Col. Sinaí" style="width:100%;margin-top:8px;font-family:monospace;font-size:12.5px"></textarea>
+    <div class="small" id="emPrev" style="margin-top:6px"></div>
+    <div class="btns"><button class="btn ghost" data-close>Cancelar</button><button class="btn pri" id="emIOk" disabled>Importar</button></div>`);
+  let filas = [];
+  w.querySelector('#emTxt').oninput = () => {
+    filas = w.querySelector('#emTxt').value.split(/\r?\n/).map(l => l.split('\t').map(c => c.trim())).filter(c => c[0]).map(c => ({ nombre:c[0], rubro:c[1] || '', ciudad:c[2] || '', sector:c[3] || '', colonia:c[4] || '' }))
+      .filter(r => !/^(empresa|nombre)$/i.test(r.nombre));
+    w.querySelector('#emPrev').innerHTML = filas.length ? `${filas.length} empresa${filas.length === 1 ? '' : 's'} lista${filas.length === 1 ? '' : 's'}. Ejemplo: <b>${esc(filas[0].nombre)}</b> · ${esc(filas[0].rubro || 'sin rubro')}` : '';
+    w.querySelector('#emIOk').disabled = !filas.length; };
+  w.querySelector('#emIOk').onclick = e => run(e.target, async () => {
+    const n = await rpc('importar_empresas', { p_filas: filas });
+    cerrarDialogo(w); toast(`${n || 0} empresa${n === 1 ? '' : 's'} nueva${n === 1 ? '' : 's'}${filas.length - (n || 0) ? ` · ${filas.length - (n || 0)} ya existían` : ''}`); pintarEmpresasAdmin();
   });
 }
 
