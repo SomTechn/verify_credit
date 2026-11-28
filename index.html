@@ -1000,7 +1000,7 @@ body.nav-min .sn-vt span{display:none}
 // App disponible sin señal (sw.js debe estar junto a index.html). Va primero para registrarse aunque falle otra cosa.
 if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) navigator.serviceWorker.register('sw.js').catch(() => {});
 // Versión de esta copia de la app: cambia en cada entrega. La app la compara con la publicada y se actualiza sola.
-const APP_VER = '2026-11-28.1200';
+const APP_VER = '2026-11-28.1300';
 // 'admin' = cambio solo para el administrador: los demás usuarios no ven el aviso de versión nueva (se actualiza en silencio)
 // y sus NOVEDADES deben llevar r:['admin']. 'todos' = cambio que ven los usuarios.
 const APP_AVISO = 'todos';
@@ -1009,6 +1009,11 @@ const APP_AVISO = 'todos';
 // r = roles que la ven (sin r = todos; el admin ve todo).
 // Regla: las novedades de control (GPS, horas de los verificadores, permisos, auditoría) van SOLO con r:['admin'].
 const NOVEDADES = [
+  { v:'2026-11-28.1300', f:'28 de noviembre de 2026', items:[
+    { i:'•', t:'Cambio de modalidad y reestructuración: negociación con contrato firmado', r:['gestor','asesor','analista'],
+      d:'Ya no llevan el análisis de antigüedad, último aumento ni comportamiento de pago. El asesor pone los datos negociados (capital, intereses, condonación si aplica, plazo, tasa y monto del nuevo préstamo) y sube el contrato firmado: sin el contrato no se puede enviar a análisis. El analista solo confirma esos datos. Al aprobar, la solicitud queda finalizada: no hay desembolso, porque el cambio se aplica en el sistema, y no cuenta en las estadísticas de crédito (solo en Cámbiate a nivelado).' },
+    { i:'•', t:'Cartera presencial sin refinanciamiento', r:['asesor','analista','gestor'],
+      d:'Los clientes de la cartera de Gestión Presencial no tienen opción a refinanciamiento: el sistema no deja crear ni enviar la solicitud.' } ] },
   { v:'2026-11-28.1200', f:'28 de noviembre de 2026', items:[
     { i:'•', t:'Cambios de modalidad directo a análisis', r:['gestor','asesor','analista'],
       d:'Los cambios de modalidad (incluidos los de Cámbiate a nivelado) ya no pasan por el asesor: caen directo a análisis y el asesor responsable es el analista Kevin Ramos. No piden ingresos, hoja de solicitud, fecha de nacimiento ni sexo, porque solo son una negociación con el cliente. Lo mismo aplica a las reestructuraciones: no piden hoja de solicitud.' } ] },
@@ -1279,6 +1284,11 @@ function hace(d){
   return fDate(d);
 }
 const chip = e => `<span class="chip c-${EST[e]?.c||'gray'}">${esc(EST[e]?.t||e)}</span>`;
+// Cambio de modalidad y reestructuración: negociación sin desembolso físico (solo cambio en el sistema)
+const TIPOS_NEG = ['cambio_modalidad','reestructuracion'];
+const esNeg = s => !!s && TIPOS_NEG.includes(s.tipo);
+const estT = s => esNeg(s) && s.estado === 'desembolsada' ? 'Finalizada' : (EST[s.estado]?.t || s.estado);
+const chipS = s => esNeg(s) && s.estado === 'desembolsada' ? '<span class="chip c-teal">Finalizada</span>' : chip(s.estado);
 const tipoChip = t => `<span class="chip ${t==='nuevo'?'c-blue':t==='reingreso'?'c-teal':t==='refinanciamiento'?'c-violet':'c-amber'}">${TIPO[t]||esc(t)}</span>`;
 const nombre = id => S.perfiles[id]?.nombre || '—';
 const pendChip = s => s._pend ? '<span class="chip c-amber" title="Hecho sin señal; se enviará al volver la conexión">⟳ por enviar</span>' : '';
@@ -2003,11 +2013,11 @@ function tabsRol(){
     trabajo:['trabajo','Mi trabajo', s => false],
     solicitudes:['solicitudes','Solicitudes', s => mio(s) && ['borrador','en_analisis'].includes(s.estado)],
     revisadas:['revisadas','Revisadas', s => mio(s) && !s.importado && (s.estado === 'aprobada' || (s.estado === 'denegada' && dias(s.dictamen_en, 15)))],
-    proceso:['proceso','En proceso', s => mio(s) && (['por_verificar','desembolso_pendiente'].includes(s.estado) || (s.estado==='desembolsada' && dias(s.desembolsado_en, 7)))],
+    proceso:['proceso','En proceso', s => mio(s) && (['por_verificar','desembolso_pendiente'].includes(s.estado) || (s.estado==='desembolsada' && !esNeg(s) && dias(s.desembolsado_en, 7)))],
     analisis:['analisis','Análisis', s => s.estado === 'en_analisis'],
     verificar:['verificar','Por verificar', s => s.estado === 'por_verificar' && (!s.verificador_id || s.verificador_id === S.me.id || s.verificador_trabajo_id === S.me.id || ['admin','asesor','analista'].includes(rol()))],
     verificadas:['verificadas','Mis verificaciones', s => s.verificado_en && s.verificador_id === S.me.id],
-    desembolsos:['desembolsos','Desembolsos', s => s.estado === 'desembolso_pendiente' || (s.estado === 'desembolsada' && dias(s.desembolsado_en, 7))],
+    desembolsos:['desembolsos','Desembolsos', s => s.estado === 'desembolso_pendiente' || (s.estado === 'desembolsada' && !esNeg(s) && dias(s.desembolsado_en, 7))],
     todas:['todas','Todas', s => true],
     historial:['historial','Historial'],
     tablero:['tablero','Tablero', s => false],
@@ -2351,7 +2361,7 @@ function trabajoCard(x){
     return `<button class="mt-b${sec ? ' gh' : ''}" data-ma="${k}" data-id="${s.id}">${ico(i)}${t}</button>`;
   }).join('');
   return `<div class="mt-c ${x.tono}" data-id="${s.id}"><div class="mt-tx"><div class="mt-nm">${esc(s.nombre_cliente)} ${tipoChip(s.tipo)}${x.chips}${comChip(s)}</div>
-    <div class="mt-meta">${esc(s.codigo)}${s.monto_solicitado || s.monto_aprobado ? ' · ' + L(s.monto_solicitado || s.monto_aprobado) : ''} · ${esc(PASO[pasoActual(s)]?.t || EST[s.estado]?.t || s.estado)}</div>
+    <div class="mt-meta">${esc(s.codigo)}${s.monto_solicitado || s.monto_aprobado ? ' · ' + L(s.monto_solicitado || s.monto_aprobado) : ''} · ${esc(PASO[pasoActual(s)]?.t || estT(s))}</div>
     <div class="mt-why">${x.motivo}</div>${mtTiempo(s)}</div><div class="mt-acc">${acc}</div></div>`;
 }
 // ---------- Mi ritmo: tiempo promedio del usuario hoy contra sus últimos 30 días ----------
@@ -2526,7 +2536,7 @@ function pintarTrabajo(){
       ${coms.length ? `<div class="mt-sec">Comentarios nuevos <small>${coms.length} solicitud(es)</small></div>
         ${coms.map(s => { const c = comNuevos(s), u = c[c.length - 1];
           return `<div class="mt-c rd com" data-id="${s.id}"><div class="mt-tx"><div class="mt-nm">${esc(s.nombre_cliente)} <span class="chip c-red">${ico('chat', 'sm')}${c.length} nuevo${c.length > 1 ? 's' : ''}</span></div>
-            <div class="mt-meta">${esc(s.codigo)} · ${esc(EST[s.estado]?.t || s.estado)}</div>
+            <div class="mt-meta">${esc(s.codigo)} · ${esc(estT(s))}</div>
             <div class="mt-why"><b>${esc(nombre(u.autor_id))}</b> ${hace(u.creado_en)}: ${esc((u.texto || '').slice(0, 140))}</div></div>
             <div class="mt-acc"><button class="mt-b" data-ma="com" data-id="${s.id}">${ico('chat')}Leer y responder</button></div></div>`; }).join('')}` : ''}
       <div class="mt-sec">${r === 'verificador' ? 'Visitas asignadas' : 'Te toca a ti'} <small>${d.toca.length} solicitud(es)</small></div>
@@ -2537,7 +2547,7 @@ function pintarTrabajo(){
       <div class="mt-box">${d.espera.length ? d.espera.map(e => `<button class="mt-row" data-ir="${e.tab || 'tablero'}"><span>${ico(e.i, 'sm')}${esc(e.t)}</span><b>${e.n}</b></button>`).join('') : '<div class="muted small">Nada en espera.</div>'}</div>
       <div class="mt-sec">Cerradas hoy</div>
       <div class="mt-box">${d.cerradas.length ? d.cerradas.slice(0, 8).map(s => `<button class="mt-row" data-id="${s.id}"><span>${ico(s.estado === 'desembolsada' ? 'check' : 'x', 'sm')}${esc(s.nombre_cliente)}</span>
-        <span class="chip ${s.estado === 'desembolsada' ? 'c-green' : 'c-gray'}">${s.estado === 'desembolsada' ? L(s.monto_solicitado || s.monto_aprobado) : esc(EST[s.estado]?.t || s.estado)}</span></button>`).join('') : '<div class="muted small">Todavía nada hoy.</div>'}</div>
+        <span class="chip ${s.estado === 'desembolsada' ? 'c-green' : 'c-gray'}">${s.estado === 'desembolsada' ? L(s.monto_solicitado || s.monto_aprobado) : esc(estT(s))}</span></button>`).join('') : '<div class="muted small">Todavía nada hoy.</div>'}</div>
       <button class="mt-link" data-ir="tablero">${ico('board', 'sm')}Ver el tablero general</button>
     </div></div>`;
   const main = $('#main');
@@ -2563,7 +2573,7 @@ function pintarTrabajo(){
     const t = q.value.trim().toLowerCase(), res = $('#mtRes');
     if (t.length < 2){ res.innerHTML = ''; return; }
     const l = S.sols.filter(s => [s.nombre_cliente, s.codigo, s.dni, s.telefono].some(v => (v || '').toLowerCase().includes(t))).slice(0, 8);
-    res.innerHTML = `<div class="mt-box mt-res">${l.length ? l.map(s => `<button class="mt-row" data-id="${s.id}"><span>${esc(s.nombre_cliente)} <span class="muted small">${esc(s.codigo)}</span></span>${chip(s.estado)}</button>`).join('') : '<div class="muted small">Sin resultados.</div>'}</div>`;
+    res.innerHTML = `<div class="mt-box mt-res">${l.length ? l.map(s => `<button class="mt-row" data-id="${s.id}"><span>${esc(s.nombre_cliente)} <span class="muted small">${esc(s.codigo)}</span></span>${chipS(s)}</button>`).join('') : '<div class="muted small">Sin resultados.</div>'}</div>`;
     res.querySelectorAll('[data-id]').forEach(b => b.onclick = () => abrirDetalle(+b.dataset.id));
   };
   main.querySelectorAll('.mt-c').forEach(c => c.onclick = e => { if (e.target.closest('button,a,[data-stop]')) return; abrirDetalle(+c.dataset.id); });
@@ -2677,7 +2687,7 @@ function vtPintar(ya){
   const its = d.toca.map(x => { const s = x.s, seg = segHabiles(mtDesde(s), ahora);
     return { x, s, seg, cls: s.en_espera ? 'esp' : s.estado === 'desembolso_pendiente' ? 'ger' : semPaso(seg), tomar: x.acc.some(a => a[0] === 'tomar') }; });
   const late = its.filter(i => i.cls === 'late').sort((a, b) => b.seg - a.seg);
-  const paso = s => PASO[pasoActual(s)]?.t || EST[s.estado]?.t || s.estado;
+  const paso = s => PASO[pasoActual(s)]?.t || estT(s);
   const pl = i => `<span class="pl ${i.cls === 'ger' ? 'esp' : i.cls}">${i.cls === 'esp' ? 'En espera' : i.cls === 'ger' ? 'Por confirmar' : fmtDur(i.seg)}</span>`;
   const fila = i => `<div class="it${i.cls === 'late' ? ' late' : ''}" data-vt="abrir" data-id="${i.s.id}" role="button" tabindex="0">
       <div class="tx"><div class="nm">${esc(i.s.nombre_cliente)}</div><div class="dt">${esc(paso(i.s))} · ${esc(TIPO[i.s.tipo] || i.s.tipo)}${i.s.monto_solicitado || i.s.monto_aprobado ? ' · ' + L(i.s.monto_solicitado || i.s.monto_aprobado) : ''}</div></div>
@@ -3233,8 +3243,8 @@ function nuevaSolicitudDlg(pre = {}){
     q('#nOrigen')?.classList.toggle('hidden', !nuevo);
     q('#nCartF').classList.toggle('hidden', nuevo);
     q('#nCartNueva').innerHTML = !nuevo ? '' : carteraNuevas() ? `${ico('briefcase', 'sm')} Cartera: <b>${esc(carteraNombre(carteraNuevas()))}</b> (predeterminada para nuevas en Parámetros)` : '';
-    q('#nHelp').textContent = tipo === 'cambio_modalidad' ? 'El cambio de modalidad pasa directo a análisis (lo recibe el analista designado). No lleva ingresos ni hoja de solicitud: es una negociación con el cliente.'
-      : tipo === 'reestructuracion' ? 'Se crea con el nombre y puede enviarla a análisis de una vez: no lleva hoja de solicitud y los ingresos son opcionales.'
+    q('#nHelp').textContent = tipo === 'cambio_modalidad' ? 'El cambio de modalidad lo recibe el analista designado. No lleva ingresos ni hoja de solicitud: se ponen los datos negociados y se sube el contrato firmado para enviarla a análisis.'
+      : tipo === 'reestructuracion' ? 'Se crea con el nombre. No lleva ingresos ni hoja de solicitud: ponga los datos negociados con el cliente y suba el contrato firmado para enviarla a análisis.'
       : gestor ? 'La solicitud le llega al asesor para que la revise y la envíe a análisis. Usted verá aquí en qué paso va.'
       : nuevo ? 'Se crea con el nombre; luego agrega los ingresos y, cuando esté lista, la envía a análisis.'
       : 'Se crea con el nombre y puede enviarla a análisis de una vez: en refinanciamientos y reingresos los ingresos los puede agregar el analista.';
@@ -3313,7 +3323,7 @@ function nuevaSolicitudDlg(pre = {}){
     }
     if (pre.lead && id > 0){ try { await pbActualizar(pre.lead.id, { estado:'convertido', solicitud_id:id, atendido_por:S.me.id, atendido_en:new Date().toISOString() }, true); } catch(x){ console.error(x); toast('La solicitud se creó, pero el prospecto no se pudo marcar. Márquelo de nuevo al tener señal.', true); } }
     await cerrarDialogo(w); await cargarSolicitudes(); pintarTabs(); pintar();
-    toast(tipo === 'cambio_modalidad' ? 'Cambio de modalidad creado y enviado a análisis.' : tipo === 'nuevo' ? 'Solicitud creada. Agregue los ingresos.' : 'Solicitud creada. Puede enviarla a análisis; los ingresos son opcionales.');
+    toast(tipo === 'cambio_modalidad' ? 'Cambio de modalidad creado. Lo recibe el analista designado para subir el contrato firmado y enviarlo a análisis.' : tipo === 'reestructuracion' ? 'Reestructuración creada. Ponga los datos negociados y suba el contrato firmado.' : tipo === 'nuevo' ? 'Solicitud creada. Agregue los ingresos.' : 'Solicitud creada. Puede enviarla a análisis; los ingresos son opcionales.');
     if (S.sols.some(x => x.id === id)) abrirDetalle(id);   // un cambio de modalidad queda con el analista designado: puede no ser de este asesor
   });
 }
@@ -3334,7 +3344,7 @@ function gestorEstadoTxt(s){
   if (G_FIN[s.estado]) return G_FIN[s.estado];
   if (s.en_espera) return 'En espera';
   return { borrador:'Con el asesor', en_analisis:s.analisis_tomado ? 'En análisis' : 'Esperando analista', aprobada:'Aprobada · completando datos con el cliente',
-    por_verificar:'En verificación', desembolso_pendiente:'Por desembolsar', desembolsada:'Desembolsada' }[s.estado] || EST[s.estado]?.t || s.estado;
+    por_verificar:'En verificación', desembolso_pendiente:'Por desembolsar', desembolsada:'Desembolsada' }[s.estado] || estT(s);
 }
 function gestorPasos(s){
   const fin = G_FIN[s.estado], i = G_PASOS.findIndex(p => p[0] === s.estado);
@@ -3387,7 +3397,7 @@ function enlazarGs(){
 }
 function gestorDetalle(id){
   const s = G.sols.find(x => x.id === id); if (!s) return;
-  dialogo(`<div class="row" style="gap:6px;flex-wrap:wrap">${tipoChip(s.tipo)}${G_FIN[s.estado] ? `<span class="chip c-red">${esc(G_FIN[s.estado])}</span>` : chip(s.estado)}<span class="spacer"></span><span class="small muted">${esc(s.codigo || '')}</span></div>
+  dialogo(`<div class="row" style="gap:6px;flex-wrap:wrap">${tipoChip(s.tipo)}${G_FIN[s.estado] ? `<span class="chip c-red">${esc(G_FIN[s.estado])}</span>` : chipS(s)}<span class="spacer"></span><span class="small muted">${esc(s.codigo || '')}</span></div>
     <h3 style="margin:8px 0 2px">${esc(s.nombre_cliente)}</h3>
     <div class="small muted">${esc(gestorEstadoTxt(s))} · desde ${hace(s.estado_desde || s.creado_en)}</div>
     ${gestorPasos(s)}
@@ -3792,8 +3802,8 @@ function nvSolicitudDlg(r, sel, vista){
     <div class="nv-res-s"><div><span>Cliente</span><b>${esc(r.nombre)}</b></div><div><span>Identidad</span><b>${esc(RD.fmtId(sel.dni))}</b></div><div><span>Monto</span><b>${L(sel.monto)}</b></div><div><span>Plazo</span><b>${sel.plazo} meses</b></div><div><span>Forma de pago</span><b>${fx.charAt(0).toUpperCase() + fx.slice(1)}</b></div><div><span>Cuota ${fx}</span><b>${L(c.cuota.toFixed(2))}</b></div><div><span>Tasa mensual</span><b>${pctT(sel.tasa)}</b></div></div>
     <label class="f">Teléfono</label><input id="nsTel" inputmode="tel" value="${esc(sel.tel || r.telefono || '')}">
     <label class="f">Nota para el asesor (opcional)</label><textarea id="nsNota" rows="2" placeholder="Ej. prefiere pagar el 15 y el 30"></textarea>
-    <div class="alert info small">Pasa <b>directo a análisis</b> como <b>Cambio de modalidad</b> (plan nivelado) con este monto, plazo, forma de pago y tasa. No lleva ingresos ni hoja de solicitud: es una negociación con el cliente. El analista define el monto y la tasa finales.</div>
-    <div class="btns"><button class="btn ghost" data-close>Cancelar</button><button class="btn pri" id="nsOk">Enviar a análisis</button></div>`);
+    <div class="alert info small">Se crea como <b>Cambio de modalidad</b> (plan nivelado) con este monto, plazo, forma de pago y tasa, y la recibe el analista designado. No lleva ingresos ni hoja de solicitud. Para enviarla a análisis se sube el contrato firmado; al aprobarse queda finalizada (no hay desembolso).</div>
+    <div class="btns"><button class="btn ghost" data-close>Cancelar</button><button class="btn pri" id="nsOk">Crear solicitud</button></div>`);
   const q = x => w.querySelector(x);
   q('#nsTel').focus();
   q('#nsOk').onclick = ev => run(ev.target, async () => {
@@ -3802,7 +3812,7 @@ function nvSolicitudDlg(r, sel, vista){
     const res = await rpc('niv_crear_solicitud', { p_id: r.id, p_dni: dni, p_telefono: q('#nsTel').value, p_monto: sel.monto, p_plazo: sel.plazo, p_tipo_pago: sel.frec, p_tasa: sel.tasa, p_nota: nota });
     await cerrarDialogo(w);
     if (vista && vista.isConnected) await nvRefrescarVista(vista, r.id); else { await nvCargar(true); if (S.tab === 'nivelado') pintarNivelado(); }
-    toast(`Solicitud ${res?.codigo || ''} enviada a análisis`);
+    toast(`Solicitud ${res?.codigo || ''} creada: falta subir el contrato firmado para enviarla a análisis`);
   });
 }
 // ---------- Carga del listado (analista, gerente, admin) ----------
@@ -4990,7 +5000,7 @@ function cardSol(s, ctx){
       ${ctx && ctx.asignar && s.estado === 'por_verificar' ? `<button class="btn sm ok" data-wa="${s.id}" data-stop style="margin-top:6px">💬 WhatsApp al cliente</button>` : ''}
       ${ctx ? locHTML(s, ctx.parada ? `<span class="parada">${ctx.parada}</span>${ctx.d != null ? `<span class="km">${fKm(ctx.d)}</span>` : ''}` : ctx.d != null ? `<span class="km">a ${fKm(ctx.d)}</span>` : '') + (ctx.asignar ? asignarHTML(s) : '') : ''}
     </div>
-    <div class="right">${chip(s.estado)}${s.en_espera ? '<div style="margin-top:4px">' + esperaChip(s) + '</div>' : ''}<div class="amt" style="margin-top:6px">${monto}</div><div class="small muted">${fecha}</div></div>
+    <div class="right">${chipS(s)}${s.en_espera ? '<div style="margin-top:4px">' + esperaChip(s) + '</div>' : ''}<div class="amt" style="margin-top:6px">${monto}</div><div class="small muted">${fecha}</div></div>
   </div>`;
 }
 
@@ -5326,7 +5336,7 @@ async function abrirDetalle(id, keepScroll){
   S.det = id; S.replyTo = null; S.dirty = false;
   if ($('#sheet').classList.contains('hidden')){ S.detPila = []; S.yAntesDet = window.scrollY; $('#sheet').classList.remove('hidden'); history.pushState({ sheet:1 }, ''); document.body.style.overflow = 'hidden'; }
   S.ultDet = id;
-  $('#sheetTitle').textContent = s.nombre_cliente; $('#sheetCopy').dataset.cpy = s.nombre_cliente; $('#sheetCopy').innerHTML = ICO_COPIAR; $('#sheetChip').innerHTML = chip(s.estado);
+  $('#sheetTitle').textContent = s.nombre_cliente; $('#sheetCopy').dataset.cpy = s.nombre_cliente; $('#sheetCopy').innerHTML = ICO_COPIAR; $('#sheetChip').innerHTML = chipS(s);
   if (!keepScroll){ $('#sheetBody').innerHTML = '<div class="empty">Cargando…</div>'; $('#sheet').scrollTop = 0; }
   let ing = { error:{ message:'Failed to fetch' } }, items = ing, evs = ing;
   if (id > 0 && navigator.onLine) [ing, items, evs] = await Promise.all([
@@ -5376,7 +5386,7 @@ function renderDetalle(){
 
   // Encabezado
   h += `<div class="card">
-    <div class="row" style="flex-wrap:wrap;gap:6px">${tipoChip(s.tipo)} ${chip(s.estado)} ${esperaChip(s)} <span class="spacer"></span><span class="small muted">${esc(s.codigo)}</span></div>
+    <div class="row" style="flex-wrap:wrap;gap:6px">${tipoChip(s.tipo)} ${chipS(s)} ${esperaChip(s)} <span class="spacer"></span><span class="small muted">${esc(s.codigo)}</span></div>
     <dl class="kv" style="margin-top:10px">
       <dt>Asesor</dt><dd>${rol() === 'admin' && !CERRADAS.includes(s.estado) ? `<select id="dAsesor" style="padding:4px 8px">${Object.values(S.perfiles).filter(p => p.activo && ['asesor','admin'].includes(p.rol)).map(p => `<option value="${p.id}" ${p.id === s.asesor_id ? 'selected' : ''}>${esc(p.nombre)}</option>`).join('')}</select>` : esc(nombre(s.asesor_id))}</dd>
       ${s.telefono ? `<dt>Teléfono</dt><dd><a href="tel:${esc(s.telefono)}">${esc(s.telefono)}</a> · <a href="https://wa.me/504${esc(s.telefono.replace(/\D/g,'').slice(-8))}" target="_blank">WhatsApp</a>${s.estado === 'por_verificar' ? ' · <a href="#" id="dWaPl">💬 Plantillas</a>' : ''}</dd>` : ''}
@@ -5464,7 +5474,7 @@ function renderDetalle(){
   }
   // Análisis de ingresos
   h += mk('m');
-  const mostrarIng = s.tipo === 'nuevo' || ing.length || editIng;
+  const mostrarIng = s.tipo === 'nuevo' || ing.length || (editIng && !esNeg(s));
   if (mostrarIng){
     h += `<div class="card"><h4 class="sec" style="margin-top:0">Análisis de ingresos</h4>
       ${s.tipo !== 'nuevo' && !ing.length ? `<div class="small muted">Opcional en ${TIPO[s.tipo].toLowerCase()}.</div>` : ''}
@@ -5502,8 +5512,9 @@ function renderDetalle(){
       </div>`}`;
   }
   // Análisis de refinanciamiento / reingreso (antigüedad, comportamiento de pago, cuotas)
-  if (s.tipo !== 'nuevo') h += refiHTML(s, c, editIng);
-  h += mk('m') + tasaHTML(s, c);
+  if (esNeg(s)) h += negHTML(s, editIng);
+  else { if (s.tipo !== 'nuevo') h += refiHTML(s, c, editIng);
+  h += mk('m') + tasaHTML(s, c); }
 
   // Datos del cliente (completados)
   if (Object.keys(d).length || s.forma_desembolso) h += datosClienteHTML(s);
@@ -5525,7 +5536,7 @@ function renderDetalle(){
   // Tiempos por paso + historial de gestiones
   h += tiemposHTML(s, evs);
 
-  $('#sheetTitle').textContent = s.nombre_cliente; $('#sheetCopy').dataset.cpy = s.nombre_cliente; $('#sheetCopy').innerHTML = ICO_COPIAR; $('#sheetChip').innerHTML = chip(s.estado);
+  $('#sheetTitle').textContent = s.nombre_cliente; $('#sheetCopy').dataset.cpy = s.nombre_cliente; $('#sheetCopy').innerHTML = ICO_COPIAR; $('#sheetChip').innerHTML = chipS(s);
   let n = 0; const col = { m:'', s:'' };
   h.split('\u0001').forEach(p => { const html = p.slice(1).trim(); if (html) col[p[0]] += `<div class="det-it" style="order:${++n}">${html}</div>`; });
   const arriba = comTopHTML(s) + analisisTopHTML(s) + colocacionTopHTML(s) + seguimientoTopHTML(s) + (s.estado === 'desembolso_pendiente' ? desembolsoTopHTML(s, evs) : '');
@@ -5704,7 +5715,14 @@ function accionesHTML(s, c){
   }
   const abierta = !CERRADAS.includes(s.estado);
   // Asesor: borrador
-  if (s.estado === 'borrador' && es('asesor')){
+  if (s.estado === 'borrador' && es('asesor') && esNeg(s)){
+    const d = negDatos(s), listo = !d.faltan.length && !!s.contrato_firmado_path;
+    h += `<div class="card" style="border:1.5px solid var(--r-asesor)"><h4 class="sec" style="margin-top:0">¿La negociación está lista?</h4>
+      <div class="small muted">No lleva ingresos ni hoja de solicitud. Para enviarla necesita los datos de la negociación y el contrato firmado.</div>
+      <div class="small" style="margin-top:6px">${d.faltan.length ? `<span style="color:var(--amber)">Falta: ${d.faltan.join(', ')}</span>` : 'Datos de la negociación completos'}</div>
+      <div class="small">${s.contrato_firmado_path ? 'Contrato firmado subido' : '<span style="color:var(--amber)">Falta subir el contrato firmado</span>'}</div>
+      <div class="btns"><button class="btn pri" id="aEnviar" ${listo ? '' : 'disabled'}>Enviar a análisis</button></div></div>`;
+  } else if (s.estado === 'borrador' && es('asesor')){
     const nIng = (S.detData.ing || []).length;
     h += `<div class="card" style="border:1.5px solid var(--r-asesor)"><h4 class="sec" style="margin-top:0">¿La solicitud está lista?</h4>
       <div class="small muted">${s.tipo === 'nuevo' ? 'Agregue todos los ingresos (planilla y comisiones si aplica).' : 'Los ingresos son opcionales: si no los tiene, envíela así y el analista los agrega.'} La solicitud se queda con usted hasta que confirme; el analista no la verá antes.</div>
@@ -5715,6 +5733,15 @@ function accionesHTML(s, c){
   if (s.estado === 'en_analisis' && es('analista') && s.analisis_tomado_por !== S.me?.id){
     h += `<div class="card"><h4 class="sec" style="margin-top:0">Dictamen</h4><div class="small muted">${s.analisis_tomado_en ? `Este análisis lo tiene ${esc(nombre(s.analisis_tomado_por))}. Para dictaminar, tómelo usted con el botón de arriba.` : 'Para aprobar, denegar o devolver, primero toque <b>🙋 Tomar análisis</b> arriba.'}</div>
       <div class="btns"><button class="btn pri" data-tomaran="${s.id}"${s.analisis_tomado_en ? ` data-otro="${esc(nombre(s.analisis_tomado_por))}"` : ''}>🙋 ${s.analisis_tomado_en ? 'Tomarla yo' : 'Tomar análisis'}</button></div></div>`;
+  } else if (s.estado === 'en_analisis' && es('analista') && esNeg(s)){
+    const d = negDatos(s);
+    h += `<div class="card"><h4 class="sec" style="margin-top:0">Confirmar negociación</h4>
+      <div class="small muted">Revise los datos de arriba y el contrato firmado. Al aprobar, la solicitud se finaliza: no pasa a completar datos, verificación ni desembolso, y no cuenta en las estadísticas de crédito.</div>
+      <dl class="kv" style="margin-top:8px"><dt>Monto del nuevo préstamo</dt><dd id="ngMonto">${L(d.monto)}</dd>
+        <dt>Contrato firmado</dt><dd>${s.contrato_firmado_path ? 'Subido' : '<span style="color:var(--red)">Falta</span>'}</dd></dl>
+      <label class="f">Nota / motivo</label><textarea id="dNota" rows="2" placeholder="Obligatorio si deniega o devuelve"></textarea>
+      <div class="btns"><button class="btn ok" id="ngAprobar">Aprobar y finalizar</button><button class="btn bad" id="ngDenegar">Denegar</button></div>
+      <div class="btns" style="margin-top:6px"><button class="btn ghost sm" id="ngDevolver">Devolver al asesor para corregir</button></div></div>`;
   } else if (s.estado === 'en_analisis' && es('analista')){
     if (s.tipo === 'nuevo' && (c.tipoB || s.politica_b) && !s.dictamen_en) c = { ...c, limite: limNuevo(s, c) };
     const refi = s.tipo !== 'nuevo';
@@ -5933,7 +5960,7 @@ function enlazarDetalle(s, c){
   });
   if ($('#dPago') && !$('#dPago').disabled){ $('#dPago').onchange = updA; $('#dRubro').onchange = updA; }
 
-  enlazarRefi(s);
+  enlazarRefi(s); enlazarNeg(s);
   if ($('#nvCopiar')) $('#nvCopiar').onclick = async () => {
     const cs = S.detData.s, txt = resumenNuevoWA(cs, calcular(S.detData.ing, cs.tipo_pago, cs.rubro_especial));
     try { await navigator.clipboard.writeText(txt); toast('Resumen copiado. Péguelo en el grupo.'); }
@@ -5975,6 +6002,10 @@ function enlazarDetalle(s, c){
   if ($('#aEnviar')) $('#aEnviar').onclick = e => {
     if (!hojaListaParaEnviar(s)) return;
     const nIng = (S.detData.ing || []).length;
+    if (esNeg(s)){
+      if (!confirm(`¿Enviar ${TIPO[s.tipo].toLowerCase()} de ${s.nombre_cliente} a análisis?\n\nEl analista confirma los datos de la negociación y el contrato firmado.`)) return;
+      return run(e.target, async () => { await rpc('enviar_analisis', { p_id: s.id }); toast('Enviada a análisis'); await refrescar(); });
+    }
     const msj = s.tipo === 'nuevo' ? `${nIng} registro(s) de ingresos.${nIng ? '' : ' ⚠ No tiene ingresos.'}\nSe enviará al analista y ya no podrá editar los ingresos.`
       : `${nIng ? nIng + ' registro(s) de ingresos.' : 'Sin ingresos: el analista los agregará.'}\nSe enviará al analista; él podrá agregar o corregir los ingresos.`;
     if (!confirm(`¿Confirma que la solicitud de ${s.nombre_cliente} está lista?\n\n${msj}`)) return;
@@ -6014,6 +6045,25 @@ function enlazarDetalle(s, c){
     $('#dAprobar').onclick = e => dict(e.target, 'aprobada');
     $('#dDenegar').onclick = e => dict(e.target, 'denegada');
     $('#dDevolver').onclick = e => dict(e.target, 'devolver');
+  }
+
+  if ($('#ngAprobar')){
+    const ngDict = (btn, tipo) => run(btn, async () => {
+      const cs = S.detData.s, d = negDatos(cs), nota = $('#dNota').value.trim();
+      if (tipo === 'aprobada'){
+        if (d.faltan.length) throw new Error('Falta: ' + d.faltan.join(', '));
+        if (!cs.contrato_firmado_path) throw new Error('Falta el contrato firmado');
+        if (!d.monto) throw new Error('Indique el monto del nuevo préstamo');
+        if (!confirm(`¿Aprobar y finalizar ${TIPO[cs.tipo].toLowerCase()} de ${cs.nombre_cliente}?\n\nMonto ${L(d.monto)} · ${d.n} meses · tasa ${pctT(d.tasa)} mensual${d.cd ? `\nCondonación ${L(d.cd)}` : ''}\n\nNo hay desembolso: queda finalizada.`)) return;
+      }
+      await rpc('dictaminar', { p_id: s.id, p_dictamen: tipo, p_nota: nota || null, p_monto: tipo === 'aprobada' ? d.monto : null,
+        p_analisis: { tipo: 'negociacion', capital: d.k, intereses: d.i, condonacion: d.cd, condonacion_nota: cs.condonacion_nota || null, monto: d.monto, plazo: d.n, tasa: d.tasa, cuota: d.cuota } });
+      toast(tipo === 'aprobada' ? 'Aprobada y finalizada' : tipo === 'denegada' ? 'Denegada' : 'Devuelta al asesor');
+      S.dirty = false; await cerrarDetalle(); await cargarSolicitudes(); pintarTabs(); pintar();
+    });
+    $('#ngAprobar').onclick = e => ngDict(e.target, 'aprobada');
+    $('#ngDenegar').onclick = e => ngDict(e.target, 'denegada');
+    $('#ngDevolver').onclick = e => ngDict(e.target, 'devolver');
   }
 
   // Completar
@@ -6782,6 +6832,76 @@ function enlazarRefi(s){
   });
 }
 
+// ================== Negociación: cambio de modalidad y reestructuración ==================
+// No hay análisis de antigüedad ni comportamiento: el asesor pone los datos negociados con el cliente,
+// sube el contrato firmado y el analista solo confirma. Al aprobar se finaliza (sin desembolso físico).
+function negDatos(s){
+  const k = +s.saldo_capital || 0, i = +s.saldo_intereses || 0, cd = +s.condonacion_monto || 0;
+  const calc = Math.max(0, +(k + i - cd).toFixed(2));
+  const monto = s.monto_solicitado != null && s.monto_solicitado !== '' ? +s.monto_solicitado : calc;
+  const tasa = s.tasa_nivelado != null && s.tasa_nivelado !== '' ? +s.tasa_nivelado : (s.tipo === 'cambio_modalidad' ? 0.14 : null);
+  const n = +s.plazo_meses || 0;
+  const cuota = monto && n && tasa != null ? monto / n + monto * tasa : null;
+  const faltan = [];
+  if (!n) faltan.push('plazo'); if (tasa == null) faltan.push('tasa');
+  if (s.saldo_capital == null || s.saldo_capital === '') faltan.push('capital');
+  if (s.saldo_intereses == null || s.saldo_intereses === '') faltan.push('intereses');
+  return { k, i, cd, calc, monto, tasa, n, cuota, faltan };
+}
+function negHTML(s, edit){
+  const d = negDatos(s), dis = edit ? '' : 'disabled';
+  const v = (x, pct) => x == null || x === '' ? '' : pct ? +(x * 100).toFixed(2) : x;
+  const inp = (k, lbl, val, ph, extra = '') => `<div><label class="f">${lbl}</label><input data-ng="${k}" inputmode="decimal" value="${val}" placeholder="${ph}" ${dis} ${extra}></div>`;
+  const cfAsesor = s.estado === 'borrador' && (es('asesor') || rol() === 'admin');
+  return `<div class="card" id="ngCard"><h4 class="sec" style="margin-top:0">Negociación con el cliente · ${TIPO[s.tipo].toLowerCase()}</h4>
+    <div class="small muted" style="margin:-4px 0 8px">${s.estado === 'borrador' ? 'Ponga los datos que acordó con el cliente. El analista solo los confirma.' : s.estado === 'en_analisis' ? 'Confirme los datos que puso el asesor; puede corregirlos antes de aprobar.' : 'Datos de la negociación.'} No hay desembolso: el cambio se aplica en el sistema.</div>
+    <div class="grid2">
+      ${inp('saldo_capital', 'Monto de capital', v(s.saldo_capital), 'L')}
+      ${inp('saldo_intereses', 'Intereses', v(s.saldo_intereses), 'L')}
+      ${inp('condonacion_monto', 'Monto a condonar (si aplica)', v(s.condonacion_monto), 'L 0')}
+      <div><label class="f">Qué se condona</label><input data-ng="condonacion_nota" value="${esc(s.condonacion_nota || '')}" placeholder="Ej. intereses moratorios" ${dis}></div>
+      ${inp('plazo_meses', 'Plazo (meses)', v(s.plazo_meses), 'Ej. 6', 'inputmode="numeric"')}
+      ${inp('tasa_nivelado', 'Tasa mensual %', v(s.tasa_nivelado, true), s.tipo === 'cambio_modalidad' ? '14 (normal)' : 'Ej. 14', 'data-pct="1"')}
+      ${inp('monto_solicitado', 'Monto del nuevo préstamo', v(s.monto_solicitado), d.calc ? String(d.calc) : 'L')}
+      <div><label class="f">Cuota mensual estimada</label><div class="v" id="ngCuota" style="font:700 18px/1.2 Poppins,Inter,sans-serif;padding:8px 0">${d.cuota ? L(d.cuota.toFixed(2)) : '—'}</div></div>
+    </div>
+    <div class="small muted" id="ngCalc" style="margin-top:4px">Capital ${L(d.k)} + intereses ${L(d.i)}${d.cd ? ` − condonación ${L(d.cd)}` : ''} = <b>${L(d.calc)}</b>${s.monto_solicitado != null && +s.monto_solicitado !== d.calc ? ` · el monto del préstamo puesto es ${L(s.monto_solicitado)}` : ''}</div>
+    ${d.faltan.length && s.estado !== 'desembolsada' ? `<div class="alert warn small" style="margin-top:8px">Falta: ${d.faltan.join(', ')}.</div>` : ''}
+    <div style="border-top:1px solid var(--line);padding-top:10px;margin-top:12px;display:flex;gap:12px;align-items:center;flex-wrap:wrap">
+      ${s.contrato_firmado_path ? `<img data-cf="${esc(s.contrato_firmado_path)}" class="dt-cf" alt="Contrato firmado" style="width:72px;height:72px;object-fit:cover;border-radius:8px;border:1px solid var(--line);cursor:pointer;background:var(--gray-bg)">` : ''}
+      <div style="flex:1;min-width:180px"><b>Contrato firmado</b>
+        <div class="small muted">${s.contrato_firmado_path ? `Subido por ${esc(nombre(s.contrato_firmado_por))} · ${fDT(s.contrato_firmado_en)}` : 'Obligatorio para enviar a análisis. Imprima el contrato, que el cliente lo firme y suba las fotos.'}</div></div>
+      ${cfAsesor ? `<button class="btn ghost sm" id="ngContrato">Ver contrato para firma</button>
+        <button class="btn ${s.contrato_firmado_path ? 'ghost sm' : 'ok'}" id="ngSubirCf">${s.contrato_firmado_path ? 'Reemplazar' : 'Subir contrato firmado'}</button>` : ''}
+    </div>
+    ${s.negociacion_confirmada_en ? `<div class="alert ok small" style="margin-top:10px">Confirmada por ${esc(nombre(s.negociacion_confirmada_por))} · ${fDT(s.negociacion_confirmada_en)}. Finalizada: el cambio se aplica en el sistema, sin desembolso.</div>` : ''}
+  </div>`;
+}
+function enlazarNeg(s){
+  const card = $('#ngCard'); if (!card) return;
+  const cur = () => S.detData.s;
+  const pintarCalc = () => {
+    const cs = cur(), d = negDatos(cs);
+    const q = $('#ngCuota'); if (q) q.textContent = d.cuota ? L(d.cuota.toFixed(2)) : '—';
+    const c = $('#ngCalc'); if (c) c.innerHTML = `Capital ${L(d.k)} + intereses ${L(d.i)}${d.cd ? ` − condonación ${L(d.cd)}` : ''} = <b>${L(d.calc)}</b>${cs.monto_solicitado != null && +cs.monto_solicitado !== d.calc ? ` · el monto del préstamo puesto es ${L(cs.monto_solicitado)}` : ''}`;
+    const m = card.querySelector('[data-ng="monto_solicitado"]'); if (m) m.placeholder = d.calc ? String(d.calc) : 'L';
+    const sm = $('#ngMonto'); if (sm) sm.textContent = L(d.monto);
+  };
+  card.querySelectorAll('[data-ng]').forEach(el => el.onchange = () => run(null, async () => {
+    const k = el.dataset.ng; let val = el.value.trim();
+    if (k !== 'condonacion_nota'){
+      const n = num(val); val = n == null ? null : el.dataset.pct ? +(n / 100).toFixed(4) : k === 'plazo_meses' ? Math.round(n) : n;
+      if (k === 'plazo_meses' && val != null && (val < 1 || val > 60)) throw new Error('Plazo no válido (1 a 60 meses)');
+      if (k === 'tasa_nivelado' && val != null && (val <= 0 || val > 0.5)) throw new Error('Tasa no válida');
+    } else if (!val) val = null;
+    await rpc('guardar_negociacion', { p_id: s.id, p_datos: { [k]: val } });
+    cur()[k] = val; pintarCalc(); S.dirty = false;
+  }));
+  const ct = $('#ngContrato');
+  if (ct) ct.onclick = () => { const cs = cur(); abrirContrato({ ...cs, monto_aprobado: null, monto_solicitado: negDatos(cs).monto }); };
+  const up = $('#ngSubirCf'); if (up) up.onclick = () => abrirContratoFirmado(cur());
+}
+
 // ================== Reconocimiento de deuda (formato de la herramienta) ==================
 const RD_DOC = "<p class=\"title\"><span class=\"bu big\">RECONOCIMIENTO&nbsp;DE&nbsp;UNA&nbsp;DEUDA</span></p>\n<p>&nbsp;</p>\n<p>El señor(a) <span class=\"u\">&nbsp;</span><span class=\"bu big\">{{NOMBRE}}</span><span class=\"bu big\">&nbsp;,</span><span class=\"b\"> </span>con tarjeta de identidad número <span class=\"b\">X</span><span class=\"bu\">&nbsp;</span><span class=\"bu big\">{{ID}}</span><span class=\"bu\">&nbsp;</span><span class=\"b\"> </span>A quien en lo sucesivo se le denominara como <span class=\"b\">(PRESTATARIO)</span> y YO<span class=\"b\"> MAS PISTO DE S. DE RL, </span>a quien en lo sucesivo se le denominara como<span class=\"b\"> (ACREEDOR) </span>con tarjeta de identidad número 05019025194918, comerciante, ambos mayores de edad, el primero del domicilio de SAN PEDRO SULA, Cortes, y el segundo de este Domicilio. - Hacemos el presente documento de <span class=\"b\">RECONOCIMIENTO DE DEUDA, </span>para lo cual el <span class=\"b\">PRESTATARIO</span><span class=\"b\"> </span><span class=\"b\">manifiesta</span>:</p>\n<p><span class=\"bu\">PRIMERO:</span> Que por este acto hace formal reconocimiento de deuda que mantiene con el <span class=\"b\">ACREEDOR, </span>deuda<span class=\"b\"> </span>por la cantidad de <span class=\"b\">X</span><span class=\"bu\">&nbsp;</span><span class=\"bu big\">{{LETRAS}}</span><span class=\"bu\">&nbsp;&nbsp;</span><span class=\"b\">(</span><span class=\"bu big\">{{CIFRA}}</span><span class=\"b\">), </span>los cuales pagara bajo las siguientes condiciones.</p>\n<p><span class=\"b\">- 1.1.</span> Dicha deuda será cancelada en un plazo de 1 MES, contados a partir de esta misma fecha. </p>\n<p>- <span class=\"b\">1.2</span>. Será amortizada mediante <span class=\"b\">UNA</span> (1) única cuota de <span class=\"bu\">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(L.&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;)</span><span class=\"b\">.</span></p>\n<p><span class=\"b\">- 1.3 </span>El plazo aquí estipulado es voluntario para el <span class=\"b\">PRESTATARIO</span>, pudiendo pagar en forma anticipada el total de la deuda.</p>\n<p> <span class=\"bu\">SEGUNDO:</span><span class=\"b\"> </span>Continúa manifestando el <span class=\"b\">PRESTATARIO</span><span class=\"b\">,</span><span class=\"b\"> </span>que tiene conocimiento de las causas las cuales sus incumplimientos permitirán exigir el pago anticipado de la deuda e interés que se presente a la fecha. </p>\n<p>- <span class=\"b\">2.1</span>. El <span class=\"b\">PRESTATARIO</span> incurrirá en mora por falta de pago de una cuota vencida, en cuyo caso el acreedor cobrará un interés moratorio del <span class=\"b\">(</span><span class=\"bu\">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span><span class=\"b\">) %</span> mensual sobre el total de las cuotas atrasadas, </p>\n<p>- <span class=\"b\">2.2</span> En caso de comprobarse que el<span class=\"b\"> PRESTATARIO</span> mintió en alguno de los datos solicitados para la aprobación del préstamo se le cobrara una sanción del <span class=\"b\">(</span><span class=\"bu\">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span><span class=\"b\">) %</span> por incumplimiento, pudiendo además el<span class=\"b\"> ACREEDOR</span> exigir de inmediato judicial o extrajudicialmente el pago total del saldo pendiente.</p>\n<p> <span class=\"bu\">TERCERO:</span><span class=\"b\"> </span>Continúa manifestando <span class=\"b\">PRESTATARIO, </span>que tiene conocimiento de:</p>\n<p>- <span class=\"b\">3.1</span>. Se toma como garantía todo artículo como tv, cama, refrigeradora, lavadora etc., que se encuentre en el lugar establecido como residencia del <span class=\"b\">PRESTATARIO</span><span class=\"b\">,</span><span class=\"b\"> </span>dada la dirección por el mismo.</p>\n<p>- <span class=\"b\">3.2</span>. En caso de no contar con el valor a cancelar en efectivo el <span class=\"b\">PRESTATARIO</span> permitirá proceder a la recolección de los artículos establecidos en la cláusula <span class=\"b\">(3.1</span>) Tomados en garantía, para la cancelación de la deuda.</p>\n<p><span class=\"bu\">CUARTO:</span> Continúa manifestando el <span class=\"b\">PRESTATARIO,</span> que tiene conocimiento de:</p>\n<p><span class=\"b\">- 4.1.</span> Todo gasto generado por recuperación de deuda como honorarios de abogado, gestión de cobro, sanción penal será asumido por el <span class=\"b\">PRESTATARIO</span><span class=\"bu\">,</span> por incumplimiento de cualquiera de las clausulas anteriores.</p>\n<p>El <span class=\"b\">PRESTATARIO</span><span class=\"bu\">,</span> manifiesta haber leído y entendido el presente documento estando en plena facultad y libertad mental de libre decisión. Teniendo conocimiento que el documento denominado <span class=\"b\">RECONOCIMIENTO DE DEUDA</span> es válido como <span class=\"b\">PAGARE O LETRA DE CAMBIO</span> según como lo determinan las leyes en <span class=\"b\">HONDURAS</span>, para recuperación de la deuda. Cuyo valor total de <span class=\"bu\">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;,</span> <span class=\"b\">(L.</span><span class=\"bu\">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>). Será asumido por el <span class=\"b\">PRESTATARIO</span><span class=\"b\">,</span> como determina el <span class=\"b\">(artículo 4.1</span>).</p>\n<p><span class=\"b\">Yo</span><span class=\"b\"> X</span><span class=\"bu\">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span><span class=\"b\">, </span>denominado como<span class=\"b\"> PRESTATARIO </span>renuncio al fuero de mi domicilio y me someto a la competencia del Juzgado de Letras de lo Civil de la sección Judicial de San Pedro Sula, Cortes.</p>\n<p>Por su parte <span class=\"b\">MAS PISTO DE S. DE RL</span> denominado como él<span class=\"b\"> (ACREEDOR), </span>en la condición en que actúa<span class=\"b\"> </span>dice: que es cierto todo lo manifestado por el <span class=\"b\">PRESTATARIO </span>en las cláusulas precedentes, y que acepta entregar documento como <span class=\"b\">FINIQUITO DE DEUDA</span> una vez que haya sido cancelada en su totalidad la deuda.</p>\n<p style=\"text-align:left\">En fe de lo cual firmamos el presente Reconocimiento de Deuda en la ciudad de San Pedro Sula, Cortes, a los <span class=\"bu\">&nbsp;&nbsp;</span><span class=\"bu big\">{{DIA}}</span><span class=\"bu\">&nbsp;</span><br>días del mes de <span class=\"bu\">&nbsp;</span><span class=\"bu big\">{{MES}}</span><span class=\"bu\">&nbsp;</span><span class=\"b\"> </span>del <span class=\"b\">{{ANIO}}</span>.</p>\n<div class=\"sig\">\n  <div class=\"huella\" style=\"left:118.95pt;top:calc(1*12.2pt + 7.85pt);width:47.95pt;height:65.25pt\"></div>\n  <div class=\"huella\" style=\"left:309pt;top:calc(4*12.2pt + 5.3pt + 36.7pt);width:47.95pt;height:65.95pt\"></div>\n  <div class=\"ln\" style=\"left:0;top:calc(3*12.2pt)\"><b>Firma</b>.<span class=\"bu\">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></div>\n  <div class=\"ln\" style=\"left:406.8pt;top:calc(3*12.2pt)\"><span class=\"bu\">MAS PISTO DE S. DE RL</span></div>\n  <div class=\"ln\" style=\"left:406.8pt;top:calc(4*12.2pt)\"><span class=\"bu\">T.I</span> <span class=\"bu\">05019025194918</span></div>\n  <div class=\"ln\" style=\"left:0;top:calc(5*12.2pt)\"><b>&nbsp;</b><span class=\"bu\">T.I&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></div>\n  <div class=\"ln\" style=\"left:406.8pt;top:calc(5*12.2pt)\"><b>ACREEDOR</b></div>\n  <div class=\"ln\" style=\"left:0;top:calc(6*12.2pt)\"><span class=\"bu\">DEUDOR</span></div>\n  <div class=\"ln\" style=\"left:193.5pt;top:calc(10*12.2pt)\"><b>Firma</b><span class=\"bu\">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;.</span></div>\n  <div class=\"ln\" style=\"left:193.5pt;top:calc(12*12.2pt)\"><b>T.I</b><span class=\"bu\">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;.</span></div>\n  <div class=\"ln\" style=\"left:193.5pt;top:calc(13*12.2pt)\"><b>AVAL</b></div>\n  <div class=\"ln\" style=\"left:319.5pt;top:calc(13*12.2pt)\"><b>Huella.</b></div>\n</div>";
 const RD = (() => {
@@ -7417,7 +7537,7 @@ function abrirContratoFirmado(s){
     toast('Contrato firmado guardado'); cerrarDialogo(w); await cargarSolicitudes(); if (S.detData && S.detData.s.id === s.id) await abrirDetalle(s.id, true); pintarTabs();
   });
 }
-function reconocimientoHabilitado(s){ return !!s.dictamen_en && !['denegada','borrador','en_analisis'].includes(s.estado); }
+function reconocimientoHabilitado(s){ return !esNeg(s) && !!s.dictamen_en && !['denegada','borrador','en_analisis'].includes(s.estado); }
 function abrirReconocimiento(s){
   const d = s.datos_cliente || {};
   const st = { nombre: s.nombre_cliente, id: RD.fmtId(s.dni || d.dni || ''), monto: +(s.monto_solicitado || s.monto_aprobado || 0), fecha: hoyHN() };
@@ -7600,7 +7720,7 @@ const semPaso = seg => clsMeta(seg, S.params.meta_paso_min) || 'good';
 const diaColoc = s => s.fecha_colocacion || diaHN(s.desembolsado_en || s.cerrado_en);
 const diaHN = d => d ? new Date(d).toLocaleDateString('en-CA', { timeZone: TZ }) : null;
 // Capital nuevo colocado: en refinanciamiento/reingreso = monto del préstamo − saldo de capital anterior
-function capitalColocado(s){ if (s.capital_colocado_hist != null) return +s.capital_colocado_hist; const m = +(s.monto_solicitado || s.monto_aprobado || 0); return s.tipo !== 'nuevo' ? Math.max(0, m - (+s.saldo_capital || 0)) : m; }
+function capitalColocado(s){ if (esNeg(s)) return 0; if (s.capital_colocado_hist != null) return +s.capital_colocado_hist; const m = +(s.monto_solicitado || s.monto_aprobado || 0); return s.tipo !== 'nuevo' ? Math.max(0, m - (+s.saldo_capital || 0)) : m; }
 function pintarTablero(){
   const hoy = hoyHN(); if (!S.boardDay) S.boardDay = hoy;
   const dia = S.boardDay, esHoy = dia === hoy;
@@ -7615,7 +7735,7 @@ function pintarTablero(){
                  : abiertas(a) ? (ORDEN_PASOS.indexOf(a.estado) - ORDEN_PASOS.indexOf(b.estado)) || (new Date(a.estado_desde || a.actualizado_en) - new Date(b.estado_desde || b.actualizado_en))
                                 : ((b.estado === 'desembolsada') - (a.estado === 'desembolsada')) || (new Date(b.cerrado_en || b.actualizado_en) - new Date(a.cerrado_en || a.actualizado_en)));
   const creadasDia = base.filter(s => diaHN(s.creado_en) === dia && !(abiertas(s) && s.en_espera));
-  const desDia = base.filter(s => s.estado === 'desembolsada' && diaColoc(s) === dia);
+  const desDia = base.filter(s => s.estado === 'desembolsada' && !esNeg(s) && diaColoc(s) === dia);
   const cicloProm = desDia.length ? desDia.reduce((a,s) => a + (s.duracion_total_habil_seg ?? segHabiles(s.creado_en, s.desembolsado_en)), 0) / desDia.length : null;
   const monto = desDia.reduce((a,s) => a + capitalColocado(s), 0);
   // Las solicitudes en espera no cuentan como capital en proceso
@@ -7657,7 +7777,7 @@ function pintarTablero(){
       return `${nAl ? `<button type="button" class="al-band" id="irAlertas">⚠️ <b>${nAl}</b> solicitud${nAl > 1 ? 'es requieren' : ' requiere'} confirmación o seguimiento <span>Ver alertas ›</span></button>` : ''}<div class="bd-nav">${listas.map(([c, l]) => { const t = c.espera || c.k === 'fin' ? 0 : tarde(l); return `<button type="button" data-ir="${c.k}" style="--cc:${c.c}"><i></i>${c.t.replace('⏸ ', '')} <b>${l.length}</b>${t ? `<span class="tarde" title="Pasaron el tiempo meta del paso">${t} ⏰</span>` : ''}</button>`; }).join('')}</div>
     <div class="board-wrap"><div class="board">${listas.map(([c, l]) => { const t = c.espera || c.k === 'fin' ? 0 : tarde(l);
       const cap = c.k === 'fin' ? l.filter(s => s.estado === 'desembolsada').reduce((a, s) => a + capitalColocado(s), 0) : c.monto ? l.reduce((a, s) => a + capitalColocado(s), 0) : 0;
-      const extra = [c.k === 'fin' && l.length ? `${l.filter(s => s.estado === 'desembolsada').length} desembolsada(s)` : '', cap ? L(cap) : '', t ? `<span class="tarde">${t} fuera de tiempo</span>` : ''].filter(Boolean).join(' · ');
+      const extra = [c.k === 'fin' && l.length ? `${l.filter(s => s.estado === 'desembolsada' && !esNeg(s)).length} desembolsada(s)` : '', cap ? L(cap) : '', t ? `<span class="tarde">${t} fuera de tiempo</span>` : ''].filter(Boolean).join(' · ');
       return `
       <section class="col${c.espera ? ' col-esp' : ''}" data-col="${c.k}"><div class="col-h" style="--cc:${c.c}"><div><b>${c.t}</b><div class="small muted" style="font-weight:500">${c.sub}</div>${extra ? `<div class="col-x">${extra}</div>` : ''}</div><span class="cnt">${l.length}</span></div>
       <div class="col-body">${l.length ? l.map(s => cardK(s, dia)).join('') : `<div class="empty">${c.espera ? 'Arrastre aquí una solicitud para ponerla en espera' : 'Sin solicitudes'}</div>`}</div></section>`; }).join('')}
@@ -7705,7 +7825,7 @@ function cardK(s, dia){
   return `<div class="kc${s.en_espera ? ' espera' : ''}${alertaDe(s) ? ' alerta' : ''}" data-id="${s.id}" style="${rcVars(colorDe(s.estado))}">
     <div class="rolbar">${rolPill(s)}${previo}</div>
     <div class="nm">${conCopiar(s.nombre_cliente)}</div>
-    <div class="ln">${ab && !s.en_espera ? '' : chip(s.estado)}${tipoChip(s.tipo)}${esperaChip(s)}${pendChip(s)}${tomaChip(s)}${s.estado === 'por_verificar' && !s.verificador_id && !s.en_espera ? '<span class="chip c-red">⚠ Sin verificador</span>' : ''}</div>
+    <div class="ln">${ab && !s.en_espera ? '' : chipS(s)}${tipoChip(s.tipo)}${esperaChip(s)}${pendChip(s)}${tomaChip(s)}${s.estado === 'por_verificar' && !s.verificador_id && !s.en_espera ? '<span class="chip c-red">⚠ Sin verificador</span>' : ''}</div>
     ${s.en_espera ? `<div class="ln" style="color:var(--gray)">${ESP_CAT[s.espera_categoria]?.i || '⏸'} ${esc(s.espera_motivo||'')} · ${hace(s.espera_desde)}</div>` : ''}
     <div class="ln"><span>${esc(s.codigo)}</span><span>👤 ${esc(nombre(s.asesor_id).split(' ')[0])}</span>${monto ? `<b style="color:var(--ink)">${monto}</b>` : ''}${comChip(s)}</div>
     ${['aprobada','por_verificar'].includes(s.estado) && (dirTexto(s, 'dom').lugar || sectorDe(s) || ciudadDe(s)) ? `<div class="ln">📍 ${esc(dirTexto(s, 'dom').lugar || [sectorDe(s), ciudadDe(s)].filter(Boolean).join(' · '))}</div>` : ''}
@@ -7752,7 +7872,7 @@ const pasoTxt = k => `${PASO[k].t} · ${k === 'desembolso_pendiente' ? 'Gerente'
 function dialogoRegresar(s, opciones){
   const ops = (opciones && opciones.length ? opciones : destinosRegreso(s));
   if (!ops.length) return toast('No hay pasos anteriores a los que regresar', true);
-  const actual = PASO[s.estado] ? pasoTxt(s.estado) : (EST[s.estado]?.t || s.estado);
+  const actual = PASO[s.estado] ? pasoTxt(s.estado) : (estT(s));
   const w = dialogo(`<h3>↩ Regresar a un paso anterior</h3>
     <div class="small muted">${esc(s.nombre_cliente)} · ${esc(s.codigo)}<br>Ahora: <b>${esc(actual)}</b>${CERRADAS.includes(s.estado) ? ' (se reabre)' : ''}</div>
     <label class="f">Regresar a</label>
@@ -7967,7 +8087,7 @@ const H_COLS = [
       if (!s.origen_canal) return `<span class="muted">Sin dato</span>${btn('＋ Agregar')}`;
       const txt = esc(CANAL[s.origen_canal] + (esReferido(s.origen_canal) ? ': ' + referidor(s) : ''));
       return s.origen_asumido ? `${txt} <span class="chip c-amber" title="Se asumió Facebook: falta confirmarlo">asumido</span>${btn('Revisar')}` : txt; } },
-  { k:'estado', t:'Estado', v:s => EST[s.estado]?.t || s.estado, h:s => chip(s.estado) + (s.en_espera ? ' ' + esperaChip(s) : '') },
+  { k:'estado', t:'Estado', v:s => estT(s), h:s => chipS(s) + (s.en_espera ? ' ' + esperaChip(s) : '') },
   { k:'asesor', t:'Asesor', v:s => nombre(s.asesor_id) },
   { k:'analista', t:'Analista', v:s => s.analista_id ? nombre(s.analista_id) : '' },
   { k:'verificador', t:'Verificador', v:s => s.verificador_id ? nombre(s.verificador_id) : '' },
@@ -7975,7 +8095,7 @@ const H_COLS = [
   { k:'aprobado', t:'Aprobado', v:s => s.monto_aprobado != null ? +s.monto_aprobado : null, num:true, sum:true },
   { k:'prestamo', t:'Préstamo', v:s => s.monto_solicitado != null || s.monto_aprobado != null ? +(s.monto_solicitado || s.monto_aprobado) : null, num:true, sum:true },
   { k:'saldo', t:'Saldo anterior', v:s => s.tipo !== 'nuevo' && (s.saldo_capital != null || s.saldo_intereses != null) ? (+s.saldo_capital || 0) + (+s.saldo_intereses || 0) : null, num:true, sum:true },
-  { k:'entregado', t:'Entregado', v:s => s.estado === 'desembolsada' ? montoLibre(s) : null, num:true, sum:true },
+  { k:'entregado', t:'Entregado', v:s => s.estado === 'desembolsada' && !esNeg(s) ? montoLibre(s) : null, num:true, sum:true },
   { k:'colocado', t:'Capital colocado', v:s => s.estado === 'desembolsada' ? capitalColocado(s) : null, num:true, sum:true },
   { k:'sector', t:'Sector / ciudad', v:s => [sectorDe(s), ciudadDe(s)].filter(Boolean).join(' · ') },
   { k:'tiempo', t:'Tiempo hábil', v:s => s.duracion_total_habil_seg ?? null, h:s => s.duracion_total_habil_seg != null ? fmtDur(s.duracion_total_habil_seg) : '—', num:true, csv:s => s.duracion_total_habil_seg != null ? Math.round(s.duracion_total_habil_seg / 60) + ' min' : '' },
@@ -8024,12 +8144,12 @@ function pintarHistorial(){
   const f = S.h, SEL = hSel();
   const lista = hOrdenar(hFiltrar()).filter(s => !f.soloSel || SEL.has(s.id));
   const cols = H_COLS.filter(c => !c.oculta);
-  const marcadas = S.sols.filter(s => SEL.has(s.id)), mDes = marcadas.filter(s => s.estado === 'desembolsada');
+  const marcadas = S.sols.filter(s => SEL.has(s.id)), mDes = marcadas.filter(s => s.estado === 'desembolsada' && !esNeg(s));
   const sumSel = k => { const c = H_COLS.find(x => x.k === k); return marcadas.reduce((a, s) => a + (+c.v(s) || 0), 0); };
   const pags = Math.max(1, Math.ceil(lista.length / f.size)); if (f.page >= pags) f.page = pags - 1;
   const vis = lista.slice(f.page * f.size, (f.page + 1) * f.size);
   const sum = k => { const c = H_COLS.find(x => x.k === k); return lista.reduce((a, s) => a + (+c.v(s) || 0), 0); };
-  const des = lista.filter(s => s.estado === 'desembolsada');
+  const des = lista.filter(s => s.estado === 'desembolsada' && !esNeg(s));
   const users = rs => Object.values(S.perfiles).filter(p => rs.includes(p.rol)).sort((a, b) => a.nombre.localeCompare(b.nombre));
   const opt = (v, t, cur) => `<option value="${esc(v)}" ${v === cur ? 'selected' : ''}>${esc(t)}</option>`;
   $('#main').innerHTML = `
@@ -8459,14 +8579,14 @@ async function pintarReferidos(){
       <div class="card" style="overflow-x:auto">${pagados.length ? `<table class="t"><thead><tr><th>Desembolsado</th><th>Cliente referido</th><th>Referido por</th><th>Tipo</th><th class="num">Pagado</th><th>Fecha de pago</th><th></th></tr></thead><tbody>
         ${pagados.map(s => filaPago(s) + `<td class="num"><b>${L(+s.bono_monto || 0)}</b></td><td>${fDate(s.bono_pagado_en)}${s.bono_nota ? `<div class="small muted">${esc(s.bono_nota)}</div>` : ''}</td><td>${gestiona ? `<a href="#" data-bono-des="${s.id}" class="small">Deshacer</a>` : ''}</td></tr>`).join('')}</tbody></table>` : '<div class="empty">Aún no hay bonos pagados en este período.</div>'}</div>
       ${enProceso.length ? `<details class="card"><summary style="cursor:pointer;font-weight:700">⌛ Aún no desembolsados · ${enProceso.length} <span class="small muted">(el bono se paga cuando se desembolsa)</span></summary>
-        <table class="t" style="margin-top:6px"><tbody>${enProceso.map(s => `<tr data-id="${s.id}" style="cursor:pointer"><td>${conCopiar(s.nombre_cliente)}</td><td>${chip(s.estado)}</td><td>${esc(referidor(s))}</td><td>${tipoTxt(s.origen_canal)}</td></tr>`).join('')}</tbody></table></details>` : ''}`;
+        <table class="t" style="margin-top:6px"><tbody>${enProceso.map(s => `<tr data-id="${s.id}" style="cursor:pointer"><td>${conCopiar(s.nombre_cliente)}</td><td>${chipS(s)}</td><td>${esc(referidor(s))}</td><td>${tipoTxt(s.origen_canal)}</td></tr>`).join('')}</tbody></table></details>` : ''}`;
   } else if (f.vista === 'ref'){
     cuerpo = `<div class="card" style="overflow-x:auto">${!lista.length ? '<div class="empty">Todavía no hay clientes referidos en este período.</div>' : `<table class="t"><thead><tr><th>Referido por</th><th>Tipo</th><th>Teléfono</th><th class="num">Referidos</th><th class="num">Desemb.</th><th class="num">Capital colocado</th><th class="num">Bonos pend.</th><th class="num">Bonos pagados</th></tr></thead><tbody>
         ${gl.map(o => `<tr><td><b>${conCopiar(o.nombre)}</b><div class="small muted" style="white-space:normal">${o.sols.map(s => conCopiar(s.nombre_cliente)).join(', ')}</div></td><td>${tipoTxt(o.tipo)}</td><td>${o.tel ? `<a href="tel:${esc(o.tel)}">${esc(o.tel)}</a>` : '—'}</td><td class="num">${o.n}</td><td class="num">${o.des}</td><td class="num">${L(Math.round(o.cap))}</td><td class="num">${o.pend || '—'}</td><td class="num">${o.pagN ? L(o.pag) : '—'}</td></tr>`).join('')}</tbody></table>`}</div>`;
   } else if (f.vista === 'det'){
     const bonoCel = s => s.estado !== 'desembolsada' ? '<span class="muted small">Aún no desembolsado</span>' : s.bono_pagado_en ? `<span class="chip c-green">Pagado ${L(+s.bono_monto || 0)} · ${fDate(s.bono_pagado_en)}</span>` : `<span class="chip c-amber">Pendiente ${L(bonoDe(s))}</span>`;
     cuerpo = `<div class="card" style="overflow-x:auto">${!lista.length ? '<div class="empty">Todavía no hay clientes referidos en este período.</div>' : `<table class="t"><thead><tr><th>Fecha</th><th>Cliente referido</th><th>Estado</th><th>Referido por</th><th>Tipo</th><th class="num">Capital</th><th>Bono</th></tr></thead><tbody>
-        ${lista.map(s => `<tr data-id="${s.id}" style="cursor:pointer"><td>${fDate(s.creado_en)}</td><td>${conCopiar(s.nombre_cliente)}</td><td>${chip(s.estado)}</td><td>${esc(referidor(s))}</td><td>${tipoTxt(s.origen_canal)}</td><td class="num">${s.estado === 'desembolsada' ? L(Math.round(capitalColocado(s))) : '—'}</td><td>${bonoCel(s)}</td></tr>`).join('')}</tbody></table>`}</div>`;
+        ${lista.map(s => `<tr data-id="${s.id}" style="cursor:pointer"><td>${fDate(s.creado_en)}</td><td>${conCopiar(s.nombre_cliente)}</td><td>${chipS(s)}</td><td>${esc(referidor(s))}</td><td>${tipoTxt(s.origen_canal)}</td><td class="num">${s.estado === 'desembolsada' ? L(Math.round(capitalColocado(s))) : '—'}</td><td>${bonoCel(s)}</td></tr>`).join('')}</tbody></table>`}</div>`;
   } else {
     cuerpo = '<div class="empty">Calculando…</div>';
   }
@@ -8528,7 +8648,7 @@ async function pintarReferidos(){
     const X = await rfXlsx(), wb = X.utils.book_new();
     const h1 = X.utils.json_to_sheet(gl.map(o => ({ 'Referido por':o.nombre, 'Tipo':tipoTxt(o.tipo), 'Teléfono':o.tel, 'Clientes referidos':o.n, 'Desembolsados':o.des, 'Capital colocado':Math.round(o.cap), 'Bonos pendientes':o.pend, 'Bonos pagados (L)':o.pag, 'Clientes':o.sols.map(s => s.nombre_cliente).join(', ') })));
     h1['!cols'] = [30,10,14,10,10,14,10,12,60].map(wch => ({ wch }));
-    const h2 = X.utils.json_to_sheet(lista.map(s => ({ 'Fecha':diaHN(s.creado_en), 'Código':s.codigo, 'Cliente referido':s.nombre_cliente, 'Estado':EST[s.estado]?.t || s.estado, 'Referido por':referidor(s), 'Tipo':tipoTxt(s.origen_canal), 'Teléfono referidor':s.referido_telefono || '',
+    const h2 = X.utils.json_to_sheet(lista.map(s => ({ 'Fecha':diaHN(s.creado_en), 'Código':s.codigo, 'Cliente referido':s.nombre_cliente, 'Estado':estT(s), 'Referido por':referidor(s), 'Tipo':tipoTxt(s.origen_canal), 'Teléfono referidor':s.referido_telefono || '',
       'Capital colocado':s.estado === 'desembolsada' ? Math.round(capitalColocado(s)) : '', 'Bono':s.estado !== 'desembolsada' ? '' : s.bono_pagado_en ? 'PAGADO' : 'PENDIENTE', 'Monto bono':s.bono_pagado_en ? +s.bono_monto || 0 : s.estado === 'desembolsada' ? bonoDe(s) : '', 'Fecha pago bono':s.bono_pagado_en ? diaHN(s.bono_pagado_en) : '', 'Nota bono':s.bono_nota || '' })));
     h2['!cols'] = [11,12,30,16,30,10,14,12,10,10,12,30].map(wch => ({ wch }));
     X.utils.book_append_sheet(wb, h1, 'Referidores'); X.utils.book_append_sheet(wb, h2, 'Referidos');
