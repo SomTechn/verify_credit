@@ -1000,7 +1000,7 @@ body.nav-min .sn-vt span{display:none}
 // App disponible sin señal (sw.js debe estar junto a index.html). Va primero para registrarse aunque falle otra cosa.
 if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) navigator.serviceWorker.register('sw.js').catch(() => {});
 // Versión de esta copia de la app: cambia en cada entrega. La app la compara con la publicada y se actualiza sola.
-const APP_VER = '2026-11-28.1130';
+const APP_VER = '2026-11-28.1200';
 // 'admin' = cambio solo para el administrador: los demás usuarios no ven el aviso de versión nueva (se actualiza en silencio)
 // y sus NOVEDADES deben llevar r:['admin']. 'todos' = cambio que ven los usuarios.
 const APP_AVISO = 'todos';
@@ -1009,6 +1009,9 @@ const APP_AVISO = 'todos';
 // r = roles que la ven (sin r = todos; el admin ve todo).
 // Regla: las novedades de control (GPS, horas de los verificadores, permisos, auditoría) van SOLO con r:['admin'].
 const NOVEDADES = [
+  { v:'2026-11-28.1200', f:'28 de noviembre de 2026', items:[
+    { i:'•', t:'Cambios de modalidad directo a análisis', r:['gestor','asesor','analista'],
+      d:'Los cambios de modalidad (incluidos los de Cámbiate a nivelado) ya no pasan por el asesor: caen directo a análisis y el asesor responsable es el analista Kevin Ramos. No piden ingresos, hoja de solicitud, fecha de nacimiento ni sexo, porque solo son una negociación con el cliente. Lo mismo aplica a las reestructuraciones: no piden hoja de solicitud.' } ] },
   { v:'2026-11-28.1130', f:'28 de noviembre de 2026', items:[
     { i:'•', t:'Refinanciamiento y reingreso sin hoja de solicitud', r:['asesor','analista'],
       d:'La fecha de nacimiento y el sexo solo se piden al crear solicitudes nuevas. En refinanciamientos y reingresos ya no aparece la hoja de solicitud para llenar.' } ] },
@@ -3230,7 +3233,9 @@ function nuevaSolicitudDlg(pre = {}){
     q('#nOrigen')?.classList.toggle('hidden', !nuevo);
     q('#nCartF').classList.toggle('hidden', nuevo);
     q('#nCartNueva').innerHTML = !nuevo ? '' : carteraNuevas() ? `${ico('briefcase', 'sm')} Cartera: <b>${esc(carteraNombre(carteraNuevas()))}</b> (predeterminada para nuevas en Parámetros)` : '';
-    q('#nHelp').textContent = gestor ? 'La solicitud le llega al asesor para que la revise y la envíe a análisis. Usted verá aquí en qué paso va.'
+    q('#nHelp').textContent = tipo === 'cambio_modalidad' ? 'El cambio de modalidad pasa directo a análisis (lo recibe el analista designado). No lleva ingresos ni hoja de solicitud: es una negociación con el cliente.'
+      : tipo === 'reestructuracion' ? 'Se crea con el nombre y puede enviarla a análisis de una vez: no lleva hoja de solicitud y los ingresos son opcionales.'
+      : gestor ? 'La solicitud le llega al asesor para que la revise y la envíe a análisis. Usted verá aquí en qué paso va.'
       : nuevo ? 'Se crea con el nombre; luego agrega los ingresos y, cuando esté lista, la envía a análisis.'
       : 'Se crea con el nombre y puede enviarla a análisis de una vez: en refinanciamientos y reingresos los ingresos los puede agregar el analista.';
   };
@@ -3308,8 +3313,8 @@ function nuevaSolicitudDlg(pre = {}){
     }
     if (pre.lead && id > 0){ try { await pbActualizar(pre.lead.id, { estado:'convertido', solicitud_id:id, atendido_por:S.me.id, atendido_en:new Date().toISOString() }, true); } catch(x){ console.error(x); toast('La solicitud se creó, pero el prospecto no se pudo marcar. Márquelo de nuevo al tener señal.', true); } }
     await cerrarDialogo(w); await cargarSolicitudes(); pintarTabs(); pintar();
-    toast(tipo === 'nuevo' ? 'Solicitud creada. Agregue los ingresos.' : 'Solicitud creada. Puede enviarla a análisis; los ingresos son opcionales.');
-    abrirDetalle(id);
+    toast(tipo === 'cambio_modalidad' ? 'Cambio de modalidad creado y enviado a análisis.' : tipo === 'nuevo' ? 'Solicitud creada. Agregue los ingresos.' : 'Solicitud creada. Puede enviarla a análisis; los ingresos son opcionales.');
+    if (S.sols.some(x => x.id === id)) abrirDetalle(id);   // un cambio de modalidad queda con el analista designado: puede no ser de este asesor
   });
 }
 
@@ -3787,8 +3792,8 @@ function nvSolicitudDlg(r, sel, vista){
     <div class="nv-res-s"><div><span>Cliente</span><b>${esc(r.nombre)}</b></div><div><span>Identidad</span><b>${esc(RD.fmtId(sel.dni))}</b></div><div><span>Monto</span><b>${L(sel.monto)}</b></div><div><span>Plazo</span><b>${sel.plazo} meses</b></div><div><span>Forma de pago</span><b>${fx.charAt(0).toUpperCase() + fx.slice(1)}</b></div><div><span>Cuota ${fx}</span><b>${L(c.cuota.toFixed(2))}</b></div><div><span>Tasa mensual</span><b>${pctT(sel.tasa)}</b></div></div>
     <label class="f">Teléfono</label><input id="nsTel" inputmode="tel" value="${esc(sel.tel || r.telefono || '')}">
     <label class="f">Nota para el asesor (opcional)</label><textarea id="nsNota" rows="2" placeholder="Ej. prefiere pagar el 15 y el 30"></textarea>
-    <div class="alert info small">Le llega al asesor como <b>Cambio de modalidad</b> (plan nivelado) con este monto, plazo, forma de pago y tasa, para revisarla y enviarla a análisis. El analista define el monto y la tasa finales.</div>
-    <div class="btns"><button class="btn ghost" data-close>Cancelar</button><button class="btn pri" id="nsOk">Enviar al asesor</button></div>`);
+    <div class="alert info small">Pasa <b>directo a análisis</b> como <b>Cambio de modalidad</b> (plan nivelado) con este monto, plazo, forma de pago y tasa. No lleva ingresos ni hoja de solicitud: es una negociación con el cliente. El analista define el monto y la tasa finales.</div>
+    <div class="btns"><button class="btn ghost" data-close>Cancelar</button><button class="btn pri" id="nsOk">Enviar a análisis</button></div>`);
   const q = x => w.querySelector(x);
   q('#nsTel').focus();
   q('#nsOk').onclick = ev => run(ev.target, async () => {
@@ -3797,7 +3802,7 @@ function nvSolicitudDlg(r, sel, vista){
     const res = await rpc('niv_crear_solicitud', { p_id: r.id, p_dni: dni, p_telefono: q('#nsTel').value, p_monto: sel.monto, p_plazo: sel.plazo, p_tipo_pago: sel.frec, p_tasa: sel.tasa, p_nota: nota });
     await cerrarDialogo(w);
     if (vista && vista.isConnected) await nvRefrescarVista(vista, r.id); else { await nvCargar(true); if (S.tab === 'nivelado') pintarNivelado(); }
-    toast(`Solicitud ${res?.codigo || ''} enviada al asesor`);
+    toast(`Solicitud ${res?.codigo || ''} enviada a análisis`);
   });
 }
 // ---------- Carga del listado (analista, gerente, admin) ----------
