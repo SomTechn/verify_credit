@@ -1,14 +1,14 @@
 -- Cambio de modalidad y reestructuración: negociación confirmada por el analista + contrato firmado obligatorio.
--- Cartera preferencial: sin opción a refinanciamiento.
+-- Cartera presencial: sin opción a refinanciamiento.
 alter table solicitudes add column if not exists condonacion_monto numeric;
 alter table solicitudes add column if not exists condonacion_nota text;
 alter table solicitudes add column if not exists negociacion_confirmada_en timestamptz;
 alter table solicitudes add column if not exists negociacion_confirmada_por uuid;
 
 alter table carteras add column if not exists sin_refinanciamiento boolean not null default false;
-insert into carteras (id, nombre, sin_refinanciamiento)
-select 5, 'Preferencial', true where not exists (select 1 from carteras where id = 5 or nombre = 'Preferencial');
-update carteras set sin_refinanciamiento = true where nombre = 'Preferencial';
+-- Gestión Presencial (id 3): sin opción a refinanciamiento.
+-- (En producción se creó por error una cartera 'Preferencial' id 5; quedó inactiva y sin uso.)
+update carteras set sin_refinanciamiento = (id = 3);
 
 create or replace function _cliente_preferencial(p_dni text, p_cartera smallint default null) returns boolean
 language sql stable security definer set search_path to 'public' as $$
