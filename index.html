@@ -1000,7 +1000,7 @@ body.nav-min .sn-vt span{display:none}
 // App disponible sin señal (sw.js debe estar junto a index.html). Va primero para registrarse aunque falle otra cosa.
 if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) navigator.serviceWorker.register('sw.js').catch(() => {});
 // Versión de esta copia de la app: cambia en cada entrega. La app la compara con la publicada y se actualiza sola.
-const APP_VER = '2026-11-28.1300';
+const APP_VER = '2026-11-28.1330';
 // 'admin' = cambio solo para el administrador: los demás usuarios no ven el aviso de versión nueva (se actualiza en silencio)
 // y sus NOVEDADES deben llevar r:['admin']. 'todos' = cambio que ven los usuarios.
 const APP_AVISO = 'todos';
@@ -1009,6 +1009,9 @@ const APP_AVISO = 'todos';
 // r = roles que la ven (sin r = todos; el admin ve todo).
 // Regla: las novedades de control (GPS, horas de los verificadores, permisos, auditoría) van SOLO con r:['admin'].
 const NOVEDADES = [
+  { v:'2026-11-28.1330', f:'28 de noviembre de 2026', items:[
+    { i:'•', t:'Cámbiate a nivelado: el gestor sube el contrato firmado', r:['gestor','asesor','analista'],
+      d:'Al generar la solicitud de cambio a nivelado, el gestor sube las fotos del contrato firmado por el cliente; sin el contrato no se puede enviar. La solicitud pasa directo a análisis. El gestor también puede poner cuánto se le condona al cliente y qué se condona. El monto del nuevo préstamo es el total adeudado (capital, intereses y mora) menos la condonación, redondeado hacia abajo a cientos: por ejemplo, L 1,575 queda en L 1,500.' } ] },
   { v:'2026-11-28.1300', f:'28 de noviembre de 2026', items:[
     { i:'•', t:'Cambio de modalidad y reestructuración: negociación con contrato firmado', r:['gestor','asesor','analista'],
       d:'Ya no llevan el análisis de antigüedad, último aumento ni comportamiento de pago. El asesor pone los datos negociados (capital, intereses, condonación si aplica, plazo, tasa y monto del nuevo préstamo) y sube el contrato firmado: sin el contrato no se puede enviar a análisis. El analista solo confirma esos datos. Al aprobar, la solicitud queda finalizada: no hay desembolso, porque el cambio se aplica en el sistema, y no cuenta en las estadísticas de crédito (solo en Cámbiate a nivelado).' },
@@ -3331,6 +3334,7 @@ function nuevaSolicitudDlg(pre = {}){
 // ---------- Gestor de cobro: su cartera ----------
 const G = { carteras:[], mias:[], sols:[], f:{ v:'proceso', q:'', cart:'', mias:false }, cargado:false, err:null };
 const G_PASOS = [['borrador','Registrada'],['en_analisis','Análisis'],['aprobada','Aprobada'],['por_verificar','Verificación'],['desembolso_pendiente','Desembolso'],['desembolsada','Desembolsada']];
+const G_PASOS_NEG = [['borrador','Registrada'],['en_analisis','Análisis'],['desembolsada','Finalizada']];   // cambio de modalidad / reestructuración: no hay desembolso
 const G_FIN = { denegada:'Denegada', rechazada_verificacion:'No pasó la verificación', desistida:'Desistida' };
 async function cargarGestor(){
   try { const d = await rpc('gestor_datos', {}); G.carteras = d.carteras || []; G.mias = d.mias || []; G.sols = d.sols || []; G.cargado = true; G.err = null;
@@ -3342,13 +3346,14 @@ async function cargarGestor(){
 }
 function gestorEstadoTxt(s){
   if (G_FIN[s.estado]) return G_FIN[s.estado];
+  if (esNeg(s) && s.estado === 'desembolsada') return 'Finalizada';
   if (s.en_espera) return 'En espera';
   return { borrador:'Con el asesor', en_analisis:s.analisis_tomado ? 'En análisis' : 'Esperando analista', aprobada:'Aprobada · completando datos con el cliente',
     por_verificar:'En verificación', desembolso_pendiente:'Por desembolsar', desembolsada:'Desembolsada' }[s.estado] || estT(s);
 }
 function gestorPasos(s){
-  const fin = G_FIN[s.estado], i = G_PASOS.findIndex(p => p[0] === s.estado);
-  return `<div class="gp${fin ? ' fin' : ''}">${G_PASOS.map(([k, t], j) => `<div class="gp-s${!fin && j < i ? ' ok' : ''}${!fin && j === i ? (s.estado === 'desembolsada' ? ' ok' : ' on') : ''}"><i></i><span>${t}</span></div>`).join('')}</div>`;
+  const PS = esNeg(s) ? G_PASOS_NEG : G_PASOS, fin = G_FIN[s.estado], i = PS.findIndex(p => p[0] === s.estado);
+  return `<div class="gp${fin ? ' fin' : ''}">${PS.map(([k, t], j) => `<div class="gp-s${!fin && j < i ? ' ok' : ''}${!fin && j === i ? (s.estado === 'desembolsada' ? ' ok' : ' on') : ''}"><i></i><span>${t}</span></div>`).join('')}</div>`;
 }
 function gestorFiltrar(){
   const f = G.f, q = norm(f.q);
@@ -3360,14 +3365,14 @@ function gestorCard(s){
   const fin = G_FIN[s.estado], tono = fin ? 'gy' : s.estado === 'desembolsada' ? 'gr' : s.en_espera ? 'am' : 'bl';
   return `<div class="mt-c ${tono} gs-c" data-gs="${s.id}"><div class="mt-tx">
       <div class="mt-nm">${esc(s.nombre_cliente)} ${tipoChip(s.tipo)}${s.cartera_id ? `<span class="chip c-gray">${ico('briefcase', 'sm')}${esc(carteraNombre(s.cartera_id) || '')}</span>` : ''}${s.es_mia ? '<span class="chip c-blue">Registrada por mí</span>' : ''}</div>
-      <div class="mt-meta">${esc(s.codigo || '')} · ${esc(gestorEstadoTxt(s))} · ${s.estado === 'desembolsada' && s.desembolsado_en ? 'desembolsada ' + fDate(s.desembolsado_en) : 'desde ' + hace(s.estado_desde || s.creado_en)}</div>
+      <div class="mt-meta">${esc(s.codigo || '')} · ${esc(gestorEstadoTxt(s))} · ${s.estado === 'desembolsada' && s.desembolsado_en ? (esNeg(s) ? 'finalizada ' : 'desembolsada ') + fDate(s.desembolsado_en) : 'desde ' + hace(s.estado_desde || s.creado_en)}</div>
       ${gestorPasos(s)}</div>
     <div class="mt-acc">${s.telefono ? `<a class="mt-b gh ic" href="tel:${telLimpio(s.telefono)}" title="Llamar" data-stop>${ico('phone')}</a>${waUrl(s) ? `<a class="mt-b gh ic" href="${waUrl(s)}" target="_blank" rel="noopener" title="WhatsApp" data-stop>${ico('msg')}</a>` : ''}` : ''}</div></div>`;
 }
 function pintarGestor(){
   const f = G.f, ls = gestorFiltrar(), ini = hoyHN().slice(0, 8) + '01';
   const abiertas = G.sols.filter(s => !CERRADAS.includes(s.estado)).length;
-  const desMes = G.sols.filter(s => s.estado === 'desembolsada' && diaHN(s.desembolsado_en || s.creado_en) >= ini).length;
+  const desMes = G.sols.filter(s => s.estado === 'desembolsada' && !esNeg(s) && diaHN(s.desembolsado_en || s.creado_en) >= ini).length;
   const mesMias = G.sols.filter(s => s.es_mia && diaHN(s.creado_en) >= ini).length;
   const mias = G.carteras.filter(c => G.mias.includes(c.id));
   const k = (t, v, cls = '') => `<div class="mt-kpi ${cls}"><span>${t}</span><b>${v}</b></div>`;
@@ -3558,7 +3563,8 @@ function nvFiltrar(rows){
   else ls.sort((a, b) => t(b.resultado_en) - t(a.resultado_en));
   return ls;
 }
-function nvSolTxt(sol){ return sol ? `${esc(sol.codigo || 'Solicitud')} · ${esc(gestorEstadoTxt(sol))}` : ''; }
+const nvSol = sol => sol && { tipo: 'cambio_modalidad', ...sol };
+function nvSolTxt(sol){ return sol ? `${esc(sol.codigo || 'Solicitud')} · ${esc(gestorEstadoTxt(nvSol(sol)))}` : ''; }
 function nvCard(r){
   const e = nvEtapa(r), res = r.resultado && NV_RES[r.resultado];
   const tono = { cambiado:'gr', solicitud:'vi', acepta:'gr', nointeresa:'rd', gestion:nvVencido(r) ? 'rd' : 'am', solfin:'am', pendiente:'', noaplica:'gy', salio:'gy' }[e] || '';
@@ -3663,7 +3669,7 @@ function nvVistaPintar(w, id){
   const e = nvEtapa(r), abierta = r.sol && !CERRADAS.includes(r.sol.estado), hist = (NV.d.gestiones || []).filter(g => g.p === r.id);
   const puede = !abierta && e !== 'cambiado' && (r.aplica || NV.d.todos);
   const res = r.resultado && NV_RES[r.resultado], ab = (+r.capital || 0) - (+r.bal || 0), tot = nvTotal(r), tp = nvFrec(r);
-  const sel = NV.sel[id] = NV.sel[id] || { monto: tot, plazo: null, frec: null, dni: r.dni || '', tel: '', tasa: 0.14 };
+  const sel = NV.sel[id] = NV.sel[id] || { monto: abajo100(tot), cond: 0, condNota: '', plazo: null, frec: null, dni: r.dni || '', tel: '', tasa: 0.14 };
   w.querySelector('[data-t]').textContent = r.nombre;
   w.querySelector('[data-c]').innerHTML = res ? `<span class="chip ${res[1]}">${res[0]}</span>` : '<span class="chip c-gray">Sin gestionar</span>';
   const b = w.querySelector('[data-b]');
@@ -3683,12 +3689,14 @@ function nvVistaPintar(w, id){
           <div class="nv-tot-c"><div><span>Saldo de capital</span><b>${L(r.bal || 0)}</b>${ab > 0.5 ? `<small>abonó ${rfL0(ab)}</small>` : '<small>sin abono a capital</small>'}</div><div><span>Intereses acumulados</span><b>${L(r.cuotas || 0)}</b></div><div><span>Mora</span><b>${L(r.mora || 0)}</b></div><div class="t"><span>Total adeudado</span><b>${L(tot)}</b></div></div>
         </div>
         ${r.sol ? `<div class="card"><div class="row" style="justify-content:space-between;gap:8px"><b>Solicitud ${esc(r.sol.codigo || '')}</b>${NV.d.todos && S.sols.some(x => x.id === r.sol.id) ? `<button class="btn sm ghost" id="nvVerSol">Abrir</button>` : ''}</div>
-          <div class="small muted">${esc(gestorEstadoTxt(r.sol))}${r.sol.asesor ? ' · asesor ' + esc(r.sol.asesor) : ''}${r.sol.monto ? ' · ' + rfL0(r.sol.monto) : ''}</div>${gestorPasos(r.sol)}
+          <div class="small muted">${esc(gestorEstadoTxt(nvSol(r.sol)))}${r.sol.asesor ? ' · asesor ' + esc(r.sol.asesor) : ''}${r.sol.monto ? ' · ' + rfL0(r.sol.monto) : ''}</div>${gestorPasos(nvSol(r.sol))}
           ${abierta ? '<div class="small muted" style="margin-top:8px">La solicitud ya está en proceso; su avance se ve aquí y en Mi cartera.</div>' : ''}</div>` : ''}
         ${puede ? `<div class="card" id="nvNuevo"><h4 class="sec" style="margin-top:0">Nuevo préstamo nivelado</h4>
           <label class="f" style="margin-top:0">Identidad del cliente</label><input id="nvDniN" inputmode="numeric" autocomplete="off" placeholder="0000-0000-00000" value="${esc(RD.fmtId(sel.dni || r.dni || ''))}">
           <div id="nvDniA" class="small" style="margin-top:3px"></div>
-          <div class="nv-mt"><div><label class="f">Monto</label><input id="nvMontoN" inputmode="decimal" value="${(+sel.monto || 0).toFixed(2)}"></div>
+          <div class="nv-mt"><div><label class="f">Condonación (opcional)</label><input id="nvCondN" inputmode="decimal" placeholder="L 0" value="${sel.cond ? sel.cond : ''}"></div>
+            <div><label class="f">Qué se condona</label><input id="nvCondT" placeholder="Ej. la mora" value="${esc(sel.condNota || '')}"></div></div>
+          <div class="nv-mt"><div><label class="f">Monto del nuevo préstamo</label><input id="nvMontoN" inputmode="decimal" value="${(+sel.monto || 0).toFixed(2)}"></div>
             <div><label class="f">Tasa mensual</label><select id="nvTasaN">${TASAS_NIV.map(t => `<option value="${t}" ${Math.abs(t - sel.tasa) < 1e-9 ? 'selected' : ''}>${pctT(t)}</option>`).join('')}</select></div></div>
           <div id="nvMontoA" class="small" style="margin-top:3px"></div>
           <label class="f">Cuota según plazo y forma de pago · toque la cuota que elija el cliente</label><div id="nvProy" style="overflow-x:auto"></div>
@@ -3716,9 +3724,9 @@ function nvVistaPintar(w, id){
     let bloqueo = null;
     const dniOk = () => String(sel.dni || '').replace(/\D/g, '').length === 13;
     const estado = () => {
-      const okC = dniOk() && sel.monto > 0 && !bloqueo, okS = okC && sel.plazo && sel.frec;
+      const okC = dniOk() && sel.monto > 0 && !bloqueo, okS = okC && sel.plazo && sel.frec && !(sel.cond && !String(sel.condNota || '').trim());
       q('#nvCtB').disabled = !okC; q('#nvGenB').disabled = !okS;
-      const falta = [!dniOk() ? 'la identidad' : '', !(sel.monto > 0) ? 'el monto' : '', !(sel.plazo && sel.frec) ? 'la cuota (plazo y forma de pago)' : ''].filter(Boolean);
+      const falta = [!dniOk() ? 'la identidad' : '', !(sel.monto > 0) ? 'el monto' : '', sel.cond && !String(sel.condNota || '').trim() ? 'qué se condona' : '', !(sel.plazo && sel.frec) ? 'la cuota (plazo y forma de pago)' : ''].filter(Boolean);
       const c = sel.plazo && sel.frec && sel.monto > 0 ? nvCuota(sel.monto, sel.plazo, sel.frec, sel.tasa) : null;
       q('#nvSelTxt').innerHTML = (c ? `<b>Elegido: ${sel.plazo} meses, pago ${NV_FREC_TXT[sel.frec]} de ${L(c.cuota.toFixed(2))}</b> (${c.pagos} pagos, tasa ${pctT(sel.tasa)}).` : '')
         + (bloqueo ? '' : falta.length ? `<div class="muted">Falta ${falta.join(', ')}${!dniOk() ? ' (para ver el contrato y generar la solicitud)' : ''}.</div>` : '');
@@ -3726,8 +3734,10 @@ function nvVistaPintar(w, id){
     const pintarProy = () => {
       q('#nvProy').innerHTML = nvProyeccionHTML(sel.monto, sel.plazo, sel.frec, sel.tasa);
       q('#nvProy').querySelectorAll('[data-pl]').forEach(td => td.onclick = () => { sel.plazo = +td.dataset.pl; sel.frec = td.dataset.fr; pintarProy(); });
-      const dif = Math.round((sel.monto - tot) * 100) / 100;
-      q('#nvMontoA').innerHTML = !(sel.monto > 0) ? '<span style="color:var(--red)">Monto no válido</span>' : dif < 0 ? `<span style="color:var(--red)">Es ${L(-dif)} menos que el total adeudado.</span>` : dif > 0 ? `<span class="muted">Incluye ${L(dif)} adicionales al total adeudado.</span>` : '<span class="muted">Igual al total adeudado. Puede cambiarlo.</span>';
+      const base = abajo100(tot - (sel.cond || 0)), dif = Math.round((sel.monto - base) * 100) / 100;
+      q('#nvMontoA').innerHTML = !(sel.monto > 0) ? '<span style="color:var(--red)">Monto no válido</span>'
+        : `<span class="muted">Total adeudado ${L(tot)}${sel.cond ? ` − condonación ${L(sel.cond)}` : ''} = ${L(Math.round((tot - (sel.cond || 0)) * 100) / 100)} → redondeado hacia abajo a cientos: <b>${L(base)}</b>.</span>`
+          + (dif < 0 ? ` <span style="color:var(--red)">El monto puesto es ${L(-dif)} menos.</span>` : dif > 0 ? ` <span class="muted">El monto puesto incluye ${L(dif)} adicionales.</span>` : '');
       estado();
     };
     const buscar = async () => {
@@ -3743,6 +3753,9 @@ function nvVistaPintar(w, id){
     if (!sel.dni && r.dni) sel.dni = r.dni;
     q('#nvDniN').oninput = () => { q('#nvDniN').value = RD.fmtId(q('#nvDniN').value); sel.dni = q('#nvDniN').value; buscar(); };
     q('#nvMontoN').oninput = () => { sel.monto = num(q('#nvMontoN').value) || 0; pintarProy(); };
+    q('#nvCondN').oninput = () => { const v = num(q('#nvCondN').value) || 0; sel.cond = v > 0 && v < tot ? Math.round(v * 100) / 100 : 0;
+      sel.monto = abajo100(tot - sel.cond); q('#nvMontoN').value = sel.monto.toFixed(2); pintarProy(); };
+    q('#nvCondT').oninput = () => { sel.condNota = q('#nvCondT').value; estado(); };
     q('#nvTasaN').onchange = () => { sel.tasa = +q('#nvTasaN').value; pintarProy(); };
     pintarProy(); if (dniOk()) buscar();
     q('#nvCtB').onclick = () => { if (q('#nvCtB').disabled) return;
@@ -3779,6 +3792,8 @@ function nvVistaPintar(w, id){
   };
 }
 const NV_PLAZOS = [3, 6, 8, 10, 12];
+// Monto del nuevo préstamo: siempre a múltiplos de 100 hacia abajo (L 1,575 → L 1,500)
+const abajo100 = v => Math.max(0, Math.floor((+v || 0) / 100 + 1e-9) * 100);
 // Cuota nivelada: mensual = monto ÷ plazo + monto × tasa mensual; por pago = mensual ÷ frecuencia (igual que el análisis)
 function nvCuota(monto, plazo, tipoPago, tasa = tasasSol(null, false, null).n){
   const f = FREC[tipoPago] || 1, mes = monto / plazo + monto * tasa, pagos = Math.round(plazo * f), cuota = mes / f;
@@ -3797,22 +3812,44 @@ function nvProyeccionHTML(monto, plazo, frec, tasa){
 }
 // Generar la solicitud con lo definido en la vista (identidad, monto, plazo y forma de pago): solo pide teléfono y nota
 function nvSolicitudDlg(r, sel, vista){
-  const c = nvCuota(sel.monto, sel.plazo, sel.frec, sel.tasa), fx = NV_FREC_TXT[sel.frec];
+  const c = nvCuota(sel.monto, sel.plazo, sel.frec, sel.tasa), fx = NV_FREC_TXT[sel.frec], tot = nvTotal(r);
+  const cf = { blob: null, n: 0, url: null };
   const w = dialogo(`<h3 style="margin-top:0">Generar solicitud de cambio a nivelado</h3>
-    <div class="nv-res-s"><div><span>Cliente</span><b>${esc(r.nombre)}</b></div><div><span>Identidad</span><b>${esc(RD.fmtId(sel.dni))}</b></div><div><span>Monto</span><b>${L(sel.monto)}</b></div><div><span>Plazo</span><b>${sel.plazo} meses</b></div><div><span>Forma de pago</span><b>${fx.charAt(0).toUpperCase() + fx.slice(1)}</b></div><div><span>Cuota ${fx}</span><b>${L(c.cuota.toFixed(2))}</b></div><div><span>Tasa mensual</span><b>${pctT(sel.tasa)}</b></div></div>
+    <div class="nv-res-s"><div><span>Cliente</span><b>${esc(r.nombre)}</b></div><div><span>Identidad</span><b>${esc(RD.fmtId(sel.dni))}</b></div>
+      <div><span>Total adeudado</span><b>${L(tot)}</b></div><div><span>Condonación</span><b>${sel.cond ? L(sel.cond) + ' · ' + esc(sel.condNota || '') : 'Ninguna'}</b></div>
+      <div><span>Monto del nuevo préstamo</span><b>${L(sel.monto)}</b></div><div><span>Plazo</span><b>${sel.plazo} meses</b></div>
+      <div><span>Forma de pago</span><b>${fx.charAt(0).toUpperCase() + fx.slice(1)}</b></div><div><span>Cuota</span><b>${L(c.cuota.toFixed(2))} · ${c.pagos} pagos · tasa ${pctT(c.tasa)}</b></div></div>
     <label class="f">Teléfono</label><input id="nsTel" inputmode="tel" value="${esc(sel.tel || r.telefono || '')}">
-    <label class="f">Nota para el asesor (opcional)</label><textarea id="nsNota" rows="2" placeholder="Ej. prefiere pagar el 15 y el 30"></textarea>
-    <div class="alert info small">Se crea como <b>Cambio de modalidad</b> (plan nivelado) con este monto, plazo, forma de pago y tasa, y la recibe el analista designado. No lleva ingresos ni hoja de solicitud. Para enviarla a análisis se sube el contrato firmado; al aprobarse queda finalizada (no hay desembolso).</div>
-    <div class="btns"><button class="btn ghost" data-close>Cancelar</button><button class="btn pri" id="nsOk">Crear solicitud</button></div>`);
+    <label class="f">Nota para el analista (opcional)</label><textarea id="nsNota" rows="2" placeholder="Ej. prefiere pagar el 15 y el 30"></textarea>
+    <div class="card" style="margin:10px 0 0;padding:12px;border:1.5px dashed var(--line)">
+      <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap">
+        <div id="nsCfPrev" style="width:72px;height:72px;border-radius:8px;background:var(--gray-bg);border:1px solid var(--line);display:flex;align-items:center;justify-content:center;overflow:hidden" class="small muted">Sin foto</div>
+        <div style="flex:1;min-width:180px"><b>Contrato firmado (obligatorio)</b><div class="small muted" id="nsCfTxt">Tome o suba las fotos de las hojas del contrato firmado por el cliente.</div></div>
+        <button class="btn ok" id="nsCf">Subir contrato firmado</button>
+      </div></div>
+    <div class="alert info small" style="margin-top:10px">Se crea como <b>Cambio de modalidad</b> (plan nivelado) y pasa <b>directo a análisis</b>: el analista confirma los datos y el contrato. Al aprobarse queda finalizada; no hay desembolso.</div>
+    <div class="btns"><button class="btn ghost" data-close>Cancelar</button><button class="btn pri" id="nsOk" disabled>Enviar a análisis</button></div>`);
   const q = x => w.querySelector(x);
   q('#nsTel').focus();
+  q('#nsCf').onclick = () => abrirContratoFirmado({ nombre_cliente: r.nombre, codigo: 'Nivelado' }, { alUsar: (blob, n) => {
+    cf.blob = blob; cf.n = n; if (cf.url) URL.revokeObjectURL(cf.url); cf.url = URL.createObjectURL(blob);
+    q('#nsCfPrev').innerHTML = `<img src="${cf.url}" alt="Contrato firmado" style="width:100%;height:100%;object-fit:cover">`;
+    q('#nsCfTxt').textContent = `${n} hoja(s) lista(s) · ${(blob.size / 1024 / 1024).toFixed(1)} MB. Se sube al enviar.`;
+    q('#nsCf').textContent = 'Cambiar fotos'; q('#nsCf').className = 'btn ghost sm'; q('#nsOk').disabled = false;
+  } });
   q('#nsOk').onclick = ev => run(ev.target, async () => {
     const dni = String(sel.dni || '').replace(/\D/g, ''); if (dni.length !== 13) throw new Error('Falta la identidad del cliente');
+    if (!cf.blob) throw new Error('Suba el contrato firmado');
+    if (!navigator.onLine) throw new Error('Se necesita señal para subir el contrato y enviar la solicitud');
+    const path = `niv/${r.id}/contrato-firmado-${Date.now()}.jpg`;
+    const { error } = await sb.storage.from('evidencias').upload(path, cf.blob, { contentType: 'image/jpeg' });
+    if (error) throw error;
     const nota = [q('#nsNota').value.trim(), `Cuota ${fx} estimada ${L(c.cuota.toFixed(2))} (${c.pagos} pagos, tasa ${pctT(c.tasa)}).`].filter(Boolean).join(' ');
-    const res = await rpc('niv_crear_solicitud', { p_id: r.id, p_dni: dni, p_telefono: q('#nsTel').value, p_monto: sel.monto, p_plazo: sel.plazo, p_tipo_pago: sel.frec, p_tasa: sel.tasa, p_nota: nota });
+    const res = await rpc('niv_crear_solicitud', { p_id: r.id, p_dni: dni, p_telefono: q('#nsTel').value, p_monto: sel.monto, p_plazo: sel.plazo, p_tipo_pago: sel.frec, p_tasa: sel.tasa, p_nota: nota,
+      p_condonacion: sel.cond || null, p_condonacion_nota: sel.cond ? (sel.condNota || '').trim() : null, p_contrato: path });
     await cerrarDialogo(w);
     if (vista && vista.isConnected) await nvRefrescarVista(vista, r.id); else { await nvCargar(true); if (S.tab === 'nivelado') pintarNivelado(); }
-    toast(`Solicitud ${res?.codigo || ''} creada: falta subir el contrato firmado para enviarla a análisis`);
+    toast(`Solicitud ${res?.codigo || ''} enviada a análisis`);
   });
 }
 // ---------- Carga del listado (analista, gerente, admin) ----------
@@ -5100,7 +5137,7 @@ const alBtns = (s, a, sm = true) => { const c = `class="btn ${sm ? 'sm ' : ''}`,
   return `<div class="al-btns">${a.k === 'seg' ? `<button ${c}ok" data-al="hecho" ${d}>✔ Ya lo contacté</button>` : puede ? `<button ${c}ok" data-al="si" ${d}>✅ Sí continúa</button>` : ''}<button ${c}pri" data-al="rep" ${d}>📅 Reprogramar</button>${puede ? `<button ${c}ghost" data-al="no" ${d} style="color:var(--red)">🚫 No se realizará</button>` : ''}</div>`; };
 // Día en que cuenta el desembolso: franja arriba del detalle y diálogo reutilizable (Historial, detalle, Desembolsos)
 function colocacionTopHTML(s){
-  if (s.estado !== 'desembolsada') return '';
+  if (s.estado !== 'desembolsada' || esNeg(s)) return '';   // cambio de modalidad / reestructuración: no hay desembolso
   const fc = diaColoc(s), real = diaHN(s.desembolsado_en);
   return `<div class="fc-top"><div><div class="small muted">💰 Desembolsada · cuenta en la meta y las estadísticas del</div><b>${fc ? fDate(fc + 'T12:00') : '—'}</b>${real && real !== fc ? `<div class="small muted">Registrada en el sistema el ${fDate(real + 'T12:00')}</div>` : ''}</div>
     ${es('analista') ? `<button class="btn sm pri" data-fcedit="${s.id}">✏️ Cambiar fecha</button>` : ''}</div>`;
@@ -5436,7 +5473,8 @@ function renderDetalle(){
         ${s.monto_aprobado ? `<dt>Monto aprobado</dt><dd>${L(s.monto_aprobado)}</dd>` : ''}
         ${s.saldo_capital != null ? `<dt>Saldo capital</dt><dd>${L(s.saldo_capital)}</dd>` : ''}
         ${s.saldo_intereses != null ? `<dt>Saldo intereses</dt><dd>${L(s.saldo_intereses)}</dd>` : ''}
-        ${libre != null && s.tipo !== 'nuevo' ? `<dt>Monto libre</dt><dd>${L(libre)}</dd>` : ''}
+        ${esNeg(s) && s.condonacion_monto ? `<dt>Condonación</dt><dd>${L(s.condonacion_monto)}${s.condonacion_nota ? ' · ' + esc(s.condonacion_nota) : ''}</dd>` : ''}
+        ${libre != null && s.tipo !== 'nuevo' && !esNeg(s) ? `<dt>Monto libre</dt><dd>${L(libre)}</dd>` : ''}
         ${s.tasa_nivelado != null || s.tasa_solo_interes != null ? `<dt>Tasa fijada</dt><dd><b>${s.tasa_nivelado != null ? pctT(s.tasa_nivelado) + ' nivelado' : 'nivelado automática'} · ${s.tasa_solo_interes != null ? pctT(s.tasa_solo_interes) + ' solo interés' : 'solo interés automática'}</b></dd>` : ''}
         ${s.politica_b ? `<dt>Política</dt><dd><b>Tipo B</b> · ${+((S.params.tipob_tasa ?? 0.2) * 100).toFixed(2)}% nivelado · ${(S.params.tipob_plazo ?? 3)} meses</dd>` : s.tasa_preferencial ? `<dt>Tasa</dt><dd>Preferencial</dd>` : ''}
         ${s.dictamen_nota ? `<dt>Nota</dt><dd>${esc(s.dictamen_nota)}</dd>` : ''}
@@ -5736,7 +5774,7 @@ function accionesHTML(s, c){
   } else if (s.estado === 'en_analisis' && es('analista') && esNeg(s)){
     const d = negDatos(s);
     h += `<div class="card"><h4 class="sec" style="margin-top:0">Confirmar negociación</h4>
-      <div class="small muted">Revise los datos de arriba y el contrato firmado. Al aprobar, la solicitud se finaliza: no pasa a completar datos, verificación ni desembolso, y no cuenta en las estadísticas de crédito.</div>
+      <div class="small muted">Revise los datos de la negociación y el contrato firmado. Al aprobar, la solicitud se finaliza: no pasa a completar datos, verificación ni desembolso, y no cuenta en las estadísticas de crédito.</div>
       <dl class="kv" style="margin-top:8px"><dt>Monto del nuevo préstamo</dt><dd id="ngMonto">${L(d.monto)}</dd>
         <dt>Contrato firmado</dt><dd>${s.contrato_firmado_path ? 'Subido' : '<span style="color:var(--red)">Falta</span>'}</dd></dl>
       <label class="f">Nota / motivo</label><textarea id="dNota" rows="2" placeholder="Obligatorio si deniega o devuelve"></textarea>
@@ -6837,7 +6875,7 @@ function enlazarRefi(s){
 // sube el contrato firmado y el analista solo confirma. Al aprobar se finaliza (sin desembolso físico).
 function negDatos(s){
   const k = +s.saldo_capital || 0, i = +s.saldo_intereses || 0, cd = +s.condonacion_monto || 0;
-  const calc = Math.max(0, +(k + i - cd).toFixed(2));
+  const calc = s.tipo === 'cambio_modalidad' ? abajo100(k + i - cd) : Math.max(0, +(k + i - cd).toFixed(2));
   const monto = s.monto_solicitado != null && s.monto_solicitado !== '' ? +s.monto_solicitado : calc;
   const tasa = s.tasa_nivelado != null && s.tasa_nivelado !== '' ? +s.tasa_nivelado : (s.tipo === 'cambio_modalidad' ? 0.14 : null);
   const n = +s.plazo_meses || 0;
@@ -6854,10 +6892,10 @@ function negHTML(s, edit){
   const inp = (k, lbl, val, ph, extra = '') => `<div><label class="f">${lbl}</label><input data-ng="${k}" inputmode="decimal" value="${val}" placeholder="${ph}" ${dis} ${extra}></div>`;
   const cfAsesor = s.estado === 'borrador' && (es('asesor') || rol() === 'admin');
   return `<div class="card" id="ngCard"><h4 class="sec" style="margin-top:0">Negociación con el cliente · ${TIPO[s.tipo].toLowerCase()}</h4>
-    <div class="small muted" style="margin:-4px 0 8px">${s.estado === 'borrador' ? 'Ponga los datos que acordó con el cliente. El analista solo los confirma.' : s.estado === 'en_analisis' ? 'Confirme los datos que puso el asesor; puede corregirlos antes de aprobar.' : 'Datos de la negociación.'} No hay desembolso: el cambio se aplica en el sistema.</div>
+    <div class="small muted" style="margin:-4px 0 8px">${s.estado === 'borrador' ? 'Ponga los datos que acordó con el cliente. El analista solo los confirma.' : s.estado === 'en_analisis' ? `Confirme los datos que puso ${s.campana === 'nivelado' ? 'el gestor' : 'el asesor'}; puede corregirlos antes de aprobar.` : 'Datos de la negociación.'} No hay desembolso: el cambio se aplica en el sistema.</div>
     <div class="grid2">
       ${inp('saldo_capital', 'Monto de capital', v(s.saldo_capital), 'L')}
-      ${inp('saldo_intereses', 'Intereses', v(s.saldo_intereses), 'L')}
+      ${inp('saldo_intereses', s.campana === 'nivelado' ? 'Intereses y mora' : 'Intereses', v(s.saldo_intereses), 'L')}
       ${inp('condonacion_monto', 'Monto a condonar (si aplica)', v(s.condonacion_monto), 'L 0')}
       <div><label class="f">Qué se condona</label><input data-ng="condonacion_nota" value="${esc(s.condonacion_nota || '')}" placeholder="Ej. intereses moratorios" ${dis}></div>
       ${inp('plazo_meses', 'Plazo (meses)', v(s.plazo_meses), 'Ej. 6', 'inputmode="numeric"')}
@@ -6870,9 +6908,8 @@ function negHTML(s, edit){
     <div style="border-top:1px solid var(--line);padding-top:10px;margin-top:12px;display:flex;gap:12px;align-items:center;flex-wrap:wrap">
       ${s.contrato_firmado_path ? `<img data-cf="${esc(s.contrato_firmado_path)}" class="dt-cf" alt="Contrato firmado" style="width:72px;height:72px;object-fit:cover;border-radius:8px;border:1px solid var(--line);cursor:pointer;background:var(--gray-bg)">` : ''}
       <div style="flex:1;min-width:180px"><b>Contrato firmado</b>
-        <div class="small muted">${s.contrato_firmado_path ? `Subido por ${esc(nombre(s.contrato_firmado_por))} · ${fDT(s.contrato_firmado_en)}` : 'Obligatorio para enviar a análisis. Imprima el contrato, que el cliente lo firme y suba las fotos.'}</div></div>
-      ${cfAsesor ? `<button class="btn ghost sm" id="ngContrato">Ver contrato para firma</button>
-        <button class="btn ${s.contrato_firmado_path ? 'ghost sm' : 'ok'}" id="ngSubirCf">${s.contrato_firmado_path ? 'Reemplazar' : 'Subir contrato firmado'}</button>` : ''}
+        <div class="small muted">${s.contrato_firmado_path ? `Subido por ${esc(nombre(s.contrato_firmado_por))} · ${fDT(s.contrato_firmado_en)}` : 'Obligatorio para enviar a análisis. Normalmente lo sube el gestor al generar la solicitud.'}</div></div>
+      ${cfAsesor ? `<button class="btn ${s.contrato_firmado_path ? 'ghost sm' : 'ok'}" id="ngSubirCf">${s.contrato_firmado_path ? 'Reemplazar' : 'Subir contrato firmado'}</button>` : ''}
     </div>
     ${s.negociacion_confirmada_en ? `<div class="alert ok small" style="margin-top:10px">Confirmada por ${esc(nombre(s.negociacion_confirmada_por))} · ${fDT(s.negociacion_confirmada_en)}. Finalizada: el cambio se aplica en el sistema, sin desembolso.</div>` : ''}
   </div>`;
@@ -6897,8 +6934,6 @@ function enlazarNeg(s){
     await rpc('guardar_negociacion', { p_id: s.id, p_datos: { [k]: val } });
     cur()[k] = val; pintarCalc(); S.dirty = false;
   }));
-  const ct = $('#ngContrato');
-  if (ct) ct.onclick = () => { const cs = cur(); abrirContrato({ ...cs, monto_aprobado: null, monto_solicitado: negDatos(cs).monto }); };
   const up = $('#ngSubirCf'); if (up) up.onclick = () => abrirContratoFirmado(cur());
 }
 
@@ -7456,7 +7491,7 @@ function unirFotos(fotos, modo, maxLado = 1800){
   return cv;
 }
 const canvasBlob = (cv, q = 0.85) => new Promise((ok, fail) => cv.toBlob(b => b ? ok(b) : fail(new Error('No se pudo crear la imagen')), 'image/jpeg', q));
-function abrirContratoFirmado(s){
+function abrirContratoFirmado(s, op = {}){
   const st = { fotos: [], modo: 'lado', blob: null };
   const w = dialogo(`<h3>📸 Contrato firmado · ${conCopiar(s.nombre_cliente)}</h3>
     <div class="small muted">Tome una foto de cada hoja firmada (o elíjalas de la galería), en orden: hoja 1, hoja 2… Cada hoja se escanea (recorte, enderezado y fondo blanco) y se unen en una sola imagen.</div>
@@ -7475,7 +7510,7 @@ function abrirContratoFirmado(s){
       <button class="btn ghost" data-close>Cerrar</button>
       <button class="btn ghost" id="cfDesc" disabled>⬇ Descargar imagen</button>
       ${navigator.canShare ? '<button class="btn ghost" id="cfComp" disabled>📤 Compartir</button>' : ''}
-      <button class="btn ok" id="cfGuardar" disabled>💾 Guardar en la solicitud</button>
+      <button class="btn ok" id="cfGuardar" disabled>${op.alUsar ? 'Usar este contrato' : '💾 Guardar en la solicitud'}</button>
     </div>`);
   const pintarLista = () => {
     w.querySelector('#cfLista').innerHTML = st.fotos.map((f, i) => `<div style="position:relative;width:118px">
@@ -7529,6 +7564,7 @@ function abrirContratoFirmado(s){
     if (navigator.canShare({ files: [f] })) { try { await navigator.share({ files: [f], title: nombreContratoFirmado(s) }); } catch(e){} } else toast('Este dispositivo no permite compartir imágenes; use Descargar', true); };
   w.querySelector('#cfGuardar').onclick = e => run(e.target, async () => {
     if (!st.blob) return;
+    if (op.alUsar){ op.alUsar(st.blob, st.fotos.length); cerrarDialogo(w); return; }
     if (!navigator.onLine) throw new Error('Sin señal: descargue la imagen ahora y guárdela en la solicitud cuando tenga conexión');
     const path = `${s.id}/contrato-firmado-${Date.now()}.jpg`;
     const { error } = await sb.storage.from('evidencias').upload(path, st.blob, { contentType: 'image/jpeg' });
