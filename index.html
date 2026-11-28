@@ -1000,7 +1000,7 @@ body.nav-min .sn-vt span{display:none}
 // App disponible sin señal (sw.js debe estar junto a index.html). Va primero para registrarse aunque falle otra cosa.
 if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) navigator.serviceWorker.register('sw.js').catch(() => {});
 // Versión de esta copia de la app: cambia en cada entrega. La app la compara con la publicada y se actualiza sola.
-const APP_VER = '2026-11-28.1100';
+const APP_VER = '2026-11-28.1130';
 // 'admin' = cambio solo para el administrador: los demás usuarios no ven el aviso de versión nueva (se actualiza en silencio)
 // y sus NOVEDADES deben llevar r:['admin']. 'todos' = cambio que ven los usuarios.
 const APP_AVISO = 'todos';
@@ -1009,6 +1009,9 @@ const APP_AVISO = 'todos';
 // r = roles que la ven (sin r = todos; el admin ve todo).
 // Regla: las novedades de control (GPS, horas de los verificadores, permisos, auditoría) van SOLO con r:['admin'].
 const NOVEDADES = [
+  { v:'2026-11-28.1130', f:'28 de noviembre de 2026', items:[
+    { i:'•', t:'Refinanciamiento y reingreso sin hoja de solicitud', r:['asesor','analista'],
+      d:'La fecha de nacimiento y el sexo solo se piden al crear solicitudes nuevas. En refinanciamientos y reingresos ya no aparece la hoja de solicitud para llenar.' } ] },
   { v:'2026-11-28.1100', f:'28 de noviembre de 2026', items:[
     { i:'•', t:'Hoja de solicitud más rápida: una sola vista y Enter para avanzar', r:['asesor','analista'],
       d:'La hoja ahora es una sola página dividida en grupos (Cliente, Empresa, Ingresos, Domicilio, Referencias). Escriba y presione Enter para pasar al siguiente dato; en los campos con opciones aparecen las coincidencias mientras escribe. La fecha de nacimiento y el sexo se piden al crear la solicitud; la cantidad solicitada va después de cuánto gana; el plazo se elige en Completar datos. Nuevo listado de empresas: al elegir una se llenan el rubro y la dirección. El día de cobro se elige por modalidad (diario, semanal, bisemanal, quincenal o mensual) y en quincenal se calcula la segunda fecha.' } ] },
@@ -3123,7 +3126,7 @@ function hojaVacia(s){ const h = s.datos_cliente?.hoja; return !h || !Object.key
 function hojaCardHTML(s){
   if (!es('asesor', 'analista') || s.id < 0) return '';
   const vacia = hojaVacia(s), edit = !CERRADAS.includes(s.estado) || rol() === 'admin';
-  if (vacia && !edit) return '';
+  if (vacia && (!edit || s.tipo !== 'nuevo')) return '';   // refinanciamientos y reingresos no llevan hoja
   const vista = S.hojaVista?.[s.id] || (s.estado === 'aprobada' && es('asesor') ? 'yit' : 'hoja');
   const filas = hojaFilas(s);
   const VER = { 'Cedula de Identidad :':'Identidad', 'Fecha De Nacimiento :':'Fecha de nacimiento', 'rubros de empresas:':'Rubro de la empresa', 'Dirección empresa :':'Dirección de la empresa',
@@ -3207,7 +3210,7 @@ function nuevaSolicitudDlg(pre = {}){
         <div class="small muted" id="nCartHelp"></div></div>
       <div id="nCartNueva" class="small muted" style="margin-top:8px"></div>
       <label class="f">Nombre completo del cliente</label><input id="nNombre" autocomplete="off">
-      ${gestor ? '' : `<div class="grid2"><div><label class="f">Fecha de nacimiento</label><input id="nNac" inputmode="numeric" maxlength="10" placeholder="dd/mm/aaaa" autocomplete="off"></div>${opcHTML('sexo', 'Sexo', HJ_SEXO, '', 'H o M')}</div><div class="small" id="nEdad"></div>`}
+      ${gestor ? '' : `<div id="nNacF"><div class="grid2"><div><label class="f">Fecha de nacimiento</label><input id="nNac" inputmode="numeric" maxlength="10" placeholder="dd/mm/aaaa" autocomplete="off"></div>${opcHTML('sexo', 'Sexo', HJ_SEXO, '', 'H o M')}</div><div class="small" id="nEdad"></div></div>`}
       ${rol() === 'admin' ? `<label class="f">Asesor responsable</label><select id="nAsesor">${Object.values(S.perfiles).filter(p => p.activo && ['asesor','admin'].includes(p.rol)).map(p => `<option value="${p.id}" ${p.id === S.me.id ? 'selected' : ''}>${esc(p.nombre)}${p.rol === 'admin' ? ' (admin)' : ''}</option>`).join('')}</select>` : ''}
       <label class="f">Teléfono${gestor ? '' : ' (opcional)'}</label><input id="nTel" inputmode="tel" autocomplete="off">
       <div id="nIngF" class="hidden"><label class="f">Fecha de ingreso del cliente (antigüedad)</label><input id="nIng" type="date" max="${hoyHN()}"></div>
@@ -3223,6 +3226,7 @@ function nuevaSolicitudDlg(pre = {}){
     const nuevo = tipo === 'nuevo';
     w.querySelectorAll('#nTipo button').forEach(x => x.classList.toggle('on', x.dataset.v === tipo));
     q('#nIngF').classList.toggle('hidden', nuevo);
+    q('#nNacF')?.classList.toggle('hidden', !nuevo);
     q('#nOrigen')?.classList.toggle('hidden', !nuevo);
     q('#nCartF').classList.toggle('hidden', nuevo);
     q('#nCartNueva').innerHTML = !nuevo ? '' : carteraNuevas() ? `${ico('briefcase', 'sm')} Cartera: <b>${esc(carteraNombre(carteraNuevas()))}</b> (predeterminada para nuevas en Parámetros)` : '';
@@ -3293,8 +3297,8 @@ function nuevaSolicitudDlg(pre = {}){
       toast(`Solicitud ${r?.codigo || ''} registrada. El asesor ya la tiene.`); return;
     }
     const origen = tipo === 'nuevo' ? origenLeer(w, true) : null;
-    let nacISO = null; const sexo = opcLeer(w, 'sexo', HJ_SEXO, 'Sexo');
-    if (q('#nNac').value.trim()){ nacISO = fechaISOde(q('#nNac').value); if (!nacISO) throw new Error('Revise la fecha de nacimiento (día/mes/año)'); }
+    let nacISO = null; const sexo = tipo === 'nuevo' ? opcLeer(w, 'sexo', HJ_SEXO, 'Sexo') : null;
+    if (tipo === 'nuevo' && q('#nNac').value.trim()){ nacISO = fechaISOde(q('#nNac').value); if (!nacISO) throw new Error('Revise la fecha de nacimiento (día/mes/año)'); }
     const id = await rpc('crear_solicitud', { p_dni: q('#nDni').value, p_nombre: q('#nNombre').value, p_tipo: tipo, p_telefono: q('#nTel').value || null, p_enviar: false, p_fecha_ingreso: tipo !== 'nuevo' ? (q('#nIng').value || null) : null, p_asesor: q('#nAsesor')?.value || null });
     if (origen) await rpc('guardar_origen_cliente', { p_id:id, ...origen });
     if (nacISO || sexo){ try { await rpc('guardar_hoja', { p_id:id, p_hoja:{ ...(nacISO ? { nac:nacISO } : {}), ...(sexo ? { sexo } : {}) } }); } catch(x){ console.error(x); toast('La solicitud se creó, pero no se pudo guardar la fecha de nacimiento o el sexo. Llénelos en la hoja.', true); } }
